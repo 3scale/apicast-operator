@@ -41,3 +41,9 @@ that the operator is able to understand and process.
 ## Getting started
 
 WORK IN PROGRESS
+
+[git_tool]:https://git-scm.com/downloads
+[operator-sdk]:https://github.com/operator-framework/operator-sdk
+[go]:https://golang.org/
+[kubernetes]:https://kubernetes.io/
+[oc]:https://docs.okd.io/3.11/cli_reference/get_started_cli.html#cli-reference-get-started-cli
