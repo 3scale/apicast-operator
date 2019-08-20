@@ -28,8 +28,88 @@ spec:
         metadata:
           type: object
         spec:
+          properties:
+            adminPortalCredentialsRef:
+              type: object
+            cacheConfigurationSeconds:
+              format: int64
+              type: integer
+            configurationLoadMode:
+              format: int64
+              type: integer
+            deploymentEnvironment:
+              type: string
+            dnsResolverAddress:
+              type: string
+            enabledServices:
+              items:
+                type: string
+              type: array
+            exposedHost:
+              properties:
+                host:
+                  type: string
+                tls:
+                  items:
+                    type: object
+                  type: array
+              required:
+              - host
+              type: object
+            image:
+              type: string
+            logLevel:
+              type: string
+            managementAPIScope:
+              type: string
+            openSSLPeerVerificationEnabled:
+              type: boolean
+            pathRoutingEnabled:
+              type: boolean
+            replicas:
+              description: 'INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
+                Important: Run "operator-sdk generate k8s" to regenerate code after
+                modifying this file Add custom validation using kubebuilder tags:
+                https://book.kubebuilder.io/beyond_basics/generating_crd.html'
+              format: int64
+              type: integer
+            responseCodesIncluded:
+              type: boolean
+            serviceAccount:
+              type: string
+          required:
+          - adminPortalCredentialsRef
           type: object
         status:
+          properties:
+            conditions:
+              description: Represents the latest available observations of a replica
+                set's current state. +patchMergeKey=type +patchStrategy=merge
+              items:
+                properties:
+                  lastTransitionTime:
+                    description: The last time the condition transitioned from one
+                      status to another.
+                    format: date-time
+                    type: string
+                  message:
+                    description: A human readable message indicating details about
+                      the transition.
+                    type: string
+                  reason:
+                    description: The reason for the condition's last transition.
+                    type: string
+                  status:
+                    description: Status of the condition, one of True, False, Unknown.
+                    type: string
+                  type:
+                    description: Type of replica set condition.
+                    type: string
+                required:
+                - type
+                - status
+                type: object
+              type: array
           type: object
   version: v1alpha1
   versions:

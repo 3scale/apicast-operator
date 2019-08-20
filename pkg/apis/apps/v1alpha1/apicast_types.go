@@ -1,6 +1,8 @@
 package v1alpha1
 
 import (
+	v1 "k8s.io/api/core/v1"
+	extensions "k8s.io/api/extensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -13,7 +15,66 @@ type APIcastSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
 	// Add custom validation using kubebuilder tags: https://book.kubebuilder.io/beyond_basics/generating_crd.html
+	// +optional
+	Replicas                  *int64                   `json:"replicas,omitempty"`
+	AdminPortalCredentialsRef *v1.LocalObjectReference `json:"adminPortalCredentialsRef"`
+	// +optional
+	ServiceAccount *string `json:"serviceAccount,omitempty"`
+	// +optional
+	Image *string `json:"image,omitempty"`
+	// +optional
+	ExposedHost *APIcastExposedHost `json:"exposedHost,omitempty"`
+
+	// +optional
+	DeploymentEnvironment *DeploymentEnvironmentType `json:"deploymentEnvironment,omitempty"` // THREESCALE_DEPLOYMENT_ENV
+	// +optional
+	DNSResolverAddress *string `json:"dnsResolverAddress,omitempty"` // RESOLVER
+	// +optional
+	EnabledServices []string `json:"enabledServices,omitempty"` // APICAST_SERVICES_LIST
+	// +optional
+	ConfigurationLoadMode *int64 `json:"configurationLoadMode,omitempty"` // APICAST_CONFIGURATION_LOADER
+	// +optional
+	LogLevel *LogLevelType `json:"logLevel,omitempty"` // APICAST_LOG_LEVEL
+	// +optional
+	PathRoutingEnabled *bool `json:"pathRoutingEnabled,omitempty"` // APICAST_PATH_ROUTING
+	// +optional
+	ResponseCodesIncluded *bool `json:"responseCodesIncluded,omitempty"` // APICAST_RESPONSE_CODES
+	// +optional
+	CacheConfigurationSeconds *int64 `json:"cacheConfigurationSeconds,omitempty"` // APICAST_CONFIGURATION_CACHE
+	// +optional
+	ManagementAPIScope *ManagementAPIScopeType `json:"managementAPIScope,omitempty"` // MANAGEMENT_API
+	// +optional
+	OpenSSLPeerVerificationEnabled *bool `json:"openSSLPeerVerificationEnabled,omitempty"` // OPENSSL_VERIFY
 }
+
+type DeploymentEnvironmentType string
+
+const (
+	DeploymentEnvironmentProduction = "production"
+	DeploymentEnvironmentStaging    = "staging"
+)
+
+type LogLevelType string
+
+const (
+	LogLevelDebug    = "debug"
+	LogLevelInfo     = "info"
+	LogLevelNotice   = "notice"
+	LogLevelWarning  = "warn"
+	LogLevelError    = "error"
+	LogLevelCritical = "crit"
+	LogLevelAlert    = "alert"
+	LogLevelEmerg    = "emerg"
+)
+
+type ManagementAPIScopeType string
+
+const (
+	ManagementAPIScopeDisabled = "disabled"
+	ManagementAPIScopeStatus   = "status"
+	ManagementAPIScopePolicies = "policies"
+	ManagementAPIScopeDebug    = "debug"
+)
 
 // APIcastStatus defines the observed state of APIcast
 // +k8s:openapi-gen=true
@@ -21,6 +82,18 @@ type APIcastStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
 	// Add custom validation using kubebuilder tags: https://book.kubebuilder.io/beyond_basics/generating_crd.html
+
+	// Represents the latest available observations of a replica set's current state.
+	// +optional
+	// +patchMergeKey=type
+	// +patchStrategy=merge
+	Conditions []APIcastCondition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type"`
+}
+
+type APIcastExposedHost struct {
+	Host string `json:"host"`
+	// +optional
+	TLS []extensions.IngressTLS `json:"tls,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -34,6 +107,24 @@ type APIcast struct {
 
 	Spec   APIcastSpec   `json:"spec,omitempty"`
 	Status APIcastStatus `json:"status,omitempty"`
+}
+
+type APIcastConditionType string
+
+type APIcastCondition struct {
+	// Type of replica set condition.
+	Type APIcastConditionType `json:"type"`
+	// Status of the condition, one of True, False, Unknown.
+	Status v1.ConditionStatus `json:"status"`
+	// The last time the condition transitioned from one status to another.
+	// +optional
+	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty"`
+	// The reason for the condition's last transition.
+	// +optional
+	Reason string `json:"reason,omitempty"`
+	// A human readable message indicating details about the transition.
+	// +optional
+	Message string `json:"message,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

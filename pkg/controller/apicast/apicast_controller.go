@@ -3,15 +3,15 @@ package apicast
 import (
 	"context"
 
+	"github.com/3scale/apicast-operator/version"
+
 	appsv1alpha1 "github.com/3scale/apicast-operator/pkg/apis/apps/v1alpha1"
-	corev1 "k8s.io/api/core/v1"
+	appsv1 "k8s.io/api/apps/v1"
+	v1 "k8s.io/api/core/v1"
+	extensions "k8s.io/api/extensions/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -29,12 +29,33 @@ var log = logf.Log.WithName("controller_apicast")
 // Add creates a new APIcast Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
 func Add(mgr manager.Manager) error {
-	return add(mgr, newReconciler(mgr))
+	reconciler, err := newReconciler(mgr)
+	if err != nil {
+		return err
+	}
+	return add(mgr, reconciler)
+}
+
+// We create an Client Reader that directly queries the API server
+// without going to the Cache provided by the Manager's Client because
+// there are some resources that do not implement Watch (like ImageStreamTag)
+// and the Manager's Client always tries to use the Cache when reading
+func newAPIClientReader(mgr manager.Manager) (client.Client, error) {
+	return client.New(mgr.GetConfig(), client.Options{Mapper: mgr.GetRESTMapper(), Scheme: mgr.GetScheme()})
 }
 
 // newReconciler returns a new reconcile.Reconciler
-func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	return &ReconcileAPIcast{client: mgr.GetClient(), scheme: mgr.GetScheme()}
+func newReconciler(mgr manager.Manager) (reconcile.Reconciler, error) {
+
+	apiClientReader, err := newAPIClientReader(mgr)
+	if err != nil {
+		return nil, err
+	}
+
+	b := NewBaseReconciler(mgr.GetClient(), apiClientReader, mgr.GetScheme(), log)
+	return &ReconcileAPIcast{
+		BaseControllerReconciler: NewBaseControllerReconciler(b),
+	}, nil
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
@@ -51,9 +72,32 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	// TODO(user): Modify this to be the types you create that are owned by the primary resource
-	// Watch for changes to secondary resource Pods and requeue the owner APIcast
-	err = c.Watch(&source.Kind{Type: &corev1.Pod{}}, &handler.EnqueueRequestForOwner{
+	// Watch for changes in secondary resources
+	err = c.Watch(&source.Kind{Type: &v1.Secret{}}, &handler.EnqueueRequestForOwner{
+		IsController: true,
+		OwnerType:    &appsv1alpha1.APIcast{},
+	})
+	if err != nil {
+		return err
+	}
+
+	err = c.Watch(&source.Kind{Type: &appsv1.Deployment{}}, &handler.EnqueueRequestForOwner{
+		IsController: true,
+		OwnerType:    &appsv1alpha1.APIcast{},
+	})
+	if err != nil {
+		return err
+	}
+
+	err = c.Watch(&source.Kind{Type: &v1.Service{}}, &handler.EnqueueRequestForOwner{
+		IsController: true,
+		OwnerType:    &appsv1alpha1.APIcast{},
+	})
+	if err != nil {
+		return err
+	}
+
+	err = c.Watch(&source.Kind{Type: &extensions.Ingress{}}, &handler.EnqueueRequestForOwner{
 		IsController: true,
 		OwnerType:    &appsv1alpha1.APIcast{},
 	})
@@ -69,11 +113,12 @@ var _ reconcile.Reconciler = &ReconcileAPIcast{}
 
 // ReconcileAPIcast reconciles a APIcast object
 type ReconcileAPIcast struct {
-	// This client, initialized using mgr.Client() above, is a split client
-	// that reads objects from the cache and writes to the apiserver
-	client client.Client
-	scheme *runtime.Scheme
+	BaseControllerReconciler
 }
+
+const (
+	APIcastOperatorVersionAnnotation = "apicast.apps.3scale.net/operator-version"
+)
 
 // Reconcile reads that state of the cluster for a APIcast object and makes changes based on the state read
 // and what is in the APIcast.Spec
@@ -86,68 +131,79 @@ func (r *ReconcileAPIcast) Reconcile(request reconcile.Request) (reconcile.Resul
 	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
 	reqLogger.Info("Reconciling APIcast")
 
-	// Fetch the APIcast instance
-	instance := &appsv1alpha1.APIcast{}
-	err := r.client.Get(context.TODO(), request.NamespacedName, instance)
+	instance, err := r.getAPIcast(request)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			// Request object not found, could have been deleted after reconcile request.
-			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
-			// Return and don't requeue
+			r.Logger().Info("APIcast not found")
 			return reconcile.Result{}, nil
 		}
-		// Error reading the object - requeue the request.
+		r.Logger().Error(err, "Error getting APIcast")
 		return reconcile.Result{}, err
 	}
 
-	// Define a new Pod object
-	pod := newPodForCR(instance)
-
-	// Set APIcast instance as the owner and controller
-	if err := controllerutil.SetControllerReference(instance, pod, r.scheme); err != nil {
-		return reconcile.Result{}, err
-	}
-
-	// Check if this Pod already exists
-	found := &corev1.Pod{}
-	err = r.client.Get(context.TODO(), types.NamespacedName{Name: pod.Name, Namespace: pod.Namespace}, found)
-	if err != nil && errors.IsNotFound(err) {
-		reqLogger.Info("Creating a new Pod", "Pod.Namespace", pod.Namespace, "Pod.Name", pod.Name)
-		err = r.client.Create(context.TODO(), pod)
+	if instance.ObjectMeta.Annotations == nil || instance.ObjectMeta.Annotations[APIcastOperatorVersionAnnotation] == "" {
+		r.Logger().Info("APIcast operator version not set in annotations. Setting it...")
+		if instance.ObjectMeta.Annotations == nil {
+			instance.ObjectMeta.Annotations = map[string]string{}
+		}
+		err = r.updateAPIcastOperatorVersionInAnnotations(instance)
 		if err != nil {
 			return reconcile.Result{}, err
 		}
-
-		// Pod created successfully - don't requeue
-		return reconcile.Result{}, nil
-	} else if err != nil {
-		return reconcile.Result{}, err
+		return reconcile.Result{Requeue: true}, err
 	}
 
-	// Pod already exists - don't requeue
-	reqLogger.Info("Skip reconcile: Pod already exists", "Pod.Namespace", found.Namespace, "Pod.Name", found.Name)
+	if instance.ObjectMeta.Annotations[APIcastOperatorVersionAnnotation] != version.Version {
+		r.Logger().Info("APIcast operator version in annotations does not match expected version. Applying upgrade procedure...")
+		// TODO implement upgrade procedure here. The idea is that here we will not set version until
+		// we verify that all the upgrade steps have been applied and correctly
+
+		upgradeReconcileResult, err := r.upgradeAPIcast()
+		if err != nil {
+			r.Logger().Error(err, "Error upgrading APIcast")
+			return reconcile.Result{}, err
+		}
+		if upgradeReconcileResult.Requeue {
+			return upgradeReconcileResult, nil
+		}
+		r.Logger().Info("APIcast upgrade procedure applied")
+		r.Logger().Info("Setting APIcast operator version in annotations...")
+		err = r.updateAPIcastOperatorVersionInAnnotations(instance)
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+		r.Logger().Info("APIcast operator version in annotations set. Requeuing request...")
+		return reconcile.Result{Requeue: true}, nil
+	}
+
+	logicReconciler := NewAPIcastLogicReconciler(r.BaseReconciler, instance)
+	result, err := logicReconciler.Reconcile()
+	if err != nil || result.Requeue {
+		r.Logger().Error(err, "Requeuing request...")
+		return result, err
+	}
+
+	r.Logger().Info("APIcast logic reconciled")
+	r.Logger().Info("Finished current reconcile request successfully. Skipping requeue of the request")
 	return reconcile.Result{}, nil
 }
 
-// newPodForCR returns a busybox pod with the same name/namespace as the cr
-func newPodForCR(cr *appsv1alpha1.APIcast) *corev1.Pod {
-	labels := map[string]string{
-		"app": cr.Name,
+func (r *ReconcileAPIcast) upgradeAPIcast() (reconcile.Result, error) {
+	return reconcile.Result{}, nil
+}
+
+func (r *ReconcileAPIcast) getAPIcast(request reconcile.Request) (*appsv1alpha1.APIcast, error) {
+	instance := appsv1alpha1.APIcast{}
+	err := r.Client().Get(context.TODO(), request.NamespacedName, &instance)
+	return &instance, err
+}
+
+func (r *ReconcileAPIcast) updateAPIcastOperatorVersionInAnnotations(instance *appsv1alpha1.APIcast) error {
+	instance.Annotations[APIcastOperatorVersionAnnotation] = version.Version
+	err := r.Client().Update(context.TODO(), instance)
+	if err != nil {
+		r.Logger().Error(err, "Error setting APIcast operator version in annotations")
 	}
-	return &corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      cr.Name + "-pod",
-			Namespace: cr.Namespace,
-			Labels:    labels,
-		},
-		Spec: corev1.PodSpec{
-			Containers: []corev1.Container{
-				{
-					Name:    "busybox",
-					Image:   "busybox",
-					Command: []string{"sleep", "3600"},
-				},
-			},
-		},
-	}
+	r.Logger().Info("APIcast operator version in annotations set. Requeuing request...")
+	return err
 }
