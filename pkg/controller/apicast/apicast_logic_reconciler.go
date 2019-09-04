@@ -26,7 +26,8 @@ import (
 )
 
 const (
-	AdmPortalSecretResverAnnotation = "apicast.apps.3scale.net/admin-portal-secret-resource-version"
+	AdmPortalSecretResverAnnotation            = "apicast.apps.3scale.net/admin-portal-secret-resource-version"
+	GatewayConfigurationSecretResverAnnotation = "apicast.apps.3scale.net/gateway-configuration-secret-resource-version"
 )
 
 type APIcastLogicReconciler struct {
@@ -36,6 +37,7 @@ type APIcastLogicReconciler struct {
 
 type apicastUserProvidedSecrets struct {
 	adminPortalCredentialsSecret *v1.Secret
+	gatewayEmbeddedConfigSecret  *v1.Secret
 }
 
 func NewAPIcastLogicReconciler(b BaseReconciler, cr *appsv1alpha1.APIcast) APIcastLogicReconciler {
@@ -71,8 +73,17 @@ func (r *APIcastLogicReconciler) Reconcile() (reconcile.Result, error) {
 		return reconcile.Result{Requeue: true}, nil
 	}
 
+	gatewayEmbeddedConfigSecret, changed, err := r.reconcileGatewayEmbbededConfig()
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+	if changed {
+		return reconcile.Result{Requeue: true}, nil
+	}
+
 	userProvidedSecrets := &apicastUserProvidedSecrets{
 		adminPortalCredentialsSecret: adminPortalCredentialsSecret,
+		gatewayEmbeddedConfigSecret:  gatewayEmbeddedConfigSecret,
 	}
 
 	// TODO this function does a little bit of creating the desiredApicast and
@@ -140,7 +151,32 @@ func (r *APIcastLogicReconciler) getAdminPortalCredentialsSecret() (*v1.Secret, 
 	return &adminPortalCredentialsSecret, err
 }
 
+func (r *APIcastLogicReconciler) gatewayConfigurationSecret() (v1.Secret, error) {
+	gatewayConfigSecret := v1.Secret{}
+
+	if r.APIcastCR.Spec.EmbeddedConfigurationSecretRef.Name == "" {
+		return v1.Secret{}, fmt.Errorf("Name field not defined in secret %s", r.APIcastCR.Spec.EmbeddedConfigurationSecretRef)
+	}
+
+	gatewayConfigSecretNamespacedName := types.NamespacedName{
+		Name:      r.APIcastCR.Spec.EmbeddedConfigurationSecretRef.Name,
+		Namespace: r.APIcastCR.Namespace,
+	}
+	err := r.Client().Get(context.TODO(), gatewayConfigSecretNamespacedName, &gatewayConfigSecret)
+	if err != nil {
+		return v1.Secret{}, err
+	}
+	if _, ok := gatewayConfigSecret.Data["config.json"]; !ok {
+		return v1.Secret{}, fmt.Errorf("%s key not found in secret %s", "config.json", gatewayConfigSecret.Name)
+	}
+	return gatewayConfigSecret, nil
+}
+
 func (r *APIcastLogicReconciler) reconcileAdminPortalCredentials() (*v1.Secret, bool, error) {
+	if r.APIcastCR.Spec.AdminPortalCredentialsRef == nil {
+		return nil, false, nil
+	}
+
 	adminPortalCredentialsSecret, err := r.getAdminPortalCredentialsSecret()
 	if err != nil {
 		return nil, false, err
@@ -159,6 +195,59 @@ func (r *APIcastLogicReconciler) reconcileAdminPortalCredentials() (*v1.Secret, 
 	}
 
 	return adminPortalCredentialsSecret, changed, nil
+}
+
+func (r *APIcastLogicReconciler) reconcileGatewayEmbbededConfig() (*v1.Secret, bool, error) {
+	if r.APIcastCR.Spec.EmbeddedConfigurationSecretRef == nil {
+		return nil, false, nil
+	}
+
+	gatewayEmbeddedConfigSecret, err := r.getGatewayEmbeddedConfigSecret()
+	if err != nil {
+		return nil, false, err
+	}
+
+	changed, err := r.ensureOwnerReference(gatewayEmbeddedConfigSecret)
+	if err != nil {
+		return nil, changed, err
+	}
+
+	if changed {
+		err = r.Client().Update(context.TODO(), gatewayEmbeddedConfigSecret)
+		if err != nil {
+			return nil, changed, err
+		}
+	}
+
+	return gatewayEmbeddedConfigSecret, changed, nil
+}
+
+func (r *APIcastLogicReconciler) getGatewayEmbeddedConfigSecret() (*v1.Secret, error) {
+	gatewayConfigSecretReference := r.APIcastCR.Spec.EmbeddedConfigurationSecretRef
+	gatewayConfigSecretNamespace := r.APIcastCR.Namespace
+
+	if gatewayConfigSecretReference.Name == "" {
+		return nil, fmt.Errorf("Field 'Name' not specified for EmbeddedConfigurationSecretRef Secret Reference")
+	}
+
+	gatewayConfigSecretNamespacedName := types.NamespacedName{
+		Name:      gatewayConfigSecretReference.Name,
+		Namespace: gatewayConfigSecretNamespace,
+	}
+
+	gatewayConfigSecret := v1.Secret{}
+	err := r.Client().Get(context.TODO(), gatewayConfigSecretNamespacedName, &gatewayConfigSecret)
+
+	if err != nil {
+		return nil, err
+	}
+
+	secretStringData := k8sutils.SecretStringDataFromData(gatewayConfigSecret)
+	if _, ok := secretStringData[apicast.EmbeddedConfigurationSecretKey]; !ok {
+		return nil, fmt.Errorf("Required key '%s' not found in secret '%s'", apicast.EmbeddedConfigurationSecretKey, gatewayConfigSecret.Name)
+	}
+
+	return &gatewayConfigSecret, err
 }
 
 func (r APIcastLogicReconciler) ensureOwnerReference(obj metav1.Object) (bool, error) {
@@ -182,6 +271,11 @@ func (r *APIcastLogicReconciler) UserProvidedSecretResourceVersionAnnotations(us
 	annotations := map[string]string{}
 
 	annotations[AdmPortalSecretResverAnnotation] = string(userProvidedSecrets.adminPortalCredentialsSecret.ResourceVersion)
+
+	if userProvidedSecrets.gatewayEmbeddedConfigSecret != nil {
+		annotations[GatewayConfigurationSecretResverAnnotation] = string(userProvidedSecrets.gatewayEmbeddedConfigSecret.ResourceVersion)
+	}
+
 	return annotations
 }
 
@@ -216,6 +310,18 @@ func (r *APIcastLogicReconciler) internalAPIcast(userProvidedSecrets *apicastUse
 
 	deploymentAnnotations := r.UserProvidedSecretResourceVersionAnnotations(userProvidedSecrets)
 
+	var adminPortalSecretName *string
+	if userProvidedSecrets.adminPortalCredentialsSecret != nil {
+		tmpAdminPortalSecretName := userProvidedSecrets.adminPortalCredentialsSecret.Name
+		adminPortalSecretName = &tmpAdminPortalSecretName
+	}
+
+	var gatewayConfigurationSecretName *string
+	if userProvidedSecrets.gatewayEmbeddedConfigSecret != nil {
+		tmpGatewayConfigurationSecretName := userProvidedSecrets.gatewayEmbeddedConfigSecret.Name
+		gatewayConfigurationSecretName = &tmpGatewayConfigurationSecretName
+	}
+
 	apicastResult := apicast.APIcast{
 		DeploymentName:                   apicastFullName,
 		ServiceName:                      apicastFullName,
@@ -227,7 +333,7 @@ func (r *APIcastLogicReconciler) internalAPIcast(userProvidedSecrets *apicastUse
 		ExposedHost:                      apicastExposedHost,
 		Namespace:                        r.APIcastCR.Namespace,
 		OwnerReference:                   &apicastOwnerRef,
-		AdminPortalCredentialsSecretName: userProvidedSecrets.adminPortalCredentialsSecret.Name,
+		AdminPortalCredentialsSecretName: adminPortalSecretName,
 		DeploymentEnvironment:            deploymentEnvironment,
 		DNSResolverAddress:               r.APIcastCR.Spec.DNSResolverAddress,
 		EnabledServices:                  r.APIcastCR.Spec.EnabledServices,
@@ -238,6 +344,7 @@ func (r *APIcastLogicReconciler) internalAPIcast(userProvidedSecrets *apicastUse
 		CacheConfigurationSeconds:        r.APIcastCR.Spec.CacheConfigurationSeconds,
 		ManagementAPIScope:               managementAPIScope,
 		OpenSSLPeerVerificationEnabled:   r.APIcastCR.Spec.OpenSSLPeerVerificationEnabled,
+		GatewayConfigurationSecretName:   gatewayConfigurationSecretName,
 	}
 
 	return apicastResult, err
@@ -341,7 +448,6 @@ func (r *APIcastLogicReconciler) reconcileDeployment(desiredDeployment appsv1.De
 	if !reflect.DeepEqual(existingDeployment.Spec.Template.Spec.ServiceAccountName, desiredDeployment.Spec.Template.Spec.ServiceAccountName) {
 		changed = true
 		existingDeployment.Spec.Template.Spec.ServiceAccountName = desiredDeployment.Spec.Template.Spec.ServiceAccountName
-
 	}
 
 	if !reflect.DeepEqual(existingDeployment.Spec.Template.Spec.Containers[0].Env, desiredDeployment.Spec.Template.Spec.Containers[0].Env) {
@@ -354,6 +460,16 @@ func (r *APIcastLogicReconciler) reconcileDeployment(desiredDeployment appsv1.De
 	if !reflect.DeepEqual(existingDeployment.Spec.Template.Annotations, desiredDeployment.Spec.Template.Annotations) {
 		changed = true
 		existingDeployment.Spec.Template.Annotations = desiredDeployment.Spec.Template.Annotations
+	}
+
+	if !reflect.DeepEqual(existingDeployment.Spec.Template.Spec.Volumes, desiredDeployment.Spec.Template.Spec.Volumes) {
+		changed = true
+		existingDeployment.Spec.Template.Spec.Volumes = desiredDeployment.Spec.Template.Spec.Volumes
+	}
+
+	if !reflect.DeepEqual(existingDeployment.Spec.Template.Spec.Containers[0].VolumeMounts, desiredDeployment.Spec.Template.Spec.Containers[0].VolumeMounts) {
+		changed = true
+		existingDeployment.Spec.Template.Spec.Containers[0].VolumeMounts = desiredDeployment.Spec.Template.Spec.Containers[0].VolumeMounts
 	}
 
 	if changed {

@@ -80,6 +80,11 @@ func schema_pkg_apis_apps_v1alpha1_APIcastSpec(ref common.ReferenceCallback) com
 							Ref: ref("k8s.io/api/core/v1.LocalObjectReference"),
 						},
 					},
+					"embeddedConfigurationSecretRef": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("k8s.io/api/core/v1.LocalObjectReference"),
+						},
+					},
 					"serviceAccount": {
 						SchemaProps: spec.SchemaProps{
 							Type:   []string{"string"},
@@ -165,7 +170,6 @@ func schema_pkg_apis_apps_v1alpha1_APIcastSpec(ref common.ReferenceCallback) com
 						},
 					},
 				},
-				Required: []string{"adminPortalCredentialsRef"},
 			},
 		},
 		Dependencies: []string{

@@ -124,6 +124,11 @@ func (in *APIcastSpec) DeepCopyInto(out *APIcastSpec) {
 		*out = new(v1.LocalObjectReference)
 		**out = **in
 	}
+	if in.EmbeddedConfigurationSecretRef != nil {
+		in, out := &in.EmbeddedConfigurationSecretRef, &out.EmbeddedConfigurationSecretRef
+		*out = new(v1.LocalObjectReference)
+		**out = **in
+	}
 	if in.ServiceAccount != nil {
 		in, out := &in.ServiceAccount, &out.ServiceAccount
 		*out = new(string)
