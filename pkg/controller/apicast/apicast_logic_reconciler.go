@@ -270,7 +270,9 @@ func (r APIcastLogicReconciler) ensureOwnerReference(obj metav1.Object) (bool, e
 func (r *APIcastLogicReconciler) UserProvidedSecretResourceVersionAnnotations(userProvidedSecrets *apicastUserProvidedSecrets) map[string]string {
 	annotations := map[string]string{}
 
-	annotations[AdmPortalSecretResverAnnotation] = string(userProvidedSecrets.adminPortalCredentialsSecret.ResourceVersion)
+	if userProvidedSecrets.adminPortalCredentialsSecret != nil {
+		annotations[AdmPortalSecretResverAnnotation] = string(userProvidedSecrets.adminPortalCredentialsSecret.ResourceVersion)
+	}
 
 	if userProvidedSecrets.gatewayEmbeddedConfigSecret != nil {
 		annotations[GatewayConfigurationSecretResverAnnotation] = string(userProvidedSecrets.gatewayEmbeddedConfigSecret.ResourceVersion)
