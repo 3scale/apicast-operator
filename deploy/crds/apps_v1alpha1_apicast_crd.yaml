@@ -110,6 +110,13 @@ spec:
                 - status
                 type: object
               type: array
+            ready:
+              type: boolean
+            upgradeInProgress:
+              type: boolean
+          required:
+          - ready
+          - upgradeInProgress
           type: object
   version: v1alpha1
   versions:

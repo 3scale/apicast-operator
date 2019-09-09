@@ -202,7 +202,20 @@ func schema_pkg_apis_apps_v1alpha1_APIcastStatus(ref common.ReferenceCallback) c
 							},
 						},
 					},
+					"ready": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"boolean"},
+							Format: "",
+						},
+					},
+					"upgradeInProgress": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"boolean"},
+							Format: "",
+						},
+					},
 				},
+				Required: []string{"ready", "upgradeInProgress"},
 			},
 		},
 		Dependencies: []string{

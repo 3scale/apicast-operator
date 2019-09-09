@@ -89,7 +89,9 @@ type APIcastStatus struct {
 	// +optional
 	// +patchMergeKey=type
 	// +patchStrategy=merge
-	Conditions []APIcastCondition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type"`
+	Conditions        []APIcastCondition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type"`
+	Ready             bool               `json:"ready"`
+	UpgradeInProgress bool               `json:"upgradeInProgress"`
 }
 
 type APIcastExposedHost struct {
