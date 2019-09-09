@@ -143,8 +143,9 @@ func (r *APIcastLogicReconciler) getAdminPortalCredentialsSecret() (*v1.Secret, 
 	if err != nil {
 		return nil, err
 	}
-	_, ok = parsedURL.User.Password()
-	if !ok {
+
+	accessToken := parsedURL.User.Username()
+	if accessToken == "" {
 		return nil, fmt.Errorf("Access Token required in %s URL", apicast.AdminPortalURLAttributeName)
 	}
 
