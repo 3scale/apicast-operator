@@ -41,6 +41,8 @@ spec:
               type: string
             dnsResolverAddress:
               type: string
+            embeddedConfigurationSecretRef:
+              type: object
             enabledServices:
               items:
                 type: string
@@ -77,8 +79,6 @@ spec:
               type: boolean
             serviceAccount:
               type: string
-          required:
-          - adminPortalCredentialsRef
           type: object
         status:
           properties:

@@ -16,15 +16,17 @@ type APIcastSpec struct {
 	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
 	// Add custom validation using kubebuilder tags: https://book.kubebuilder.io/beyond_basics/generating_crd.html
 	// +optional
-	Replicas                  *int64                   `json:"replicas,omitempty"`
-	AdminPortalCredentialsRef *v1.LocalObjectReference `json:"adminPortalCredentialsRef"`
+	Replicas *int64 `json:"replicas,omitempty"`
+	// +optional
+	AdminPortalCredentialsRef *v1.LocalObjectReference `json:"adminPortalCredentialsRef,omitempty"`
+	// +optional
+	EmbeddedConfigurationSecretRef *v1.LocalObjectReference `json:"embeddedConfigurationSecretRef,omitempty"`
 	// +optional
 	ServiceAccount *string `json:"serviceAccount,omitempty"`
 	// +optional
 	Image *string `json:"image,omitempty"`
 	// +optional
 	ExposedHost *APIcastExposedHost `json:"exposedHost,omitempty"`
-
 	// +optional
 	DeploymentEnvironment *DeploymentEnvironmentType `json:"deploymentEnvironment,omitempty"` // THREESCALE_DEPLOYMENT_ENV
 	// +optional

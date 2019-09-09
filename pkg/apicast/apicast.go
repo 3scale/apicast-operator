@@ -23,7 +23,7 @@ type APIcast struct {
 	Image                            string
 	ExposedHost                      ExposedHost
 	OwnerReference                   *metav1.OwnerReference
-	AdminPortalCredentialsSecretName string
+	AdminPortalCredentialsSecretName *string
 
 	DeploymentEnvironment          *string
 	DNSResolverAddress             *string
@@ -35,6 +35,7 @@ type APIcast struct {
 	CacheConfigurationSeconds      *int64
 	ManagementAPIScope             *string
 	OpenSSLPeerVerificationEnabled *bool
+	GatewayConfigurationSecretName *string
 }
 
 type ExposedHost struct {
@@ -45,6 +46,47 @@ type ExposedHost struct {
 const (
 	AdminPortalURLAttributeName = "AdminPortalURL"
 )
+
+const (
+	EmbeddedConfigurationMountPath  = "/tmp/gateway-configuration-volume"
+	EmbeddedConfigurationVolumeName = "gateway-configuration-volume"
+	EmbeddedConfigurationSecretKey  = "config.json"
+)
+
+func (a *APIcast) deploymentVolumeMounts() []v1.VolumeMount {
+	var volumeMounts []v1.VolumeMount
+	if a.GatewayConfigurationSecretName != nil {
+		volumeMounts = append(volumeMounts, v1.VolumeMount{
+			Name:      EmbeddedConfigurationVolumeName,
+			MountPath: EmbeddedConfigurationMountPath,
+			ReadOnly:  true,
+		})
+	}
+
+	return volumeMounts
+}
+
+func (a *APIcast) deploymentVolumes() []v1.Volume {
+	var volumes []v1.Volume
+	if a.GatewayConfigurationSecretName != nil {
+		volumes = append(volumes, v1.Volume{
+			Name: EmbeddedConfigurationVolumeName,
+			VolumeSource: v1.VolumeSource{
+				Secret: &v1.SecretVolumeSource{
+					SecretName: *a.GatewayConfigurationSecretName,
+					Items: []v1.KeyToPath{
+						v1.KeyToPath{
+							Key:  EmbeddedConfigurationSecretKey,
+							Path: EmbeddedConfigurationSecretKey,
+						},
+					},
+				},
+			},
+		})
+	}
+
+	return volumes
+}
 
 func (a *APIcast) envVarFromValue(name string, value string) v1.EnvVar {
 	return v1.EnvVar{
@@ -70,7 +112,9 @@ func (a *APIcast) envVarFromSecretKey(name string, secretName string, secretKey 
 func (a *APIcast) deploymentEnv() []v1.EnvVar {
 	var env []v1.EnvVar
 
-	env = append(env, a.envVarFromSecretKey("THREESCALE_PORTAL_ENDPOINT", a.AdminPortalCredentialsSecretName, AdminPortalURLAttributeName))
+	if a.AdminPortalCredentialsSecretName != nil {
+		env = append(env, a.envVarFromSecretKey("THREESCALE_PORTAL_ENDPOINT", *a.AdminPortalCredentialsSecretName, AdminPortalURLAttributeName))
+	}
 
 	if a.DeploymentEnvironment != nil {
 		env = append(env, a.envVarFromValue("THREESCALE_DEPLOYMENT_ENV", *a.DeploymentEnvironment))
@@ -115,6 +159,13 @@ func (a *APIcast) deploymentEnv() []v1.EnvVar {
 		env = append(env, a.envVarFromValue("OPENSSL_VERIFY", strconv.FormatBool(*a.OpenSSLPeerVerificationEnabled)))
 	}
 
+	if a.GatewayConfigurationSecretName != nil {
+		env = append(env, v1.EnvVar{
+			Name:  "THREESCALE_CONFIG_FILE",
+			Value: EmbeddedConfigurationMountPath + "/" + EmbeddedConfigurationSecretKey,
+		})
+	}
+
 	return env
 }
 
@@ -144,6 +195,7 @@ func (a *APIcast) Deployment() *appsv1.Deployment {
 				},
 				Spec: v1.PodSpec{
 					ServiceAccountName: a.ServiceAccountName,
+					Volumes:            a.deploymentVolumes(),
 					Containers: []v1.Container{
 						v1.Container{
 							Name: a.DeploymentName,
@@ -166,6 +218,7 @@ func (a *APIcast) Deployment() *appsv1.Deployment {
 							},
 							LivenessProbe:  a.livenessProbe(),
 							ReadinessProbe: a.readinessProbe(),
+							VolumeMounts:   a.deploymentVolumeMounts(),
 							// Env takes precedence with respect to EnvFrom on duplicated
 							// var values
 							Env: a.deploymentEnv(),
@@ -179,6 +232,7 @@ func (a *APIcast) Deployment() *appsv1.Deployment {
 	if a.OwnerReference != nil {
 		addOwnerRefToObject(deployment, *a.OwnerReference)
 	}
+
 	return deployment
 }
 
