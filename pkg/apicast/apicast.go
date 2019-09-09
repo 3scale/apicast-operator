@@ -259,7 +259,7 @@ func (a *APIcast) podAnnotations() map[string]string {
 		annotations[key] = val
 	}
 
-	return map[string]string{}
+	return annotations
 }
 
 func (a *APIcast) Service() *v1.Service {
