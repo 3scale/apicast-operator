@@ -1,6 +1,6 @@
 package apicast
 
-const currentImageVersion = "registry.access.redhat.com/3scale-amp26/apicast-gateway"
+const currentImageVersion = "quay.io/3scale/apicast:nightly"
 
 func GetCurrentImageVersion() string {
 	return currentImageVersion
