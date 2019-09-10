@@ -34,7 +34,8 @@ type APIcastSpec struct {
 	// +optional
 	EnabledServices []string `json:"enabledServices,omitempty"` // APICAST_SERVICES_LIST
 	// +optional
-	ConfigurationLoadMode *int64 `json:"configurationLoadMode,omitempty"` // APICAST_CONFIGURATION_LOADER
+	// +kubebuilder:validation:Enum=boot;lazy
+	ConfigurationLoadMode *string `json:"configurationLoadMode,omitempty"` // APICAST_CONFIGURATION_LOADER
 	// +optional
 	LogLevel *LogLevelType `json:"logLevel,omitempty"` // APICAST_LOG_LEVEL
 	// +optional

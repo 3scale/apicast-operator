@@ -35,8 +35,9 @@ spec:
               format: int64
               type: integer
             configurationLoadMode:
-              format: int64
-              type: integer
+              enum:
+              - boot;lazy
+              type: string
             deploymentEnvironment:
               type: string
             dnsResolverAddress:
