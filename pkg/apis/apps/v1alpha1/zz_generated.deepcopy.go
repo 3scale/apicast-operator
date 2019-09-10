@@ -186,7 +186,7 @@ func (in *APIcastSpec) DeepCopyInto(out *APIcastSpec) {
 	}
 	if in.ManagementAPIScope != nil {
 		in, out := &in.ManagementAPIScope, &out.ManagementAPIScope
-		*out = new(ManagementAPIScopeType)
+		*out = new(string)
 		**out = **in
 	}
 	if in.OpenSSLPeerVerificationEnabled != nil {

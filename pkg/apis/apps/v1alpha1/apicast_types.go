@@ -44,7 +44,8 @@ type APIcastSpec struct {
 	// +optional
 	CacheConfigurationSeconds *int64 `json:"cacheConfigurationSeconds,omitempty"` // APICAST_CONFIGURATION_CACHE
 	// +optional
-	ManagementAPIScope *ManagementAPIScopeType `json:"managementAPIScope,omitempty"` // MANAGEMENT_API
+	// +kubebuilder:validation:Enum=disabled;status;policies;debug
+	ManagementAPIScope *string `json:"managementAPIScope,omitempty"` // APICAST_MANAGEMENT_API
 	// +optional
 	OpenSSLPeerVerificationEnabled *bool `json:"openSSLPeerVerificationEnabled,omitempty"` // OPENSSL_VERIFY
 }
@@ -67,15 +68,6 @@ const (
 	LogLevelCritical = "crit"
 	LogLevelAlert    = "alert"
 	LogLevelEmerg    = "emerg"
-)
-
-type ManagementAPIScopeType string
-
-const (
-	ManagementAPIScopeDisabled = "disabled"
-	ManagementAPIScopeStatus   = "status"
-	ManagementAPIScopePolicies = "policies"
-	ManagementAPIScopeDebug    = "debug"
 )
 
 // APIcastStatus defines the observed state of APIcast

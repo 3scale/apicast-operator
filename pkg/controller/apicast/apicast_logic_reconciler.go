@@ -305,12 +305,6 @@ func (r *APIcastLogicReconciler) internalAPIcast(userProvidedSecrets *apicastUse
 		logLevel = &res
 	}
 
-	var managementAPIScope *string
-	if r.APIcastCR.Spec.ManagementAPIScope != nil {
-		res := string(*r.APIcastCR.Spec.ManagementAPIScope)
-		managementAPIScope = &res
-	}
-
 	deploymentAnnotations := r.UserProvidedSecretResourceVersionAnnotations(userProvidedSecrets)
 
 	var adminPortalSecretName *string
@@ -345,7 +339,7 @@ func (r *APIcastLogicReconciler) internalAPIcast(userProvidedSecrets *apicastUse
 		PathRoutingEnabled:               r.APIcastCR.Spec.PathRoutingEnabled,
 		ResponseCodesIncluded:            r.APIcastCR.Spec.ResponseCodesIncluded,
 		CacheConfigurationSeconds:        r.APIcastCR.Spec.CacheConfigurationSeconds,
-		ManagementAPIScope:               managementAPIScope,
+		ManagementAPIScope:               r.APIcastCR.Spec.ManagementAPIScope,
 		OpenSSLPeerVerificationEnabled:   r.APIcastCR.Spec.OpenSSLPeerVerificationEnabled,
 		GatewayConfigurationSecretName:   gatewayConfigurationSecretName,
 	}
