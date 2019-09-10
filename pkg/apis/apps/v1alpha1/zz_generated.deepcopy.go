@@ -166,7 +166,7 @@ func (in *APIcastSpec) DeepCopyInto(out *APIcastSpec) {
 	}
 	if in.LogLevel != nil {
 		in, out := &in.LogLevel, &out.LogLevel
-		*out = new(LogLevelType)
+		*out = new(string)
 		**out = **in
 	}
 	if in.PathRoutingEnabled != nil {
