@@ -299,12 +299,6 @@ func (r *APIcastLogicReconciler) internalAPIcast(userProvidedSecrets *apicastUse
 		deploymentEnvironment = &res
 	}
 
-	var logLevel *string
-	if r.APIcastCR.Spec.LogLevel != nil {
-		res := string(*r.APIcastCR.Spec.LogLevel)
-		logLevel = &res
-	}
-
 	deploymentAnnotations := r.UserProvidedSecretResourceVersionAnnotations(userProvidedSecrets)
 
 	var adminPortalSecretName *string
@@ -335,7 +329,7 @@ func (r *APIcastLogicReconciler) internalAPIcast(userProvidedSecrets *apicastUse
 		DNSResolverAddress:               r.APIcastCR.Spec.DNSResolverAddress,
 		EnabledServices:                  r.APIcastCR.Spec.EnabledServices,
 		ConfigurationLoadMode:            r.APIcastCR.Spec.ConfigurationLoadMode,
-		LogLevel:                         logLevel,
+		LogLevel:                         r.APIcastCR.Spec.LogLevel,
 		PathRoutingEnabled:               r.APIcastCR.Spec.PathRoutingEnabled,
 		ResponseCodesIncluded:            r.APIcastCR.Spec.ResponseCodesIncluded,
 		CacheConfigurationSeconds:        r.APIcastCR.Spec.CacheConfigurationSeconds,

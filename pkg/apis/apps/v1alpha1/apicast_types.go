@@ -37,7 +37,8 @@ type APIcastSpec struct {
 	// +kubebuilder:validation:Enum=boot;lazy
 	ConfigurationLoadMode *string `json:"configurationLoadMode,omitempty"` // APICAST_CONFIGURATION_LOADER
 	// +optional
-	LogLevel *LogLevelType `json:"logLevel,omitempty"` // APICAST_LOG_LEVEL
+	// +kubebuilder:validation:Enum=debug;info;notice;warn;error;crit;alert;emerg
+	LogLevel *string `json:"logLevel,omitempty"` // APICAST_LOG_LEVEL
 	// +optional
 	PathRoutingEnabled *bool `json:"pathRoutingEnabled,omitempty"` // APICAST_PATH_ROUTING
 	// +optional
@@ -56,19 +57,6 @@ type DeploymentEnvironmentType string
 const (
 	DeploymentEnvironmentProduction = "production"
 	DeploymentEnvironmentStaging    = "staging"
-)
-
-type LogLevelType string
-
-const (
-	LogLevelDebug    = "debug"
-	LogLevelInfo     = "info"
-	LogLevelNotice   = "notice"
-	LogLevelWarning  = "warn"
-	LogLevelError    = "error"
-	LogLevelCritical = "crit"
-	LogLevelAlert    = "alert"
-	LogLevelEmerg    = "emerg"
 )
 
 // APIcastStatus defines the observed state of APIcast

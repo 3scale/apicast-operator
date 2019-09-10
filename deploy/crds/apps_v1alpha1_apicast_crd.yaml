@@ -62,6 +62,8 @@ spec:
             image:
               type: string
             logLevel:
+              enum:
+              - debug;info;notice;warn;error;crit;alert;emerg
               type: string
             managementAPIScope:
               enum:
