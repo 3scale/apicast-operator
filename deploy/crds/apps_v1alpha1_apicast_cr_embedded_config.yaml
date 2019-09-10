@@ -3,5 +3,5 @@ kind: APIcast
 metadata:
   name: example-apicast
 spec:
-  # Add fields here
-  size: 3
+  embeddedConfigurationSecretRef:
+    name: mysecretname

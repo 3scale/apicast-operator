@@ -1,0 +1,7 @@
+apiVersion: apps.3scale.net/v1alpha1
+kind: APIcast
+metadata:
+  name: example-apicast
+spec:
+  adminPortalCredentialsRef:
+    name: mysecretname
