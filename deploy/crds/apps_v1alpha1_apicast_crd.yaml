@@ -80,6 +80,15 @@ spec:
             serviceAccount:
               type: string
           type: object
+          anyOf:
+           - properties:
+               adminPortalCredentialsRef:
+                 type: object
+               required: ["adminPortalCredentialsRef"]
+           - properties:
+               embeddedConfigurationSecretRef:
+                 type: object
+               required: ["embeddedConfigurationSecretRef"]
         status:
           properties:
             conditions:
