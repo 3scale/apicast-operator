@@ -64,6 +64,8 @@ spec:
             logLevel:
               type: string
             managementAPIScope:
+              enum:
+              - disabled;status;policies;debug
               type: string
             openSSLPeerVerificationEnabled:
               type: boolean

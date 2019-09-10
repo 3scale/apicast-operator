@@ -152,7 +152,7 @@ func (a *APIcast) deploymentEnv() []v1.EnvVar {
 	}
 
 	if a.ManagementAPIScope != nil {
-		env = append(env, a.envVarFromValue("MANAGEMENT_API", *a.ManagementAPIScope))
+		env = append(env, a.envVarFromValue("APICAST_MANAGEMENT_API", *a.ManagementAPIScope))
 	}
 
 	if a.OpenSSLPeerVerificationEnabled != nil {
