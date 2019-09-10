@@ -28,7 +28,7 @@ type APIcast struct {
 	DeploymentEnvironment          *string
 	DNSResolverAddress             *string
 	EnabledServices                []string
-	ConfigurationLoadMode          *int64
+	ConfigurationLoadMode          *string
 	LogLevel                       *string
 	PathRoutingEnabled             *bool
 	ResponseCodesIncluded          *bool
@@ -132,7 +132,7 @@ func (a *APIcast) deploymentEnv() []v1.EnvVar {
 	}
 
 	if a.ConfigurationLoadMode != nil {
-		env = append(env, a.envVarFromValue("APICAST_CONFIGURATION_LOADER", string(*a.ConfigurationLoadMode)))
+		env = append(env, a.envVarFromValue("APICAST_CONFIGURATION_LOADER", *a.ConfigurationLoadMode))
 	}
 
 	if a.LogLevel != nil {

@@ -161,7 +161,7 @@ func (in *APIcastSpec) DeepCopyInto(out *APIcastSpec) {
 	}
 	if in.ConfigurationLoadMode != nil {
 		in, out := &in.ConfigurationLoadMode, &out.ConfigurationLoadMode
-		*out = new(int64)
+		*out = new(string)
 		**out = **in
 	}
 	if in.LogLevel != nil {

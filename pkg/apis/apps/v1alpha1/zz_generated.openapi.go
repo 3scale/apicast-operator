@@ -129,8 +129,8 @@ func schema_pkg_apis_apps_v1alpha1_APIcastSpec(ref common.ReferenceCallback) com
 					},
 					"configurationLoadMode": {
 						SchemaProps: spec.SchemaProps{
-							Type:   []string{"integer"},
-							Format: "int64",
+							Type:   []string{"string"},
+							Format: "",
 						},
 					},
 					"logLevel": {
