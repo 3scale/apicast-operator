@@ -89,11 +89,11 @@ spec:
            - properties:
                adminPortalCredentialsRef:
                  type: object
-               required: ["adminPortalCredentialsRef"]
+             required: ["adminPortalCredentialsRef"]
            - properties:
                embeddedConfigurationSecretRef:
                  type: object
-               required: ["embeddedConfigurationSecretRef"]
+             required: ["embeddedConfigurationSecretRef"]
         status:
           properties:
             conditions:
