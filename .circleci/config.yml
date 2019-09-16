@@ -1,4 +1,23 @@
 version: 2.1
+
+commands:
+  install-golang:
+    steps:
+      - run:
+          name: Setup GO env
+          command: |
+            mkdir -p ~/tmp
+            echo 'export TMPDIR=~/tmp/' >> $BASH_ENV
+            echo 'export GOROOT=/opt/go' >> $BASH_ENV
+            echo 'export GOPATH=~/go' >> $BASH_ENV
+            sudo mkdir -p /opt/go/bin
+            mkdir -p ~/go/bin
+            echo 'export PATH=$GOROOT/bin:$PATH' >> $BASH_ENV
+            echo 'export PATH=$GOPATH/bin:$PATH' >> $BASH_ENV
+      - run:
+          name: Install Golang
+          command: |
+            curl --fail -L https://dl.google.com/go/go1.12.5.linux-amd64.tar.gz | sudo tar -C /opt -xzf-
 jobs:
   build:
     docker:
@@ -9,3 +28,18 @@ jobs:
       - setup_remote_docker:
           reusable: true
           exclusive: false
+  license-check:
+    docker:
+      - image: circleci/ruby:2.5
+    steps:
+      - install-golang
+      - checkout
+      - run: sudo gem install license_finder --version 5.7.1
+      - run: make licenses-check
+
+workflows:
+  version: 2
+  build:
+    jobs:
+      - build
+      - license-check
