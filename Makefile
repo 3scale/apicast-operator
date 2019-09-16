@@ -19,7 +19,7 @@ help: Makefile
 
 ## vendor: Populate vendor directory
 vendor:
-	@GO111MODULE=on go mod vendor
+	GO111MODULE=on go mod vendor
 
 IMAGE ?= quay.io/3scale/apicast-operator
 SOURCE_VERSION ?= master
@@ -28,7 +28,7 @@ NAMESPACE ?= operator-test
 OPERATOR_NAME ?= apicast-operator
 
 ## build: Build operator
-build:
+build: vendor
 	operator-sdk build $(IMAGE):$(VERSION)
 
 ## push: push operator docker image to remote repo
