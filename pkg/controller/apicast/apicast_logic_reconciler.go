@@ -189,6 +189,7 @@ func (r *APIcastLogicReconciler) reconcileAdminPortalCredentials() (*v1.Secret, 
 	}
 
 	if changed {
+		r.Logger().Info(fmt.Sprintf("Updating %s", k8sutils.ObjectInfo(adminPortalCredentialsSecret)))
 		err = r.Client().Update(context.TODO(), adminPortalCredentialsSecret)
 		if err != nil {
 			return nil, changed, err
@@ -214,6 +215,7 @@ func (r *APIcastLogicReconciler) reconcileGatewayEmbbededConfig() (*v1.Secret, b
 	}
 
 	if changed {
+		r.Logger().Info(fmt.Sprintf("Updating %s", k8sutils.ObjectInfo(gatewayEmbeddedConfigSecret)))
 		err = r.Client().Update(context.TODO(), gatewayEmbeddedConfigSecret)
 		if err != nil {
 			return nil, changed, err
@@ -350,6 +352,7 @@ func (r *APIcastLogicReconciler) namespacedName(object metav1.Object) types.Name
 
 func (r *APIcastLogicReconciler) initialize() (bool, error) {
 	if appliedSomeInitialization := r.applyInitialization(); appliedSomeInitialization {
+		r.Logger().Info(fmt.Sprintf("Updating %s", k8sutils.ObjectInfo(r.APIcastCR)))
 		err := r.Client().Update(context.TODO(), r.APIcastCR)
 		if err != nil {
 			return false, err
@@ -418,8 +421,8 @@ func (r *APIcastLogicReconciler) reconcileDeployment(desiredDeployment appsv1.De
 	err := r.Client().Get(context.TODO(), r.namespacedName(&desiredDeployment), &existingDeployment)
 	if err != nil {
 		if errors.IsNotFound(err) {
+			r.Logger().Info(fmt.Sprintf("Creating %s", k8sutils.ObjectInfo(&desiredDeployment)))
 			err = r.Client().Create(context.TODO(), &desiredDeployment)
-			r.Logger().Info("Creating Deployment...")
 			return err
 		}
 		return err
@@ -427,27 +430,26 @@ func (r *APIcastLogicReconciler) reconcileDeployment(desiredDeployment appsv1.De
 
 	changed := false
 
-	if !reflect.DeepEqual(existingDeployment.Spec.Replicas, desiredDeployment.Spec.Replicas) {
+	if existingDeployment.Spec.Replicas != desiredDeployment.Spec.Replicas {
 		existingDeployment.Spec.Replicas = desiredDeployment.Spec.Replicas
 		changed = true
 	}
-	if !reflect.DeepEqual(existingDeployment.Spec.Template.Spec.Containers[0].Image, desiredDeployment.Spec.Template.Spec.Containers[0].Image) {
+	if existingDeployment.Spec.Template.Spec.Containers[0].Image != desiredDeployment.Spec.Template.Spec.Containers[0].Image {
 		existingDeployment.Spec.Template.Spec.Containers[0].Image = desiredDeployment.Spec.Template.Spec.Containers[0].Image
 		changed = true
 
 	}
-	if !reflect.DeepEqual(existingDeployment.Spec.Template.Spec.ServiceAccountName, desiredDeployment.Spec.Template.Spec.ServiceAccountName) {
+	if existingDeployment.Spec.Template.Spec.ServiceAccountName != desiredDeployment.Spec.Template.Spec.ServiceAccountName {
 		changed = true
 		existingDeployment.Spec.Template.Spec.ServiceAccountName = desiredDeployment.Spec.Template.Spec.ServiceAccountName
 	}
 
-	if !reflect.DeepEqual(existingDeployment.Spec.Template.Spec.Containers[0].Env, desiredDeployment.Spec.Template.Spec.Containers[0].Env) {
-		changed = true
-		existingDeployment.Spec.Template.Spec.Containers[0].Env = desiredDeployment.Spec.Template.Spec.Containers[0].Env
-	}
+	updatedTmp := ReconcileEnvVar(&existingDeployment.Spec.Template.Spec.Containers[0].Env, desiredDeployment.Spec.Template.Spec.Containers[0].Env)
+	changed = changed || updatedTmp
 
-	// TODO should we merge instead of set the desired annotations? Keep in mind that this is are annotations
-	// of the PodTemplate, not the Pod itself. Can a PodTemplate be modified by other elements?
+	// They are annotations of the PodTemplate, part of the Spec, not part of the meta info of the Pod or Environment object itself
+	// It is not expected any controller to update them, so we use "set" approach, instead of merge.
+	// This way any removed annotation from desired (due to change in CR) will be removed in existing too.
 	if !reflect.DeepEqual(existingDeployment.Spec.Template.Annotations, desiredDeployment.Spec.Template.Annotations) {
 		changed = true
 		existingDeployment.Spec.Template.Annotations = desiredDeployment.Spec.Template.Annotations
@@ -464,8 +466,8 @@ func (r *APIcastLogicReconciler) reconcileDeployment(desiredDeployment appsv1.De
 	}
 
 	if changed {
+		r.Logger().Info(fmt.Sprintf("Updating %s", k8sutils.ObjectInfo(&existingDeployment)))
 		err = r.Client().Update(context.TODO(), &existingDeployment)
-		r.Logger().Info("Updating Deployment...")
 		return err
 	}
 
@@ -477,8 +479,8 @@ func (r *APIcastLogicReconciler) reconcileService(desiredService v1.Service) err
 	err := r.Client().Get(context.TODO(), r.namespacedName(&desiredService), &existingService)
 	if err != nil {
 		if errors.IsNotFound(err) {
+			r.Logger().Info(fmt.Sprintf("Creating %s", k8sutils.ObjectInfo(&desiredService)))
 			err = r.Client().Create(context.TODO(), &desiredService)
-			r.Logger().Info("Creating Service...")
 		}
 		return err
 	}
@@ -491,8 +493,8 @@ func (r *APIcastLogicReconciler) reconcileIngress(desiredIngress extensions.Ingr
 	err := r.Client().Get(context.TODO(), r.namespacedName(&desiredIngress), &existingIngress)
 	if err != nil {
 		if errors.IsNotFound(err) {
+			r.Logger().Info(fmt.Sprintf("Creating %s", k8sutils.ObjectInfo(&desiredIngress)))
 			err = r.Client().Create(context.TODO(), &desiredIngress)
-			r.Logger().Info("Creating Ingress...")
 		}
 		return err
 	}
@@ -504,19 +506,21 @@ func (r *APIcastLogicReconciler) reconcileIngress(desiredIngress extensions.Ingr
 		}
 	}
 
+	update := false
+
 	if exposedHostIdx == -1 {
 		existingIngress.Spec.Rules = desiredIngress.Spec.Rules
-		err = r.Client().Update(context.TODO(), &existingIngress)
-		r.Logger().Info("Updating Ingress...")
-		if err != nil {
-			return err
-		}
+		update = true
 	}
 
 	if !reflect.DeepEqual(existingIngress.Spec.TLS, desiredIngress.Spec.TLS) {
 		existingIngress.Spec.TLS = desiredIngress.Spec.TLS
+		update = true
+	}
+
+	if update {
+		r.Logger().Info(fmt.Sprintf("Updating %s", k8sutils.ObjectInfo(&existingIngress)))
 		err = r.Client().Update(context.TODO(), &existingIngress)
-		r.Logger().Info("Updating Ingress TLS configuration...")
 		if err != nil {
 			return err
 		}
