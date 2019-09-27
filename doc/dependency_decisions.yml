@@ -155,3 +155,10 @@
     :why: MIT License https://github.com/onsi/gomega/blob/master/LICENSE
     :versions: []
     :when: 2019-09-09 16:19:43.097866630 Z
+- - :license
+  - github.com/pmezard/go-difflib
+  - 3-clause BSD License
+  - :who:
+    :why: 3-clause BSD License https://github.com/pmezard/go-difflib/blob/master/LICENSE
+    :versions: []
+    :when: 2019-09-27 16:56:51.602283647 Z
