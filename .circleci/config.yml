@@ -1,6 +1,25 @@
 version: 2.1
 
 commands:
+  attach-workspace:
+    steps:
+    - run:
+        name: Preparing workspace directory
+        command: |
+          sudo rm -rf /tmp/workspace
+          sudo mkdir -p /tmp/workspace
+          sudo chown -vf circleci:circleci /tmp/workspace
+        working_directory: /
+    - attach_workspace:
+        at: /tmp/workspace
+
+  docker-login:
+    steps:
+      - run:
+          name: Docker login
+          command: |
+            docker login -u="${DOCKER_USERNAME}" -p="${DOCKER_PASSWORD}" "${DOCKER_REGISTRY}"
+
   install-golang:
     steps:
       - run:
@@ -28,27 +47,33 @@ commands:
             curl -OJL https://github.com/operator-framework/operator-sdk/releases/download/${OPERATOR_SDK_RELEASE_VERSION}/operator-sdk-${OPERATOR_SDK_RELEASE_VERSION}-x86_64-linux-gnu
             chmod +x operator-sdk-${OPERATOR_SDK_RELEASE_VERSION}-x86_64-linux-gnu && sudo cp operator-sdk-${OPERATOR_SDK_RELEASE_VERSION}-x86_64-linux-gnu /usr/local/bin/operator-sdk && rm operator-sdk-${OPERATOR_SDK_RELEASE_VERSION}-x86_64-linux-gnu
 
+  install-operator-dependencies:
+    steps:
+      - restore_cache:
+          keys:
+            - v2-apicastoperator-vendor-{{ arch }}-{{ checksum "go.sum" }}
+      - run:
+          name: Install operator dependencies
+          command: |
+            make vendor
+      - save_cache:
+          key: v2-apicastoperator-vendor-{{ arch }}-{{ checksum "go.sum" }}
+          paths:
+            - "vendor"
+            - "/go/pkg"
+
   build-operator-image:
     steps:
       - checkout
-      - restore_cache:
-          keys:
-            - v2-apicast-vendor-{{ arch }}-{{ checksum "go.sum" }}
-      - run:
-          name: Install dependencies
-          command: |
-              make vendor
-      - save_cache:
-          key: v2-apicast-vendor-{{ arch }}-{{ checksum "go.sum" }}
-          paths:
-            - vendor
-            - /go/pkg
+      - install-operator-sdk
+      - install-operator-dependencies
       - run:
           name: Build Operator
           command: |
-              make build VERSION=${CIRCLE_SHA1}
+              make build IMAGE=172.30.1.1:5000/openshift/apicast-operator VERSION=test
+
 jobs:
-  build:
+  install-operator:
     docker:
       - image: circleci/golang:1.12.5
     working_directory: /go/src/github.com/3scale/apicast-operator
@@ -56,8 +81,16 @@ jobs:
       - setup_remote_docker:
           reusable: true
           exclusive: false
-      - install-operator-sdk
       - build-operator-image
+      - run:
+          name: Sharing requirements to downstream job
+          command: |
+            mkdir -p /tmp/workspace/images
+            docker save -o /tmp/workspace/images/operator-image.tar 172.30.1.1:5000/openshift/apicast-operator:test
+      - persist_to_workspace:
+          root: /tmp/workspace
+          paths:
+            - images/operator-image.tar
 
   license-check:
     docker:
@@ -68,9 +101,69 @@ jobs:
       - run: sudo gem install license_finder --version 5.7.1
       - run: make licenses-check
 
+  tag-operator-image-master:
+    machine: true
+    steps:
+      - attach-workspace
+      - run:
+          name: Unpack docker image
+          command: |
+            docker load -i /tmp/workspace/images/operator-image.tar
+      - run:
+          name: Tag image as master
+          command: |
+              docker tag 172.30.1.1:5000/openshift/apicast-operator:test quay.io/3scale/apicast-operator:master
+      - docker-login
+      - run:
+          name: Push master image
+          command: |
+              docker push quay.io/3scale/apicast-operator:master
+      - run:
+          name: Tag image as latest
+          command: |
+            docker tag quay.io/3scale/apicast-operator:master quay.io/3scale/apicast-operator:latest
+      - run:
+          name: Push latest image
+          command: |
+              docker push quay.io/3scale/apicast-operator:latest
+
+  tag-operator-image-release:
+    machine: true
+    steps:
+      - attach-workspace
+      - run:
+          name: Unpack docker image
+          command: |
+            docker load -i /tmp/workspace/images/operator-image.tar
+      - run:
+          name: Tag image as release ${CIRCLE_TAG}
+          command: |
+              docker tag 172.30.1.1:5000/openshift/apicast-operator:test quay.io/3scale/apicast-operator:${CIRCLE_TAG}
+      - docker-login
+      - run:
+          name: Push ${CIRCLE_TAG} tag
+          command: |
+              docker push quay.io/3scale/apicast-operator:${CIRCLE_TAG}
+
 workflows:
   version: 2
   build:
     jobs:
-      - build
+      - install-operator
       - license-check
+      - tag-operator-image-master:
+          context: org-global
+          requires:
+            - install-operator
+          filters:
+            branches:
+              only: master
+      - tag-operator-image-release:
+          context: org-global
+          requires:
+            - install-operator
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
