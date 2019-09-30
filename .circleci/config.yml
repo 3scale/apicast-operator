@@ -51,15 +51,15 @@ commands:
     steps:
       - restore_cache:
           keys:
-            - v2-apicastoperator-vendor-{{ arch }}-{{ checksum "go.sum" }}
+            - v3-apicastoperator-vendor-{{ arch }}-{{ checksum "go.sum" }}
+            - v3-apicastoperator-vendor-{{ arch }}
       - run:
           name: Install operator dependencies
           command: |
             make vendor
       - save_cache:
-          key: v2-apicastoperator-vendor-{{ arch }}-{{ checksum "go.sum" }}
+          key: v3-apicastoperator-vendor-{{ arch }}-{{ checksum "go.sum" }}
           paths:
-            - "vendor"
             - "/go/pkg"
 
   build-operator-image:
