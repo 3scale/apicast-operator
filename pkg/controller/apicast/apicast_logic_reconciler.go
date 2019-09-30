@@ -274,11 +274,11 @@ func (r *APIcastLogicReconciler) UserProvidedSecretResourceVersionAnnotations(us
 	annotations := map[string]string{}
 
 	if userProvidedSecrets.adminPortalCredentialsSecret != nil {
-		annotations[AdmPortalSecretResverAnnotation] = string(userProvidedSecrets.adminPortalCredentialsSecret.ResourceVersion)
+		annotations[AdmPortalSecretResverAnnotation] = userProvidedSecrets.adminPortalCredentialsSecret.ResourceVersion
 	}
 
 	if userProvidedSecrets.gatewayEmbeddedConfigSecret != nil {
-		annotations[GatewayConfigurationSecretResverAnnotation] = string(userProvidedSecrets.gatewayEmbeddedConfigSecret.ResourceVersion)
+		annotations[GatewayConfigurationSecretResverAnnotation] = userProvidedSecrets.gatewayEmbeddedConfigSecret.ResourceVersion
 	}
 
 	return annotations

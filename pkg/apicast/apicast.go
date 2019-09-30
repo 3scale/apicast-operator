@@ -148,7 +148,7 @@ func (a *APIcast) deploymentEnv() []v1.EnvVar {
 	}
 
 	if a.CacheConfigurationSeconds != nil {
-		env = append(env, a.envVarFromValue("APICAST_CONFIGURATION_CACHE", string(*a.CacheConfigurationSeconds)))
+		env = append(env, a.envVarFromValue("APICAST_CONFIGURATION_CACHE", strconv.FormatInt(*a.CacheConfigurationSeconds, 10)))
 	}
 
 	if a.ManagementAPIScope != nil {
