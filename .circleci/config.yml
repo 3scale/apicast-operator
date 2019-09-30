@@ -47,6 +47,63 @@ commands:
             curl -OJL https://github.com/operator-framework/operator-sdk/releases/download/${OPERATOR_SDK_RELEASE_VERSION}/operator-sdk-${OPERATOR_SDK_RELEASE_VERSION}-x86_64-linux-gnu
             chmod +x operator-sdk-${OPERATOR_SDK_RELEASE_VERSION}-x86_64-linux-gnu && sudo cp operator-sdk-${OPERATOR_SDK_RELEASE_VERSION}-x86_64-linux-gnu /usr/local/bin/operator-sdk && rm operator-sdk-${OPERATOR_SDK_RELEASE_VERSION}-x86_64-linux-gnu
 
+  install-openshift:
+    steps:
+      - run:
+          name: Install OpenShift Client Tools
+          working_directory: /tmp
+          command: |
+            curl --fail -L  https://github.com/openshift/origin/releases/download/v3.11.0/openshift-origin-client-tools-v3.11.0-0cbc58b-linux-64bit.tar.gz | tar -xzf-
+            sudo mv /tmp/openshift-origin-client-tools-*-linux-64bit/oc /usr/local/bin/
+            sudo mv /tmp/openshift-origin-client-tools-*-linux-64bit/kubectl /usr/local/bin/
+      - run:
+          name: Configure Docker
+          command: |
+            echo '{"insecure-registries": ["172.30.0.0/16"]}' | sudo tee --append /etc/docker/daemon.json
+            sudo service docker restart
+
+      - run:
+          name: Get docker host IP
+          command: |
+            echo "export DOCKER_HOST_IP=$(docker run --net=host codenvy/che-ip)" >> $BASH_ENV
+
+      - run:
+          name: Start and Configure OpenShift Cluster
+          working_directory: /tmp/openshift
+          command: |
+            oc cluster up --public-hostname=${DOCKER_HOST_IP} --enable=persistent-volumes \
+              --enable=registry --enable=router
+            oc login https://${DOCKER_HOST_IP}:8443 -u system:admin --insecure-skip-tls-verify=true > /dev/null
+            oc adm policy add-cluster-role-to-user cluster-admin developer > /dev/null
+            oc adm policy add-scc-to-group hostmount-anyuid system:serviceaccounts
+            oc login https://${DOCKER_HOST_IP}:8443 -u developer --insecure-skip-tls-verify=true > /dev/null
+
+            oc wait --timeout=90s --for=condition=available dc/docker-registry --namespace=default || oc rollout retry dc/docker-registry --namespace=default
+
+  oc-observe:
+    steps:
+      - run:
+          name: Observe OpenShift Pod changes
+          command: |
+            oc observe pods --maximum-errors=-1 --no-headers --object-env-var=OBJECT --type-env-var=TYPE -- jq -n --raw-output 'env.OBJECT | fromjson | "\(env.TYPE) \(.kind) \(.metadata.name) started at \(.status.startTime) (\(.status.phase)) \(.status.conditions // [] | map("\(.type): \(.status) @ \(.lastTransitionTime)") | join(", "))"'
+          background: true
+
+  oc-status:
+    parameters:
+      report_name:
+        type: string
+        default: "events"
+    steps:
+      - run:
+          name: Collect OpenShift events and status
+          command: |
+            mkdir -p reports
+            oc status
+            oc get events -o json > reports/<< parameters.report_name >>.json
+          when: always
+      - store_artifacts:
+          path: reports
+
   install-operator-dependencies:
     steps:
       - restore_cache:
@@ -70,7 +127,7 @@ commands:
       - run:
           name: Build Operator
           command: |
-              make build IMAGE=172.30.1.1:5000/openshift/apicast-operator VERSION=test
+              make build IMAGE=172.30.1.1:5000/openshift/apicast-operator VERSION=${CIRCLE_SHA1}
 
 jobs:
   install-operator:
@@ -85,7 +142,7 @@ jobs:
           name: Sharing requirements to downstream job
           command: |
             mkdir -p /tmp/workspace/images
-            docker save -o /tmp/workspace/images/operator-image.tar 172.30.1.1:5000/openshift/apicast-operator:test
+            docker save -o /tmp/workspace/images/operator-image.tar 172.30.1.1:5000/openshift/apicast-operator:${CIRCLE_SHA1}
       - persist_to_workspace:
           root: /tmp/workspace
           paths:
@@ -102,8 +159,8 @@ jobs:
 
   tag-operator-image-master:
     machine:
+      image: circleci/classic:latest
       docker_layer_caching: true
-
     steps:
       - attach-workspace
       - run:
@@ -130,8 +187,8 @@ jobs:
 
   tag-operator-image-release:
     machine:
+      image: circleci/classic:latest
       docker_layer_caching: true
-
     steps:
       - attach-workspace
       - run:
@@ -147,6 +204,36 @@ jobs:
           name: Push ${CIRCLE_TAG} tag
           command: |
               docker push quay.io/3scale/apicast-operator:${CIRCLE_TAG}
+  run-operator-e2e-test:
+    machine:
+      image: circleci/classic:latest
+      docker_layer_caching: true
+    resource_class: large
+    working_directory: ~/go/src/github.com/3scale/apicast-operator
+    steps:
+      - install-openshift
+      - install-golang
+      - install-operator-sdk
+      - checkout
+      - install-operator-dependencies
+      - attach-workspace
+      - run:
+          name: Unpack and push operator to internal registry
+          command: |
+            docker load -i /tmp/workspace/images/operator-image.tar
+            oc whoami -t | docker login --username developer --password-stdin 172.30.1.1:5000
+            docker push 172.30.1.1:5000/openshift/apicast-operator:${CIRCLE_SHA1}
+      - run:
+          name: Change to new testing namespace
+          command: |
+            oc new-project operator-test
+      - oc-observe
+      - run:
+          name: run E2E tests
+          command: |
+            make e2e-run IMAGE=172.30.1.1:5000/openshift/apicast-operator:${CIRCLE_SHA1} NAMESPACE=operator-test
+          no_output_timeout: 30m
+      - oc-status
 
   test-crds:
     docker:
@@ -168,10 +255,13 @@ workflows:
   version: 2
   build:
     jobs:
+      - license-check
+      - verify-manifest
       - test-crds
       - install-operator
-      - verify-manifest
-      - license-check
+      - run-operator-e2e-test:
+          requires:
+            - install-operator
       - tag-operator-image-master:
           context: org-global
           requires:
