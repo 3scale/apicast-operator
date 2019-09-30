@@ -36,7 +36,8 @@ spec:
               type: integer
             configurationLoadMode:
               enum:
-              - boot;lazy
+              - boot
+              - lazy
               type: string
             deploymentEnvironment:
               type: string
@@ -63,11 +64,21 @@ spec:
               type: string
             logLevel:
               enum:
-              - debug;info;notice;warn;error;crit;alert;emerg
+              - debug
+              - info
+              - notice
+              - warn
+              - error
+              - crit
+              - alert
+              - emerg
               type: string
             managementAPIScope:
               enum:
-              - disabled;status;policies;debug
+              - disabled
+              - status
+              - policies
+              - debug
               type: string
             openSSLPeerVerificationEnabled:
               type: boolean

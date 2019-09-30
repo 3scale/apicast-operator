@@ -34,10 +34,10 @@ type APIcastSpec struct {
 	// +optional
 	EnabledServices []string `json:"enabledServices,omitempty"` // APICAST_SERVICES_LIST
 	// +optional
-	// +kubebuilder:validation:Enum=boot;lazy
+	// +kubebuilder:validation:Enum=boot,lazy
 	ConfigurationLoadMode *string `json:"configurationLoadMode,omitempty"` // APICAST_CONFIGURATION_LOADER
 	// +optional
-	// +kubebuilder:validation:Enum=debug;info;notice;warn;error;crit;alert;emerg
+	// +kubebuilder:validation:Enum=debug,info,notice,warn,error,crit,alert,emerg
 	LogLevel *string `json:"logLevel,omitempty"` // APICAST_LOG_LEVEL
 	// +optional
 	PathRoutingEnabled *bool `json:"pathRoutingEnabled,omitempty"` // APICAST_PATH_ROUTING
@@ -46,7 +46,7 @@ type APIcastSpec struct {
 	// +optional
 	CacheConfigurationSeconds *int64 `json:"cacheConfigurationSeconds,omitempty"` // APICAST_CONFIGURATION_CACHE
 	// +optional
-	// +kubebuilder:validation:Enum=disabled;status;policies;debug
+	// +kubebuilder:validation:Enum=disabled,status,policies,debug
 	ManagementAPIScope *string `json:"managementAPIScope,omitempty"` // APICAST_MANAGEMENT_API
 	// +optional
 	OpenSSLPeerVerificationEnabled *bool `json:"openSSLPeerVerificationEnabled,omitempty"` // OPENSSL_VERIFY
