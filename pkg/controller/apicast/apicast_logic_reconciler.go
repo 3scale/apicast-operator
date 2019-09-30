@@ -65,20 +65,25 @@ func (r *APIcastLogicReconciler) Reconcile() (reconcile.Result, error) {
 		return reconcile.Result{}, nil
 	}
 
-	adminPortalCredentialsSecret, changed, err := r.reconcileAdminPortalCredentials()
-	if err != nil {
-		return reconcile.Result{}, err
-	}
-	if changed {
-		return reconcile.Result{Requeue: true}, nil
+	// CRD validations ensures either
+	// r.APIcastCR.Spec.AdminPortalCredentialsRef
+	// or
+	// r.APIcastCR.Spec.EmbeddedConfigurationSecretRef
+	// are not nil
+	var adminPortalCredentialsSecret *v1.Secret
+	if r.APIcastCR.Spec.AdminPortalCredentialsRef != nil {
+		adminPortalCredentialsSecret, err = r.getAdminPortalCredentialsSecret()
+		if err != nil {
+			return reconcile.Result{}, err
+		}
 	}
 
-	gatewayEmbeddedConfigSecret, changed, err := r.reconcileGatewayEmbbededConfig()
-	if err != nil {
-		return reconcile.Result{}, err
-	}
-	if changed {
-		return reconcile.Result{Requeue: true}, nil
+	var gatewayEmbeddedConfigSecret *v1.Secret
+	if r.APIcastCR.Spec.EmbeddedConfigurationSecretRef != nil {
+		gatewayEmbeddedConfigSecret, err = r.getGatewayEmbeddedConfigSecret()
+		if err != nil {
+			return reconcile.Result{}, err
+		}
 	}
 
 	userProvidedSecrets := &apicastUserProvidedSecrets{
@@ -173,58 +178,6 @@ func (r *APIcastLogicReconciler) gatewayConfigurationSecret() (v1.Secret, error)
 	return gatewayConfigSecret, nil
 }
 
-func (r *APIcastLogicReconciler) reconcileAdminPortalCredentials() (*v1.Secret, bool, error) {
-	if r.APIcastCR.Spec.AdminPortalCredentialsRef == nil {
-		return nil, false, nil
-	}
-
-	adminPortalCredentialsSecret, err := r.getAdminPortalCredentialsSecret()
-	if err != nil {
-		return nil, false, err
-	}
-
-	changed, err := r.ensureOwnerReference(adminPortalCredentialsSecret)
-	if err != nil {
-		return nil, changed, err
-	}
-
-	if changed {
-		r.Logger().Info(fmt.Sprintf("Updating %s", k8sutils.ObjectInfo(adminPortalCredentialsSecret)))
-		err = r.Client().Update(context.TODO(), adminPortalCredentialsSecret)
-		if err != nil {
-			return nil, changed, err
-		}
-	}
-
-	return adminPortalCredentialsSecret, changed, nil
-}
-
-func (r *APIcastLogicReconciler) reconcileGatewayEmbbededConfig() (*v1.Secret, bool, error) {
-	if r.APIcastCR.Spec.EmbeddedConfigurationSecretRef == nil {
-		return nil, false, nil
-	}
-
-	gatewayEmbeddedConfigSecret, err := r.getGatewayEmbeddedConfigSecret()
-	if err != nil {
-		return nil, false, err
-	}
-
-	changed, err := r.ensureOwnerReference(gatewayEmbeddedConfigSecret)
-	if err != nil {
-		return nil, changed, err
-	}
-
-	if changed {
-		r.Logger().Info(fmt.Sprintf("Updating %s", k8sutils.ObjectInfo(gatewayEmbeddedConfigSecret)))
-		err = r.Client().Update(context.TODO(), gatewayEmbeddedConfigSecret)
-		if err != nil {
-			return nil, changed, err
-		}
-	}
-
-	return gatewayEmbeddedConfigSecret, changed, nil
-}
-
 func (r *APIcastLogicReconciler) getGatewayEmbeddedConfigSecret() (*v1.Secret, error) {
 	gatewayConfigSecretReference := r.APIcastCR.Spec.EmbeddedConfigurationSecretRef
 	gatewayConfigSecretNamespace := r.APIcastCR.Namespace
@@ -251,23 +204,6 @@ func (r *APIcastLogicReconciler) getGatewayEmbeddedConfigSecret() (*v1.Secret, e
 	}
 
 	return &gatewayConfigSecret, err
-}
-
-func (r APIcastLogicReconciler) ensureOwnerReference(obj metav1.Object) (bool, error) {
-	changed := false
-
-	originalSize := len(obj.GetOwnerReferences())
-	err := r.setOwnerReference(obj)
-	if err != nil {
-		return false, err
-	}
-
-	newSize := len(obj.GetOwnerReferences())
-	if originalSize != newSize {
-		changed = true
-	}
-
-	return changed, nil
 }
 
 func (r *APIcastLogicReconciler) UserProvidedSecretResourceVersionAnnotations(userProvidedSecrets *apicastUserProvidedSecrets) map[string]string {
