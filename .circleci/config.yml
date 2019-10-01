@@ -127,7 +127,7 @@ commands:
       - run:
           name: Build Operator
           command: |
-              make build IMAGE=172.30.1.1:5000/openshift/apicast-operator VERSION=${CIRCLE_SHA1}
+              make build IMAGE=172.30.1.1:5000/openshift/apicast-operator VERSION=test
 
 jobs:
   install-operator:
@@ -142,7 +142,7 @@ jobs:
           name: Sharing requirements to downstream job
           command: |
             mkdir -p /tmp/workspace/images
-            docker save -o /tmp/workspace/images/operator-image.tar 172.30.1.1:5000/openshift/apicast-operator:${CIRCLE_SHA1}
+            docker save -o /tmp/workspace/images/operator-image.tar 172.30.1.1:5000/openshift/apicast-operator:test
       - persist_to_workspace:
           root: /tmp/workspace
           paths:
@@ -222,7 +222,7 @@ jobs:
           command: |
             docker load -i /tmp/workspace/images/operator-image.tar
             oc whoami -t | docker login --username developer --password-stdin 172.30.1.1:5000
-            docker push 172.30.1.1:5000/openshift/apicast-operator:${CIRCLE_SHA1}
+            docker push 172.30.1.1:5000/openshift/apicast-operator:test
       - run:
           name: Change to new testing namespace
           command: |
@@ -231,7 +231,7 @@ jobs:
       - run:
           name: run E2E tests
           command: |
-            make e2e-run IMAGE=172.30.1.1:5000/openshift/apicast-operator:${CIRCLE_SHA1} NAMESPACE=operator-test
+            make e2e-run IMAGE=172.30.1.1:5000/openshift/apicast-operator:test NAMESPACE=operator-test
           no_output_timeout: 30m
       - oc-status
 
