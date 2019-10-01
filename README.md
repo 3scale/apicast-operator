@@ -147,6 +147,17 @@ make vendor
 make local
 ```
 
+## Deploy nightly image to Kubernetes 1.13 using OLM
+To install nightly image (master tag) of this operator on Kubernetes 1.13 for end-to-end testing, 
+create the [Operator Source](https://github.com/operator-framework/community-operators/blob/master/docs/testing-operators.md#linking-the-quay-application-repository-to-your-openshift-40-cluster)
+provided in `deploy/olm-catalog/apicast-operatorsource.yaml` to load your operator bundle in Kubernetes.
+
+```bash
+kubectl create -f deploy/olm-catalog/apicast-operatorsource.yaml -n mynamespace
+```
+
+It will take a few minutes for the operator to become visible under the _OperatorHub_ section of the _Catalog_. It can be easily found by filtering the provider type to _Custom_.
+
 ## Documentation
 
 * [Apicast CRD reference](doc/apicast-crd-reference.md)

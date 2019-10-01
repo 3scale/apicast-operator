@@ -30,6 +30,9 @@ spec:
         spec:
           properties:
             adminPortalCredentialsRef:
+              properties:
+                name:
+                  type: string   
               type: object
             cacheConfigurationSeconds:
               format: int64
@@ -44,6 +47,9 @@ spec:
             dnsResolverAddress:
               type: string
             embeddedConfigurationSecretRef:
+              properties:
+                name:
+                  type: string   
               type: object
             enabledServices:
               items:
@@ -55,6 +61,13 @@ spec:
                   type: string
                 tls:
                   items:
+                    properties:
+                      secretName:
+                        type: string
+                      hosts:
+                        items:
+                          type: string
+                        type: array
                     type: object
                   type: array
               required:
@@ -112,18 +125,6 @@ spec:
                 set's current state. +patchMergeKey=type +patchStrategy=merge
               items:
                 properties:
-                  lastTransitionTime:
-                    description: The last time the condition transitioned from one
-                      status to another.
-                    format: date-time
-                    type: string
-                  message:
-                    description: A human readable message indicating details about
-                      the transition.
-                    type: string
-                  reason:
-                    description: The reason for the condition's last transition.
-                    type: string
                   status:
                     description: Status of the condition, one of True, False, Unknown.
                     type: string

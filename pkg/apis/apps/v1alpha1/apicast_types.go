@@ -99,15 +99,19 @@ type APIcastCondition struct {
 	Type APIcastConditionType `json:"type"`
 	// Status of the condition, one of True, False, Unknown.
 	Status v1.ConditionStatus `json:"status"`
+
+	// The Reason, Message, LastHeartbeatTime and LastTransitionTime fields are
+	// optional. Unless we really use them they should directly not be used even
+	// if they are optional
 	// The last time the condition transitioned from one status to another.
 	// +optional
-	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty"`
+	//LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty"`
 	// The reason for the condition's last transition.
 	// +optional
-	Reason string `json:"reason,omitempty"`
+	//Reason string `json:"reason,omitempty"`
 	// A human readable message indicating details about the transition.
 	// +optional
-	Message string `json:"message,omitempty"`
+	//Message string `json:"message,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
