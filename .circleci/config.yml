@@ -51,15 +51,15 @@ commands:
     steps:
       - restore_cache:
           keys:
-            - v2-apicastoperator-vendor-{{ arch }}-{{ checksum "go.sum" }}
+            - v3-apicastoperator-vendor-{{ arch }}-{{ checksum "go.sum" }}
+            - v3-apicastoperator-vendor-{{ arch }}
       - run:
           name: Install operator dependencies
           command: |
             make vendor
       - save_cache:
-          key: v2-apicastoperator-vendor-{{ arch }}-{{ checksum "go.sum" }}
+          key: v3-apicastoperator-vendor-{{ arch }}-{{ checksum "go.sum" }}
           paths:
-            - "vendor"
             - "/go/pkg"
 
   build-operator-image:
@@ -79,8 +79,7 @@ jobs:
     working_directory: /go/src/github.com/3scale/apicast-operator
     steps:
       - setup_remote_docker:
-          reusable: true
-          exclusive: false
+          docker_layer_caching: true
       - build-operator-image
       - run:
           name: Sharing requirements to downstream job
@@ -102,7 +101,9 @@ jobs:
       - run: make licenses-check
 
   tag-operator-image-master:
-    machine: true
+    machine:
+      docker_layer_caching: true
+
     steps:
       - attach-workspace
       - run:
@@ -128,7 +129,9 @@ jobs:
               docker push quay.io/3scale/apicast-operator:latest
 
   tag-operator-image-release:
-    machine: true
+    machine:
+      docker_layer_caching: true
+
     steps:
       - attach-workspace
       - run:
