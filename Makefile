@@ -1,7 +1,7 @@
 MKFILE_PATH := $(abspath $(lastword $(MAKEFILE_LIST)))
 PROJECT_PATH := $(patsubst %/,%,$(dir $(MKFILE_PATH)))
 .DEFAULT_GOAL := help
-.PHONY: build e2e licenses-check
+.PHONY: build e2e licenses-check verify-manifest push-manifest test-crds
 UNAME := $(shell uname)
 
 ifeq (${UNAME}, Linux)
@@ -13,6 +13,8 @@ endif
 OPERATORCOURIER := $(shell command -v operator-courier 2> /dev/null)
 LICENSEFINDERBINARY := $(shell command -v license_finder 2> /dev/null)
 DEPENDENCY_DECISION_FILE = $(PROJECT_PATH)/doc/dependency_decisions.yml
+MANIFEST_RELEASE ?= 1.0.$(shell git rev-list --count master)
+APPLICATION_REPOSITORY_NAMESPACE ?= apicastoperatormaster
 
 help: Makefile
 	@sed -n 's/^##//p' $<
@@ -79,3 +81,21 @@ ifndef LICENSEFINDERBINARY
 endif
 	@echo "Checking license compliance"
 	license_finder --decisions-file=$(DEPENDENCY_DECISION_FILE)
+
+## verify-manifest: Test manifests have expected format
+verify-manifest:
+ifndef OPERATORCOURIER
+	$(error "operator-courier is not available please install pip3 install operator-courier")
+endif
+	cd $(PROJECT_PATH)/deploy/olm-catalog && operator-courier verify --ui_validate_io apicast-operator/
+
+## test-crds: Run CRD unittests
+test-crds: vendor
+	cd $(PROJECT_PATH)/test/crds && go test -v
+
+## push-manifest: Push manifests to application repository
+push-manifest:
+ifndef OPERATORCOURIER
+	$(error "operator-courier is not available please install pip3 install operator-courier")
+endif
+	cd $(PROJECT_PATH)/deploy/olm-catalog && operator-courier push apicast-operator/ $(APPLICATION_REPOSITORY_NAMESPACE) apicast-operator-master $(MANIFEST_RELEASE) "$(TOKEN)"

@@ -148,11 +148,29 @@ jobs:
           command: |
               docker push quay.io/3scale/apicast-operator:${CIRCLE_TAG}
 
+  test-crds:
+    docker:
+      - image: circleci/golang:1.12.5
+    working_directory: /go/src/github.com/3scale/apicast-operator
+    steps:
+      - checkout
+      - run: make test-crds
+
+  verify-manifest:
+    docker:
+      - image: circleci/python:3.6.4
+    steps:
+      - checkout
+      - run: sudo pip3 install operator-courier
+      - run: make verify-manifest
+
 workflows:
   version: 2
   build:
     jobs:
+      - test-crds
       - install-operator
+      - verify-manifest
       - license-check
       - tag-operator-image-master:
           context: org-global
