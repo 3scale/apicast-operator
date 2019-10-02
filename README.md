@@ -121,7 +121,15 @@ Create a new empty project
 
 ```sh
 export NAMESPACE="operator-test"
-kubectl new-project $NAMESPACE
+$ cat operator-test.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: operator-test
+  labels:
+    name: operator-test
+
+kubectl create -f operator-test.yaml
 ```
 
 Create the ServiceAccount
