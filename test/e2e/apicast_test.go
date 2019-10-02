@@ -44,6 +44,7 @@ func TestAPIcastBasicDeployment(t *testing.T) {
 	t.Log("initialized cluster resources")
 
 	apicastName := "example-apicast"
+	apicastImage := "quay.io/3scale/apicast:nightly"
 	apicast := &appsv1alpha1.APIcast{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "example-apicast",
@@ -53,6 +54,7 @@ func TestAPIcastBasicDeployment(t *testing.T) {
 			EmbeddedConfigurationSecretRef: &v1.LocalObjectReference{
 				Name: APIcastEmbeddedConfigurationSecretName,
 			},
+			Image: &apicastImage,
 		},
 	}
 

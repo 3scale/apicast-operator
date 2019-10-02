@@ -1,4 +1,0 @@
-packageName: apicast-operator-master
-channels:
-  - name: alpha
-    currentCSV: apicast-operator.v0.0.0
