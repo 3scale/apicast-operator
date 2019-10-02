@@ -1,6 +1,19 @@
 version: 2.1
 
+orbs:
+  kubernetes: circleci/kubernetes@0.7.0
+
 commands:
+  start-minikube:
+    steps:
+    - run:
+        command: |
+          curl -Lo minikube https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64 \
+            && chmod +x minikube
+          sudo cp minikube /usr/local/bin && rm minikube
+          sudo -E minikube start --vm-driver=none --cpus 2 --memory 2048
+        name: Start minikube
+
   attach-workspace:
     steps:
     - run:
@@ -87,6 +100,42 @@ commands:
           command: |
             oc observe pods --maximum-errors=-1 --no-headers --object-env-var=OBJECT --type-env-var=TYPE -- jq -n --raw-output 'env.OBJECT | fromjson | "\(env.TYPE) \(.kind) \(.metadata.name) started at \(.status.startTime) (\(.status.phase)) \(.status.conditions // [] | map("\(.type): \(.status) @ \(.lastTransitionTime)") | join(", "))"'
           background: true
+
+  watch-operator-pod:
+    steps:
+      - run:
+          name: Watch pod resource
+          command: |
+            OPERATOR_POD=$(kubectl get pods -l name=apicast-operator -n operator-test -o 'jsonpath={..metadata.name}')
+            while [[ -z "${OPERATOR_POD}" ]]; do
+              echo "waiting for pod" && sleep 1;
+              OPERATOR_POD=$(kubectl get pods -l name=apicast-operator -n operator-test -o 'jsonpath={..metadata.name}')
+            done
+            while true; do kubectl describe pods ${OPERATOR_POD} -n operator-test; sleep 5; done
+
+          background: true
+
+  watch-operator-pod-logs:
+    steps:
+      - run:
+          name: Watch pod logs
+          command: |
+            while [[ $(kubectl get pods -l name=apicast-operator -n operator-test -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}') != "True" ]]; do
+              echo "waiting for pod" && sleep 1
+            done
+            OPERATOR_POD=$(kubectl get pods -l name=apicast-operator -n operator-test -o 'jsonpath={..metadata.name}')
+            echo "watching logs on $OPERATOR_POD"
+            kubectl -n operator-test logs -f $OPERATOR_POD
+
+          background: true
+
+  k8s-show-events:
+    steps:
+      - run:
+          name: Collect k8s events
+          command: |
+            kubectl get events -n operator-test
+          when: always
 
   oc-status:
     parameters:
@@ -204,7 +253,35 @@ jobs:
           name: Push ${CIRCLE_TAG} tag
           command: |
               docker push quay.io/3scale/apicast-operator:${CIRCLE_TAG}
-  run-operator-e2e-test:
+  run-k8s-e2e-test:
+    environment: CHANGE_MINIKUBE_NONE_USER=true
+    machine:
+      image: ubuntu-1604:201903-01
+    steps:
+      - kubernetes/install-kubectl
+      - start-minikube
+      - install-golang
+      - install-operator-sdk
+      - checkout
+      - install-operator-dependencies
+      - attach-workspace
+      - run:
+          name: Unpack and use local images by re-using the Docker daemon
+          command: |
+            docker load -i /tmp/workspace/images/operator-image.tar
+      - kubernetes/create-or-update-resource:
+          resource-file-path: test/resources/namespace-operator-test.yaml
+          show-kubectl-command: true
+      - watch-operator-pod
+      - watch-operator-pod-logs
+      - run:
+          name: run E2E tests
+          command: |
+            make e2e-run IMAGE=172.30.1.1:5000/openshift/apicast-operator:${CIRCLE_SHA1} NAMESPACE=operator-test
+          no_output_timeout: 30m
+      - k8s-show-events
+
+  run-openshift-e2e-test:
     machine:
       image: circleci/classic:latest
       docker_layer_caching: true
@@ -259,7 +336,10 @@ workflows:
       - verify-manifest
       - test-crds
       - install-operator
-      - run-operator-e2e-test:
+      - run-openshift-e2e-test:
+          requires:
+            - install-operator
+      - run-k8s-e2e-test:
           requires:
             - install-operator
       - tag-operator-image-master:
