@@ -19,7 +19,6 @@ spec:
           image: REPLACE_IMAGE
           command:
           - apicast-operator
-          imagePullPolicy: Always
           env:
             - name: WATCH_NAMESPACE
               valueFrom:
