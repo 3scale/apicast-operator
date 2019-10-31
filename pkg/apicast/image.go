@@ -1,7 +1,9 @@
 package apicast
 
-const currentImageVersion = "quay.io/3scale/apicast:nightly"
+import "github.com/3scale/apicast-operator/pkg/helper"
 
-func GetCurrentImageVersion() string {
-	return currentImageVersion
+const defaultImageVersion = "quay.io/3scale/apicast:nightly"
+
+func GetDefaultImageVersion() string {
+	return helper.GetEnvVar("APICAST_IMAGE", defaultImageVersion)
 }

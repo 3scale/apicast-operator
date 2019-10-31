@@ -368,7 +368,7 @@ func (r *APIcastLogicReconciler) initialize() (bool, error) {
 func (r *APIcastLogicReconciler) applyInitialization() bool {
 	var defaultAPIcastReplicas int64 = 1
 	defaultServiceAccount := "default"
-	defaultAPIcastImage := apicast.GetCurrentImageVersion()
+	defaultAPIcastImage := apicast.GetDefaultImageVersion()
 	appliedInitialization := false
 
 	if r.APIcastCR.Spec.Replicas == nil {

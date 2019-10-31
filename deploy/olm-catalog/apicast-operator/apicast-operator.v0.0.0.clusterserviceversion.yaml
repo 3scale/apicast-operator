@@ -87,6 +87,8 @@ spec:
                       fieldPath: metadata.name
                 - name: OPERATOR_NAME
                   value: apicast-operator
+                - name: APICAST_IMAGE
+                  value: "quay.io/3scale/apicast:nightly"
                 image: quay.io/3scale/apicast-operator:master
                 imagePullPolicy: Always
                 name: apicast-operator
