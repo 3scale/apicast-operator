@@ -18,7 +18,7 @@ spec:
           # Replace this with the built image name
           image: REPLACE_IMAGE
           command:
-          - apicast-operator
+            - apicast-operator
           env:
             - name: WATCH_NAMESPACE
               valueFrom:
@@ -30,3 +30,5 @@ spec:
                   fieldPath: metadata.name
             - name: OPERATOR_NAME
               value: "apicast-operator"
+            - name: APICAST_IMAGE
+              value: "quay.io/3scale/apicast:nightly"
