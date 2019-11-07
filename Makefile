@@ -87,7 +87,7 @@ verify-manifest:
 ifndef OPERATORCOURIER
 	$(error "operator-courier is not available please install pip3 install operator-courier")
 endif
-	cd $(PROJECT_PATH)/deploy/olm-catalog && operator-courier verify --ui_validate_io apicast-operator/
+	cd $(PROJECT_PATH)/deploy/olm-catalog && operator-courier verify --ui_validate_io apicast-community-operator/
 
 ## test-crds: Run CRD unittests
 test-crds: vendor
@@ -98,4 +98,4 @@ push-manifest:
 ifndef OPERATORCOURIER
 	$(error "operator-courier is not available please install pip3 install operator-courier")
 endif
-	cd $(PROJECT_PATH)/deploy/olm-catalog && operator-courier push apicast-operator/ $(APPLICATION_REPOSITORY_NAMESPACE) apicast-operator-master $(MANIFEST_RELEASE) "$(TOKEN)"
+	cd $(PROJECT_PATH)/deploy/olm-catalog && operator-courier push apicast-community-operator/ $(APPLICATION_REPOSITORY_NAMESPACE) apicast-operator-master $(MANIFEST_RELEASE) "$(TOKEN)"
