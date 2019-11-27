@@ -8,20 +8,20 @@ See the LICENSE and NOTICE files that should have been provided along with this 
 
 ### Project Status: alpha
 
-The project is currently alpha which means that there are still new feautres
+The project is currently alpha which means that there are still new features
 and APIs planned that will be added in the future.
 Due to this, breaking changes may still happen.
 
 ## Overview
 
-This project contains the APIcast operator software. APIcast operator is a
+This project contains the APIcast operator software. APIcast operator is a piece of
 software based on [Kubernetes operators](https://coreos.com/operators/) that
 provides:
-* A way to install a 3scale APIcast self-managed solution, providing configurability
-  options at the time of installation
+* An easy way to install a 3scale APIcast self-managed solution, providing configurability
+  options at the time of installation.
 
-This functionalities definitions are provided via Kubernetes custom resources
-that the operator is able to understand and process.
+The functionalities and definitions are provided via Kubernetes custom resources
+which the operator is able to understand and process.
 
 ## Prerequisites
 
@@ -35,14 +35,14 @@ that the operator is able to understand and process.
 
 ## Getting started
 
-### Deploy Apicast gateway providing configuration secret
+### Deploy APIcast gateway providing configuration secret
 
-This is a very basic example to deploy apicast with a very simple configuration.
+This is a basic example to deploy APIcast with a simple configuration.
 The [json configuration file](https://github.com/3scale/APIcast/blob/master/examples/configuration/echo.json)
-will make apicast behave like an echo api endpoint.
+will make APIcast behave like an echo api endpoint.
 See more [examples of configuration files](https://github.com/3scale/APIcast/tree/master/examples/configuration).
 
-Create secret with the configuration file:
+Create a secret with the configuration file:
 
 ```sh
 curl https://raw.githubusercontent.com/3scale/APIcast/master/examples/configuration/echo.json -o $PWD/config.json
@@ -50,9 +50,9 @@ kubectl create secret generic apicast-echo-api-conf-secret --from-file=$PWD/conf
 ```
 
 Note that config file must be called `config.json`.
-This is [Apicast CRD reference](doc/apicast-crd-reference.md) requirement
+This is an [APIcast CRD reference](doc/apicast-crd-reference.md) requirement
 
-Create [apicast custom resource](doc/apicast-crd-reference.md):
+Create an [APIcast custom resource](doc/apicast-crd-reference.md):
 
 ```yaml
 $ cat my-echo-apicast.yaml
@@ -69,11 +69,11 @@ spec:
 $ kubectl apply -f my-echo-apicast.yaml
 ```
 
-### Deploy Apicast gateway providing 3scale portal URL
+### Deploy APIcast gateway providing 3scale portal URL
 
-This is a very basic example to deploy apicast providing our 3scale Account Management API portal URL.
+This is a basic example to deploy APIcast providing our 3scale Account Management API portal URL.
 
-Create secret with URL. URL format can be found [here](https://github.com/3scale/APIcast/blob/master/doc/parameters.md#threescale_portal_endpoint):
+Create a secret with a URL. The URL format can be found [here](https://github.com/3scale/APIcast/blob/master/doc/parameters.md#threescale_portal_endpoint):
 
 ```sh
 kubectl create secret generic apicast-portal-url --from-literal=AdminPortalURL=MY_3SCALE_URL
@@ -81,7 +81,7 @@ kubectl create secret generic apicast-portal-url --from-literal=AdminPortalURL=M
 
 Note that secret key must be called `AdminPortalURL`.
 
-Create [apicast custom resource](doc/apicast-crd-reference.md):
+Create an [APIcast custom resource](doc/apicast-crd-reference.md):
 
 ```yaml
 $ cat my-supertest-apicast.yaml
@@ -111,7 +111,7 @@ git clone https://github.com/3scale/apicast-operator.git
 cd apicast-operator
 ```
 
-With administrative user create and deploy a Apicast CRD
+An administrative user can create and deploy an APIcast CRD
 
 ```sh
 kubectl create -f deploy/crds/apps_v1alpha1_apicast_crd.yaml
@@ -145,7 +145,7 @@ kubectl create -f deploy/role.yaml
 kubectl create -f deploy/role_binding.yaml
 ```
 
-Install dependencies
+Install the dependencies
 
 ```sh
 make vendor
@@ -156,7 +156,7 @@ make local
 ```
 
 ## Deploy nightly image to Kubernetes 1.13 using OLM
-To install nightly image (master tag) of this operator on Kubernetes 1.13 for end-to-end testing, 
+To install a nightly image (master tag) of this operator in Kubernetes 1.13 for end-to-end testing, 
 create the [Operator Source](https://github.com/operator-framework/community-operators/blob/master/docs/testing-operators.md#linking-the-quay-application-repository-to-your-openshift-40-cluster)
 provided in `deploy/olm-catalog/apicast-operatorsource.yaml` to load your operator bundle in Kubernetes.
 
@@ -168,7 +168,7 @@ It will take a few minutes for the operator to become visible under the _Operato
 
 ## Documentation
 
-* [Apicast CRD reference](doc/apicast-crd-reference.md)
+* [APIcast CRD reference](doc/apicast-crd-reference.md)
 
 [git_tool]:https://git-scm.com/downloads
 [operator-sdk]:https://github.com/operator-framework/operator-sdk
