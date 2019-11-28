@@ -158,6 +158,12 @@ spec:
   keywords:
   - 3scale
   - API
+  - api
+  - APIcast
+  - apicast
+  - gateway
+  - api-gateway
+  - openresty
   links:
   - name: GitHub
     url: https://github.com/3scale/apicast-operator
@@ -165,6 +171,8 @@ spec:
     url: https://github.com/3scale/apicast-operator
   maintainers:
   - email: eastizle+apicastoperator@redhat.com
+    name: Apicast
+  - email: msoriano+apicastoperator@redhat.com
     name: Apicast
   maturity: alpha
   minKubeVersion: 1.11.0
