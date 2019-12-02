@@ -335,7 +335,10 @@ workflows:
       - license-check
       - verify-manifest
       - test-crds
-      - install-operator
+      - install-operator:
+          filters: # required since `tag-operator-image-release` job has tag filters AND requires `install-operator`. Otherwise tag build will not be triggered on new tags
+            tags:
+              only: /^v.*/
       - run-openshift-e2e-test:
           requires:
             - install-operator
