@@ -150,6 +150,7 @@ func (r *ReconcileAPIcast) Reconcile(request reconcile.Request) (reconcile.Resul
 		if err != nil {
 			return reconcile.Result{}, err
 		}
+		r.Logger().Info("APIcast operator version in annotations set. Requeuing request...")
 		return reconcile.Result{Requeue: true}, err
 	}
 
@@ -204,6 +205,5 @@ func (r *ReconcileAPIcast) updateAPIcastOperatorVersionInAnnotations(instance *a
 	if err != nil {
 		r.Logger().Error(err, "Error setting APIcast operator version in annotations")
 	}
-	r.Logger().Info("APIcast operator version in annotations set. Requeuing request...")
 	return err
 }
