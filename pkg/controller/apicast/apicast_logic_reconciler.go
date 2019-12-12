@@ -62,6 +62,8 @@ func (r *APIcastLogicReconciler) Reconcile() (reconcile.Result, error) {
 		return reconcile.Result{}, err
 	}
 	if appliedInitialization {
+		// Stop the reconciliation cycle without requeuing as a new reconciliation
+		// event has been generated already when applying initialization on the CR
 		return reconcile.Result{}, nil
 	}
 
@@ -358,8 +360,6 @@ func (r *APIcastLogicReconciler) initialize() (bool, error) {
 			return false, err
 		}
 		r.Logger().Info("APIcast resource missed optional fields. Updated CR which triggered a new reconciliation event")
-		// the final effect should be stop the reconciliation cycle, without starting a new one
-		// and also NOT continue evaluating logic
 		return true, nil
 	}
 	return false, nil
