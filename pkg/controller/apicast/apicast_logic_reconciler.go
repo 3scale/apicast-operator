@@ -317,14 +317,24 @@ func (r *APIcastLogicReconciler) internalAPIcast(userProvidedSecrets *apicastUse
 		gatewayConfigurationSecretName = &tmpGatewayConfigurationSecretName
 	}
 
+	image := apicast.GetDefaultImageVersion()
+	if r.APIcastCR.Spec.Image != nil {
+		image = *r.APIcastCR.Spec.Image
+	}
+
+	serviceAccount := "default"
+	if r.APIcastCR.Spec.ServiceAccount != nil {
+		serviceAccount = *r.APIcastCR.Spec.ServiceAccount
+	}
+
 	apicastResult := apicast.APIcast{
 		DeploymentName:                   apicastFullName,
 		ServiceName:                      apicastFullName,
 		Replicas:                         int32(*r.APIcastCR.Spec.Replicas),
 		AppLabel:                         "apicast",
 		AdditionalAnnotations:            deploymentAnnotations,
-		ServiceAccountName:               *r.APIcastCR.Spec.ServiceAccount,
-		Image:                            *r.APIcastCR.Spec.Image,
+		ServiceAccountName:               serviceAccount,
+		Image:                            image,
 		ExposedHost:                      apicastExposedHost,
 		Namespace:                        r.APIcastCR.Namespace,
 		OwnerReference:                   &apicastOwnerRef,
@@ -367,20 +377,10 @@ func (r *APIcastLogicReconciler) initialize() (bool, error) {
 
 func (r *APIcastLogicReconciler) applyInitialization() bool {
 	var defaultAPIcastReplicas int64 = 1
-	defaultServiceAccount := "default"
-	defaultAPIcastImage := apicast.GetDefaultImageVersion()
 	appliedInitialization := false
 
 	if r.APIcastCR.Spec.Replicas == nil {
 		r.APIcastCR.Spec.Replicas = &defaultAPIcastReplicas
-		appliedInitialization = true
-	}
-	if r.APIcastCR.Spec.ServiceAccount == nil {
-		r.APIcastCR.Spec.ServiceAccount = &defaultServiceAccount
-		appliedInitialization = true
-	}
-	if r.APIcastCR.Spec.Image == nil {
-		r.APIcastCR.Spec.Image = &defaultAPIcastImage
 		appliedInitialization = true
 	}
 
