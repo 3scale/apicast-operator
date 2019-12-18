@@ -136,6 +136,9 @@ spec:
                 - status
                 type: object
               type: array
+            image:
+              description: The image being used in the APIcast deployment
+              type: string
           type: object
   version: v1alpha1
   versions:

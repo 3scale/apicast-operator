@@ -71,6 +71,10 @@ type APIcastStatus struct {
 	// +patchMergeKey=type
 	// +patchStrategy=merge
 	Conditions []APIcastCondition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type"`
+
+	// The image being used in the APIcast deployment
+	// +optional
+	Image string `json:"image,omitempty"`
 }
 
 type APIcastExposedHost struct {

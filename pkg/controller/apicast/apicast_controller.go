@@ -10,6 +10,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	extensions "k8s.io/api/extensions/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -156,9 +157,6 @@ func (r *ReconcileAPIcast) Reconcile(request reconcile.Request) (reconcile.Resul
 
 	if instance.ObjectMeta.Annotations[APIcastOperatorVersionAnnotation] != version.Version {
 		r.Logger().Info("APIcast operator version in annotations does not match expected version. Applying upgrade procedure...")
-		// TODO implement upgrade procedure here. The idea is that here we will not set version until
-		// we verify that all the upgrade steps have been applied and correctly
-
 		upgradeReconcileResult, err := r.upgradeAPIcast()
 		if err != nil {
 			r.Logger().Error(err, "Error upgrading APIcast")
@@ -183,9 +181,44 @@ func (r *ReconcileAPIcast) Reconcile(request reconcile.Request) (reconcile.Resul
 		r.Logger().Error(err, "Requeuing request...")
 		return result, err
 	}
-
 	r.Logger().Info("APIcast logic reconciled")
+
+	result, err = r.updateStatus(instance, &logicReconciler)
+	if err != nil || result.Requeue {
+		r.Logger().Error(err, "Requeuing request...")
+		return result, err
+	}
+	r.Logger().Info("APIcast status reconciled")
+
 	r.Logger().Info("Finished current reconcile request successfully. Skipping requeue of the request")
+	return reconcile.Result{}, nil
+}
+
+func (r *ReconcileAPIcast) updateStatus(instance *appsv1alpha1.APIcast, reconciler *APIcastLogicReconciler) (reconcile.Result, error) {
+	apicast, err := reconciler.APIcastFromCRContents()
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+
+	apicastDeployment := &appsv1.Deployment{}
+	err = r.Client().Get(context.TODO(), types.NamespacedName{Name: apicast.DeploymentName, Namespace: apicast.Namespace}, apicastDeployment)
+	if err != nil && !errors.IsNotFound(err) {
+		return reconcile.Result{}, err
+	}
+
+	if err != nil && errors.IsNotFound(err) {
+		return reconcile.Result{}, err
+	}
+
+	deployedImage := apicastDeployment.Spec.Template.Spec.Containers[0].Image
+	if instance.Status.Image != deployedImage {
+		instance.Status.Image = deployedImage
+		err = r.Client().Status().Update(context.TODO(), instance)
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+		return reconcile.Result{Requeue: true}, nil
+	}
 	return reconcile.Result{}, nil
 }
 
