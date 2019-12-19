@@ -179,4 +179,4 @@ spec:
   minKubeVersion: 1.11.0
   provider:
     name: Red Hat
-  version: 0.1.0
+  version: 0.1.1
