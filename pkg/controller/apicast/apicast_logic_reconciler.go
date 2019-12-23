@@ -154,27 +154,6 @@ func (r *APIcastLogicReconciler) getAdminPortalCredentialsSecret() (*v1.Secret, 
 	return &adminPortalCredentialsSecret, err
 }
 
-func (r *APIcastLogicReconciler) gatewayConfigurationSecret() (v1.Secret, error) {
-	gatewayConfigSecret := v1.Secret{}
-
-	if r.APIcastCR.Spec.EmbeddedConfigurationSecretRef.Name == "" {
-		return v1.Secret{}, fmt.Errorf("Name field not defined in secret %s", r.APIcastCR.Spec.EmbeddedConfigurationSecretRef)
-	}
-
-	gatewayConfigSecretNamespacedName := types.NamespacedName{
-		Name:      r.APIcastCR.Spec.EmbeddedConfigurationSecretRef.Name,
-		Namespace: r.APIcastCR.Namespace,
-	}
-	err := r.Client().Get(context.TODO(), gatewayConfigSecretNamespacedName, &gatewayConfigSecret)
-	if err != nil {
-		return v1.Secret{}, err
-	}
-	if _, ok := gatewayConfigSecret.Data["config.json"]; !ok {
-		return v1.Secret{}, fmt.Errorf("%s key not found in secret %s", "config.json", gatewayConfigSecret.Name)
-	}
-	return gatewayConfigSecret, nil
-}
-
 func (r *APIcastLogicReconciler) reconcileAdminPortalCredentials() (*v1.Secret, bool, error) {
 	if r.APIcastCR.Spec.AdminPortalCredentialsRef == nil {
 		return nil, false, nil
