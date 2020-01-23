@@ -202,6 +202,13 @@ func schema_pkg_apis_apps_v1alpha1_APIcastStatus(ref common.ReferenceCallback) c
 							},
 						},
 					},
+					"image": {
+						SchemaProps: spec.SchemaProps{
+							Description: "The image being used in the APIcast deployment",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
 				},
 			},
 		},

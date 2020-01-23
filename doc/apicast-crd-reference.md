@@ -48,3 +48,7 @@
 #### ApicastStatus
 
 Used by the Operator/Kubernetes to control the state of the Apicast custom resource. It should never be modified by the user.
+
+| **Field** | **Type** | **Description** |
+| --- | --- | --- |
+| `image` | string | The image being used in the APIcast deployment |

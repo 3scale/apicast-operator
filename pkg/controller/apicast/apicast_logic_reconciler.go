@@ -62,9 +62,9 @@ func (r *APIcastLogicReconciler) Reconcile() (reconcile.Result, error) {
 		return reconcile.Result{}, err
 	}
 	if appliedInitialization {
-		// Stop the reconciliation cycle without requeuing as a new reconciliation
-		// event has been generated already when applying initialization on the CR
-		return reconcile.Result{}, nil
+		// Stop the reconciliation cycle and order requeue to stop processing
+		// of reconciliation
+		return reconcile.Result{Requeue: true}, nil
 	}
 
 	adminPortalCredentialsSecret, changed, err := r.reconcileAdminPortalCredentials()
@@ -263,6 +263,43 @@ func (r *APIcastLogicReconciler) UserProvidedSecretResourceVersionAnnotations(us
 	}
 
 	return annotations
+}
+
+// APIcastFromCRContents returns an apicast.APIcast instance. This method has
+// been implemented in order to be able to obtain an APIcast instance from
+// outside the reconciler code and avoid executing the Reconcile method. Notice
+// how we get the user provided secrets (and just get, not reconcile
+// them like we do in the Reconcile method)
+func (r *APIcastLogicReconciler) APIcastFromCRContents() (*apicast.APIcast, error) {
+	var adminPortalCredentialsSecret *v1.Secret
+	var gatewayEmbeddedConfigSecret *v1.Secret
+	var err error
+
+	if r.APIcastCR.Spec.EmbeddedConfigurationSecretRef != nil {
+		gatewayEmbeddedConfigSecret, err = r.getGatewayEmbeddedConfigSecret()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if r.APIcastCR.Spec.AdminPortalCredentialsRef != nil {
+		adminPortalCredentialsSecret, err = r.getAdminPortalCredentialsSecret()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	userProvidedSecrets := &apicastUserProvidedSecrets{
+		adminPortalCredentialsSecret: adminPortalCredentialsSecret,
+		gatewayEmbeddedConfigSecret:  gatewayEmbeddedConfigSecret,
+	}
+
+	apicast, err := r.internalAPIcast(userProvidedSecrets)
+	if err != nil {
+		return nil, err
+	}
+
+	return &apicast, nil
 }
 
 func (r *APIcastLogicReconciler) internalAPIcast(userProvidedSecrets *apicastUserProvidedSecrets) (apicast.APIcast, error) {
