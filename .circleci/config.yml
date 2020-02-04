@@ -320,20 +320,11 @@ jobs:
       - checkout
       - run: make test-crds
 
-  verify-manifest:
-    docker:
-      - image: circleci/python:3.6.4
-    steps:
-      - checkout
-      - run: sudo pip3 install operator-courier
-      - run: make verify-manifest
-
 workflows:
   version: 2
   build:
     jobs:
       - license-check
-      - verify-manifest
       - test-crds
       - install-operator:
           filters: # required since `tag-operator-image-release` job has tag filters AND requires `install-operator`. Otherwise tag build will not be triggered on new tags
