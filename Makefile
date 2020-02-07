@@ -26,7 +26,7 @@ vendor:
 IMAGE ?= quay.io/3scale/apicast-operator
 SOURCE_VERSION ?= master
 VERSION ?= v0.0.1
-NAMESPACE ?= operator-test
+NAMESPACE ?= $(shell kubectl config view --minify -o jsonpath='{.contexts[0].context.namespace}' 2>/dev/null || echo operator-test)
 OPERATOR_NAME ?= apicast-operator
 
 ## build: Build operator
