@@ -1,5 +1,7 @@
 module github.com/3scale/apicast-operator
 
+go 1.12
+
 require (
 	contrib.go.opencensus.io/exporter/ocagent v0.6.0 // indirect
 	github.com/Azure/go-autorest v11.5.2+incompatible // indirect
