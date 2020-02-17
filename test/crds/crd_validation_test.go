@@ -18,7 +18,7 @@ import (
 func TestSampleCustomResources(t *testing.T) {
 	root := "../../deploy/crds"
 	crdCrMap := map[string]string{
-		"apps_v1alpha1_apicast_crd.yaml": "apps_v1alpha1_apicast_cr",
+		"apps.3scale.net_apicasts_crd.yaml": "apps.3scale.net_v1alpha1_apicast",
 	}
 	for crd, prefix := range crdCrMap {
 		validateCustomResources(t, root, crd, prefix)
@@ -49,7 +49,7 @@ func validateCustomResources(t *testing.T, root string, crd string, prefix strin
 func TestCompleteCRD(t *testing.T) {
 	root := "../../deploy/crds"
 	crdStructMap := map[string]interface{}{
-		"apps_v1alpha1_apicast_crd.yaml": &v1alpha1.APIcast{},
+		"apps.3scale.net_apicasts_crd.yaml": &v1alpha1.APIcast{},
 	}
 	for crd, obj := range crdStructMap {
 		schema := getSchema(t, fmt.Sprintf("%s/%s", root, crd))
