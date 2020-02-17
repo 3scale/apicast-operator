@@ -20,7 +20,7 @@
 
 * [operator-sdk] version v0.8.0.
 * [git][git_tool]
-* [go] version 1.12.5+
+* [go] version 1.13+
 * [kubernetes] version v1.11.0+
 * [kubectl] version v1.11+
 * Access to a Kubernetes v1.11.0+ cluster.
