@@ -235,7 +235,7 @@ spec:
     name: Apicast
   - email: msoriano+apicastoperator@redhat.com
     name: Apicast
-  maturity: alpha
+  maturity: stable
   minKubeVersion: 1.11.0
   provider:
     name: Red Hat
