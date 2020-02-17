@@ -1,4 +1,5 @@
-packageName: apicast-operator-master
 channels:
-  - name: alpha
-    currentCSV: apicast-operator.v0.0.0
+- currentCSV: apicast-operator.v0.0.0
+  name: alpha
+defaultChannel: ""
+packageName: apicast-operator-master
