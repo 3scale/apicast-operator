@@ -31,4 +31,4 @@ spec:
             - name: OPERATOR_NAME
               value: "apicast-operator"
             - name: APICAST_IMAGE
-              value: "quay.io/3scale/apicast:nightly"
+              value: "quay.io/3scale/apicast:v3.8.0"
