@@ -88,6 +88,7 @@ type APIcastExposedHost struct {
 // APIcast is the Schema for the apicasts API
 // +k8s:openapi-gen=true
 // +kubebuilder:subresource:status
+// +kubebuilder:resource:path=apicasts,scope=Namespaced
 type APIcast struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
