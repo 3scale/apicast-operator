@@ -38,6 +38,7 @@ metadata:
       Red Hat 3scale API Management Platform
     repository: https://github.com/3scale/apicast-operator
     support: Red Hat, Inc.
+    tectonic-visibility: ocs
   name: apicast-operator.v0.0.0
   namespace: placeholder
 spec:
