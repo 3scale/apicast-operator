@@ -11,6 +11,7 @@ import (
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	"k8s.io/client-go/rest"
@@ -170,10 +171,18 @@ func addMetrics(ctx context.Context, cfg *rest.Config, namespace string) {
 func serveCRMetrics(cfg *rest.Config) error {
 	// Below function returns filtered operator/CustomResource specific GVKs.
 	// For more control override the below GVK list with your own custom logic.
-	filteredGVK, err := k8sutil.GetGVKsFromAddToScheme(apis.AddToScheme)
+	gvks, err := k8sutil.GetGVKsFromAddToScheme(apis.AddToScheme)
 	if err != nil {
 		return err
 	}
+
+	// We perform our custom GKV filtering on top of the one performed
+	// by operator-sdk code
+	filteredGVK := filterGKVsFromAddToScheme(gvks)
+	if err != nil {
+		return err
+	}
+
 	// Get the namespace the operator is currently deployed in.
 	operatorNs, err := k8sutil.GetOperatorNamespace()
 	if err != nil {
@@ -187,4 +196,51 @@ func serveCRMetrics(cfg *rest.Config) error {
 		return err
 	}
 	return nil
+}
+
+func filterGKVsFromAddToScheme(gvks []schema.GroupVersionKind) []schema.GroupVersionKind {
+	// We use gkvFilters to filter from the existing GKVs defined in the used
+	// runtime.Schema for the operator. The reason for that is that
+	// kube-metrics tries to list all of the defined Kinds in the schemas
+	// that are passed, including Kinds that the operator doesn't use and
+	// thus the role used the operator doesn't have them set and we don't want
+	// to set as they are not used by the operator.
+	// For the fields that the filters have we have defined the value '*' to
+	// specify any will be a match (accepted)
+	matchAnyValue := "*"
+	gvkFilters := []schema.GroupVersionKind{
+		// Kubernetes types
+		schema.GroupVersionKind{Group: "apps", Kind: "Deployment", Version: matchAnyValue},
+		schema.GroupVersionKind{Kind: "Service", Version: matchAnyValue},
+		schema.GroupVersionKind{Kind: "Pod", Version: matchAnyValue},
+		schema.GroupVersionKind{Kind: "Secret", Version: matchAnyValue},
+		schema.GroupVersionKind{Kind: "ConfigMap", Version: matchAnyValue},
+		schema.GroupVersionKind{Group: "networking.k8s.io", Kind: "Ingress", Version: matchAnyValue},
+	}
+
+	ownGVKs := []schema.GroupVersionKind{}
+	for _, gvk := range gvks {
+		for _, gvkFilter := range gvkFilters {
+			match := true
+			if gvkFilter.Kind == matchAnyValue && gvkFilter.Group == matchAnyValue && gvkFilter.Version == matchAnyValue {
+				log.V(1).Info("gvkFilter should at least have one of its fields defined. Skipping...")
+				match = false
+			} else {
+				if gvkFilter.Kind != matchAnyValue && gvkFilter.Kind != gvk.Kind {
+					match = false
+				}
+				if gvkFilter.Group != matchAnyValue && gvkFilter.Group != gvk.Group {
+					match = false
+				}
+				if gvkFilter.Version != matchAnyValue && gvkFilter.Version != gvk.Version {
+					match = false
+				}
+			}
+			if match {
+				ownGVKs = append(ownGVKs, gvk)
+			}
+		}
+	}
+
+	return ownGVKs
 }
