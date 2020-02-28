@@ -2,24 +2,50 @@ apiVersion: operators.coreos.com/v1alpha1
 kind: ClusterServiceVersion
 metadata:
   annotations:
+    alm-examples: |-
+      [
+        {
+          "apiVersion": "apps.3scale.net/v1alpha1",
+          "kind": "APIcast",
+          "metadata": {
+            "name": "example-apicast"
+          },
+          "spec": {
+            "adminPortalCredentialsRef": {
+              "name": "mysecretname"
+            }
+          }
+        },
+        {
+          "apiVersion": "apps.3scale.net/v1alpha1",
+          "kind": "APIcast",
+          "metadata": {
+            "name": "example-apicast"
+          },
+          "spec": {
+            "embeddedConfigurationSecretRef": {
+              "name": "mysecretname"
+            }
+          }
+        }
+      ]
     capabilities: Full Lifecycle
-    categories: "Integration & Delivery"
+    categories: Integration & Delivery
     certified: "false"
     containerImage: quay.io/3scale/apicast-operator:master
     createdAt: "2019-10-27T22:40:00Z"
-    description: APIcast is an API gateway built on top of NGINX. It is part of the Red Hat 3scale API Management Platform
+    description: APIcast is an API gateway built on top of NGINX. It is part of the
+      Red Hat 3scale API Management Platform
     repository: https://github.com/3scale/apicast-operator
     support: Red Hat, Inc.
-    alm-examples: >-
-       [{"apiVersion":"apps.3scale.net/v1alpha1","kind":"APIcast","metadata":{"name":"example-apicast"},"spec":{"adminPortalCredentialsRef":{"name":"mysecretname"}}},
-       {"apiVersion":"apps.3scale.net/v1alpha1","kind":"APIcast","metadata":{"name":"example-apicast"},"spec":{"embeddedConfigurationSecretRef":{"name":"mysecretname"}}}]
+    tectonic-visibility: ocs
   name: apicast-operator.v0.0.0
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
   customresourcedefinitions:
     owned:
-    - description: APIcast is an API gateway
+    - description: APIcast is the Schema for the apicasts API
       displayName: APIcast
       kind: APIcast
       name: apicasts.apps.3scale.net
@@ -56,8 +82,8 @@ spec:
     APIcast Operator is licensed under the [Apache 2.0 license](https://github.com/3scale/apicast-operator/blob/master/LICENSE)
   displayName: APIcast (nightly)
   icon:
-    - base64data: PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyB3aWR0aD0iMTAwcHgiIGhlaWdodD0iNTBweCIgdmlld0JveD0iMCAwIDEwMCA1MCIgdmVyc2lvbj0iMS4xIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIj4KICAgIDwhLS0gR2VuZXJhdG9yOiBTa2V0Y2ggNTQuMSAoNzY0OTApIC0gaHR0cHM6Ly9za2V0Y2hhcHAuY29tIC0tPgogICAgPHRpdGxlPkdyb3VwIDI8L3RpdGxlPgogICAgPGRlc2M+Q3JlYXRlZCB3aXRoIFNrZXRjaC48L2Rlc2M+CiAgICA8ZyBpZD0iUGFnZS0xIiBzdHJva2U9Im5vbmUiIHN0cm9rZS13aWR0aD0iMSIgZmlsbD0ibm9uZSIgZmlsbC1ydWxlPSJldmVub2RkIj4KICAgICAgICA8ZyBpZD0iR3JvdXAtMiI+CiAgICAgICAgICAgIDxyZWN0IGlkPSJSZWN0YW5nbGUiIGZpbGw9IiNGRkZGRkYiIHg9IjAiIHk9IjAiIHdpZHRoPSIxMDAiIGhlaWdodD0iNTAiPjwvcmVjdD4KICAgICAgICAgICAgPGcgaWQ9Ikdyb3VwIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSgxOS45NDY4MDksIDAuMDAwMDAwKSIgZmlsbD0iI0ZGNzMxNCIgZmlsbC1ydWxlPSJub256ZXJvIj4KICAgICAgICAgICAgICAgIDxnIGlkPSJsb2dvLW1hcmsiPgogICAgICAgICAgICAgICAgICAgIDxwYXRoIGQ9Ik0wLDkuMDUyNjMxNjEgQzAsNCA0LjIyMzY5MTg1LDAgOS4zMTM3ODE4MywwIEMxNC41MTIxNzE1LDAgMTguNjI3NTYzOCw0LjEwNTI2MzA2IDE4LjYyNzU2MzgsOS4wNTI2MzE2MSBDMTguNjI3NTYzOCwxNC4xMDUyNjMxIDE0LjQwMzg3MiwxOC4xMDUyNjMxIDkuMzEzNzgxODMsMTguMTA1MjYzMSBDNC4yMjM2OTE4NSwxOC4xMDUyNjMxIDAsMTQuMTA1MjYzMSAwLDkuMDUyNjMxNjEgTTQ4LjYyNjYwNTQsMTEuODk0NzM2OSBDNDguNjI2NjA1NCw4Ljg0MjEwNTMyIDUxLjIyNTgwMDEsNi4zMTU3ODkzNSA1NC4zNjY0OTQyLDYuMzE1Nzg5MzUgQzU3LjUwNzE4OCw2LjMxNTc4OTM1IDYwLjEwNjM4Myw4Ljg0MjEwNTMyIDYwLjEwNjM4MywxMS44OTQ3MzY5IEM2MC4xMDYzODMsMTQuOTQ3MzY4NCA1Ny41MDcxODgsMTcuNDczNjg0NCA1NC4zNjY0OTQyLDE3LjQ3MzY4NDQgQzUxLjExNzUwMDQsMTcuNDczNjg0NCA0OC42MjY2MDU0LDE1LjA1MjYzMTYgNDguNjI2NjA1NCwxMS44OTQ3MzY5IE0zMi45MjMxMzYsMzguMTA1MjYzMSBDMzIuOTIzMTM2LDMxLjU3ODk0NzMgMzguNDQ2NDI1MiwyNi4yMTA1MjYzIDQ1LjE2MTAxMiwyNi4yMTA1MjYzIEM1MS44NzU1OTg5LDI2LjIxMDUyNjMgNTcuMzk4ODg4MiwzMS41Nzg5NDczIDU3LjM5ODg4ODIsMzguMTA1MjYzMSBDNTcuMzk4ODg4Miw0NC42MzE1NzkgNTEuODc1NTk4OSw1MCA0NS4xNjEwMTIsNTAgQzM4LjQ0NjQyNTIsNTAgMzIuOTIzMTM2LDQ0LjczNjg0MTkgMzIuOTIzMTM2LDM4LjEwNTI2MzEiIGlkPSJTaGFwZSI+PC9wYXRoPgogICAgICAgICAgICAgICAgPC9nPgogICAgICAgICAgICA8L2c+CiAgICAgICAgPC9nPgogICAgPC9nPgo8L3N2Zz4=
-      mediatype: image/svg+xml
+  - base64data: PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyB3aWR0aD0iMTAwcHgiIGhlaWdodD0iNTBweCIgdmlld0JveD0iMCAwIDEwMCA1MCIgdmVyc2lvbj0iMS4xIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIj4KICAgIDwhLS0gR2VuZXJhdG9yOiBTa2V0Y2ggNTQuMSAoNzY0OTApIC0gaHR0cHM6Ly9za2V0Y2hhcHAuY29tIC0tPgogICAgPHRpdGxlPkdyb3VwIDI8L3RpdGxlPgogICAgPGRlc2M+Q3JlYXRlZCB3aXRoIFNrZXRjaC48L2Rlc2M+CiAgICA8ZyBpZD0iUGFnZS0xIiBzdHJva2U9Im5vbmUiIHN0cm9rZS13aWR0aD0iMSIgZmlsbD0ibm9uZSIgZmlsbC1ydWxlPSJldmVub2RkIj4KICAgICAgICA8ZyBpZD0iR3JvdXAtMiI+CiAgICAgICAgICAgIDxyZWN0IGlkPSJSZWN0YW5nbGUiIGZpbGw9IiNGRkZGRkYiIHg9IjAiIHk9IjAiIHdpZHRoPSIxMDAiIGhlaWdodD0iNTAiPjwvcmVjdD4KICAgICAgICAgICAgPGcgaWQ9Ikdyb3VwIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSgxOS45NDY4MDksIDAuMDAwMDAwKSIgZmlsbD0iI0ZGNzMxNCIgZmlsbC1ydWxlPSJub256ZXJvIj4KICAgICAgICAgICAgICAgIDxnIGlkPSJsb2dvLW1hcmsiPgogICAgICAgICAgICAgICAgICAgIDxwYXRoIGQ9Ik0wLDkuMDUyNjMxNjEgQzAsNCA0LjIyMzY5MTg1LDAgOS4zMTM3ODE4MywwIEMxNC41MTIxNzE1LDAgMTguNjI3NTYzOCw0LjEwNTI2MzA2IDE4LjYyNzU2MzgsOS4wNTI2MzE2MSBDMTguNjI3NTYzOCwxNC4xMDUyNjMxIDE0LjQwMzg3MiwxOC4xMDUyNjMxIDkuMzEzNzgxODMsMTguMTA1MjYzMSBDNC4yMjM2OTE4NSwxOC4xMDUyNjMxIDAsMTQuMTA1MjYzMSAwLDkuMDUyNjMxNjEgTTQ4LjYyNjYwNTQsMTEuODk0NzM2OSBDNDguNjI2NjA1NCw4Ljg0MjEwNTMyIDUxLjIyNTgwMDEsNi4zMTU3ODkzNSA1NC4zNjY0OTQyLDYuMzE1Nzg5MzUgQzU3LjUwNzE4OCw2LjMxNTc4OTM1IDYwLjEwNjM4Myw4Ljg0MjEwNTMyIDYwLjEwNjM4MywxMS44OTQ3MzY5IEM2MC4xMDYzODMsMTQuOTQ3MzY4NCA1Ny41MDcxODgsMTcuNDczNjg0NCA1NC4zNjY0OTQyLDE3LjQ3MzY4NDQgQzUxLjExNzUwMDQsMTcuNDczNjg0NCA0OC42MjY2MDU0LDE1LjA1MjYzMTYgNDguNjI2NjA1NCwxMS44OTQ3MzY5IE0zMi45MjMxMzYsMzguMTA1MjYzMSBDMzIuOTIzMTM2LDMxLjU3ODk0NzMgMzguNDQ2NDI1MiwyNi4yMTA1MjYzIDQ1LjE2MTAxMiwyNi4yMTA1MjYzIEM1MS44NzU1OTg5LDI2LjIxMDUyNjMgNTcuMzk4ODg4MiwzMS41Nzg5NDczIDU3LjM5ODg4ODIsMzguMTA1MjYzMSBDNTcuMzk4ODg4Miw0NC42MzE1NzkgNTEuODc1NTk4OSw1MCA0NS4xNjEwMTIsNTAgQzM4LjQ0NjQyNTIsNTAgMzIuOTIzMTM2LDQ0LjczNjg0MTkgMzIuOTIzMTM2LDM4LjEwNTI2MzEiIGlkPSJTaGFwZSI+PC9wYXRoPgogICAgICAgICAgICAgICAgPC9nPgogICAgICAgICAgICA8L2c+CiAgICAgICAgPC9nPgogICAgPC9nPgo8L3N2Zz4=
+    mediatype: image/svg+xml
   install:
     spec:
       deployments:
@@ -80,7 +106,7 @@ spec:
                 - name: WATCH_NAMESPACE
                   valueFrom:
                     fieldRef:
-                      fieldPath: metadata.namespace
+                      fieldPath: metadata.annotations['olm.targetNamespaces']
                 - name: POD_NAME
                   valueFrom:
                     fieldRef:
@@ -88,9 +114,8 @@ spec:
                 - name: OPERATOR_NAME
                   value: apicast-operator
                 - name: APICAST_IMAGE
-                  value: "quay.io/3scale/apicast:nightly"
+                  value: quay.io/3scale/apicast:nightly
                 image: quay.io/3scale/apicast-operator:master
-                imagePullPolicy: Always
                 name: apicast-operator
                 resources: {}
               serviceAccountName: apicast-operator
@@ -101,13 +126,20 @@ spec:
           resources:
           - pods
           - services
+          - services/finalizers
           - endpoints
           - persistentvolumeclaims
           - events
           - configmaps
           - secrets
           verbs:
-          - '*'
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
         - apiGroups:
           - apps
           resources:
@@ -116,13 +148,13 @@ spec:
           - replicasets
           - statefulsets
           verbs:
-          - '*'
-        - apiGroups:
-          - extensions
-          resources:
-          - ingresses
-          verbs:
-          - '*'
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
         - apiGroups:
           - monitoring.coreos.com
           resources:
@@ -139,11 +171,42 @@ spec:
           verbs:
           - update
         - apiGroups:
+          - ""
+          resources:
+          - pods
+          verbs:
+          - get
+        - apiGroups:
+          - apps
+          resources:
+          - replicasets
+          - deployments
+          verbs:
+          - get
+        - apiGroups:
           - apps.3scale.net
           resources:
           - '*'
           verbs:
-          - '*'
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - extensions
+          resources:
+          - ingresses
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
         serviceAccountName: apicast-operator
     strategy: deployment
   installModes:
@@ -174,7 +237,7 @@ spec:
     name: Apicast
   - email: msoriano+apicastoperator@redhat.com
     name: Apicast
-  maturity: alpha
+  maturity: stable
   minKubeVersion: 1.11.0
   provider:
     name: Red Hat

@@ -162,3 +162,10 @@
     :why: 3-clause BSD License https://github.com/pmezard/go-difflib/blob/master/LICENSE
     :versions: []
     :when: 2019-09-27 16:56:51.602283647 Z
+- - :license
+  - github.com/evanphx/json-patch
+  - 3-clause BSD License
+  - :who:
+    :why: 3-clause BSD License https://github.com/evanphx/json-patch/blob/master/LICENSE
+    :versions: []
+    :when: 2020-02-15 04:29:49.024632286 Z
