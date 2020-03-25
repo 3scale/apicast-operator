@@ -97,3 +97,9 @@ rules:
   - routes/custom-host
   verbs:
   - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
