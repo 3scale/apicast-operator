@@ -90,3 +90,16 @@ rules:
   - patch
   - update
   - watch
+# Openshift support
+- apiGroups:
+  - route.openshift.io
+  resources:
+  - routes/custom-host
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
