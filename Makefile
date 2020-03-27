@@ -33,8 +33,13 @@ VERSION ?= v0.0.1
 NAMESPACE ?= $(shell $(KUBECTL) config view --minify -o jsonpath='{.contexts[0].context.namespace}' 2>/dev/null || echo operator-test)
 OPERATOR_NAME ?= apicast-operator
 
+## download: Download go.mod dependencies
+download:
+	@echo Download go.mod dependencies
+	@go mod download
+
 ## build: Build operator
-build: vendor
+build:
 	$(OPERATOR_SDK) build $(IMAGE):$(VERSION)
 
 ## push: push operator docker image to remote repo
