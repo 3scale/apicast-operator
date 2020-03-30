@@ -61,14 +61,12 @@ func TestAPIcastBasicDeployment(t *testing.T) {
 
 	start = time.Now()
 
-	err = f.Client.Create(context.TODO(), apicast, &framework.CleanupOptions{TestContext: ctx, Timeout: 5 * time.Minute, RetryInterval: retryInterval})
+	err = createAPIcastEmbeddedConfigurationSecret(t, ctx, f, namespace)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	elapsed = time.Since(start)
-
-	err = createAPIcastEmbeddedConfigurationSecret(t, ctx, f, namespace)
+	err = f.Client.Create(context.TODO(), apicast, &framework.CleanupOptions{TestContext: ctx, Timeout: 5 * time.Minute, RetryInterval: retryInterval})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -78,6 +76,77 @@ func TestAPIcastBasicDeployment(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	elapsed = time.Since(start)
+
+	t.Logf("APIcast creation and availability took %s seconds", elapsed)
+}
+
+func TestAPIcastWithExposeHostDeployment(t *testing.T) {
+	err := registerAPIcastTypeInTestFramework()
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	ctx := framework.NewTestCtx(t)
+	defer ctx.Cleanup()
+
+	namespace, err := ctx.GetNamespace()
+	if err != nil {
+		t.Fatal(err)
+	}
+	f := framework.Global
+	operatorName := "apicast-operator"
+	err = initializeClusterResources(t, ctx, f, namespace, operatorName)
+	if err != nil {
+		t.Fatalf("failed to initialize cluster resources: %v", err)
+	}
+	t.Log("initialized cluster resources")
+
+	apicastName := "example-apicast"
+	apicast := &appsv1alpha1.APIcast{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      apicastName,
+			Namespace: namespace,
+		},
+		Spec: appsv1alpha1.APIcastSpec{
+			ExposedHost: &appsv1alpha1.APIcastExposedHost{
+				Host: "apicast.example.com",
+			},
+			EmbeddedConfigurationSecretRef: &v1.LocalObjectReference{
+				Name: APIcastEmbeddedConfigurationSecretName,
+			},
+		},
+	}
+
+	var start time.Time
+	var elapsed time.Duration
+
+	start = time.Now()
+
+	err = createAPIcastEmbeddedConfigurationSecret(t, ctx, f, namespace)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = f.Client.Create(context.TODO(), apicast, &framework.CleanupOptions{TestContext: ctx, Timeout: 5 * time.Minute, RetryInterval: retryInterval})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	apicastDeploymentName := "apicast-" + apicastName
+	err = frameworke2eutil.WaitForDeployment(t, f.KubeClient, namespace, apicastDeploymentName, 1, retryInterval, 5*time.Minute)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ingressName := "apicast-" + apicastName
+	err = e2eutil.WaitForIngress(t, f.KubeClient, namespace, ingressName, retryInterval, 2*time.Minute)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	elapsed = time.Since(start)
 
 	t.Logf("APIcast creation and availability took %s seconds", elapsed)
 }
