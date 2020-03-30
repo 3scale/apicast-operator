@@ -50,7 +50,7 @@ local:
 
 ## e2e-setup: create OCP project for the operator
 e2e-setup:
-	oc new-project $(NAMESPACE)
+	kubectl create namespace $(NAMESPACE)
 
 ## e2e-local-run: running operator locally with go run instead of as an image in the cluster
 e2e-local-run:
@@ -62,7 +62,7 @@ e2e-run:
 
 ## e2e-clean: delete operator OCP project
 e2e-clean:
-	oc delete --force project $(NAMESPACE) || true
+	kubectl delete namespace --force $(NAMESPACE) || true
 
 ## e2e: e2e-clean e2e-setup e2e-run
 e2e: e2e-clean e2e-setup e2e-run
