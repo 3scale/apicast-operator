@@ -68,7 +68,25 @@ APIcast gateway self-managed can be deployed and configured using two main appro
 
 ### Providing a 3scale Porta endpoint
 
-Set the following content when creating the APIcast object:
+1. Create a kubernetes secret that contains a 3scale Porta admin portal endpoint information
+
+```
+kubectl create secret generic ${SOME_SECRET_NAME} --from-literal=AdminPortalURL=MY_3SCALE_URL
+```
+
+`${SOME_SECRET_NAME}` is the name of the secret and can be any name you want, provided it does not conflict with any other existing secret.
+
+`${MY_3SCALE_URL}` is the URI that includes your password and 3scale Porta portal endpoint. See [format](https://github.com/3scale/APIcast/blob/master/doc/parameters.md#threescale_portal_endpoint)
+
+Example:
+
+```
+kubectl create secret generic 3scaleportal --from-literal=AdminPortalURL=https://access-token@account-admin.3scale.net
+```
+
+For more information about the contents of the secret see the [Admin portal configuration secret reference](apicast-crd-reference.md#AdminPortalSecret).
+
+2. Create APIcast object:
 
 ```
 apiVersion: apps.3scale.net/v1alpha1
@@ -80,10 +98,7 @@ spec:
     name: asecretname
 ```
 
-The ```spec.adminPortalCredentialsRef.name``` must be the name of an
-already existing Kubernetes secret that contains a 3scale [Porta](https://github.com/3scale/porta/)
-admin portal endpoint information. For more information about the contents of the secret
-see the [Admin portal configuration secret](apicast-crd-reference.md#AdminPortalSecret) reference.
+The `spec.adminPortalCredentialsRef.name` must be the name of the previously created secret.
 
 After creating the APIcast object you should verify that the APIcast pod is
 running and ready.
@@ -109,16 +124,14 @@ Port-forward the APIcast Kubernetes Service to localhost:8080
 kubectl port-forward svc/apicast-example-apicast 8080
 ```
 
-Then you can make a request to one of the 3scale Services that have been
-configured in 3scale and verify that a successful HTTP response with the expected
-contents of the configured backend for the corresponding specific service that
-is being checked.
+Make a request to a configured 3scale product API to verify a successful HTTP response.
+Use the domain name configured in `Staging Public Base URL` or `Production Public Base URL` settings of your product.
 
-For example, if the service that has been created has been configured with
+For example, if the product that has been created has been configured with
 the host "myhost.com" then the following can be executed:
 
 ```
-$  curl 127.0.0.1:8080/test -H "Host: myhost.com"
+curl 127.0.0.1:8080/test -H "Host: myhost.com"
 ```
 
 A successful HTTP response should be received with the expected content
@@ -126,28 +139,12 @@ that the Service backend should provide.
 
 ### Providing a configuration Secret
 
-Set the following content when creating the APIcast object:
-
-```
-apiVersion: apps.3scale.net/v1alpha1
-kind: APIcast
-metadata:
-  name: example-apicast
-spec:
-  embeddedConfigurationSecretRef:
-    name: asecretname
-```
-
-The ```spec.embeddedConfigurationSecretRef.name``` must be the name of an
-already existing Kubernetes secret that contains the configuration of the
-gateway. For more information about the contents of the secret and the
-configuration of the gateway see the
-[Embedded configuration secret](apicast-crd-reference.md#EmbeddedConfSecret) reference.
+1. Create a kubernetes secret that contains the gateway embedded configuration
 
 An example of an embedded configuration secret that configures a 3scale service
 with the hostname "localhost" with the
 [3scale echo API](https://github.com/3scale/echo-api/) as the corresponding
-backend of the 3scale service:
+backend of the 3scale product:
 
 ```
 apiVersion: v1
@@ -177,6 +174,24 @@ stringData:
     }
 ```
 
+For more information about the contents of the secret and the
+configuration of the gateway see the
+[Embedded configuration secret](apicast-crd-reference.md#EmbeddedConfSecret) reference.
+
+2. Create APIcast object:
+
+```
+apiVersion: apps.3scale.net/v1alpha1
+kind: APIcast
+metadata:
+  name: example-apicast
+spec:
+  embeddedConfigurationSecretRef:
+    name: asecretname
+```
+
+The `spec.embeddedConfigurationSecretRef.name` must be the name of the previously created secret.
+
 After creating the APIcast object you should verify that the APIcast pod is
 running and ready.
 
@@ -201,9 +216,8 @@ Port-forward the APIcast Kubernetes Service to localhost:8080
 kubectl port-forward svc/apicast-example-apicast 8080
 ```
 
-Then you can make a request to the 3scale Service and verify that you get a
-successful HTTP response with the contents of the configured backend for
-the service. In this case, the contents of the echo API URL.
+Then you can make a request and verify that you get a
+successful HTTP response from the echo API.
 
 For example:
 
