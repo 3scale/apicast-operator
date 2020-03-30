@@ -7,12 +7,12 @@ commands:
   start-minikube:
     steps:
     - run:
+        name: Start Kubernetes 1.14.10 on minikube 1.8.2
         command: |
-          curl -Lo minikube https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64 \
+          curl -Lo minikube https://github.com/kubernetes/minikube/releases/download/v1.8.2/minikube-linux-amd64 \
             && chmod +x minikube
           sudo cp minikube /usr/local/bin && rm minikube
-          sudo -E minikube start --vm-driver=none --cpus 2 --memory 2048
-        name: Start minikube
+          sudo -E minikube start --vm-driver=none --kubernetes-version v1.14.10
 
   attach-workspace:
     steps:
