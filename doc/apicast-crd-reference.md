@@ -45,7 +45,7 @@ Used by the Operator/Kubernetes to control the state of the Apicast custom resou
 
 | **Field** | **Description** |
 | --- | --- |
-| AdminPortalURL | URI that includes your password and portal endpoint. See [format](https://github.com/3scale/APIcast/blob/master/doc/parameters.md#threescale_portal_endpoint) |
+| AdminPortalURL | URI that includes your password and 3scale [Porta](https://github.com/3scale/porta/) portal endpoint. See [format](https://github.com/3scale/APIcast/blob/master/doc/parameters.md#threescale_portal_endpoint) |
 
 #### EmbeddedConfSecret
 
