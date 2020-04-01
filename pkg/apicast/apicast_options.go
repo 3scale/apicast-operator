@@ -1,7 +1,7 @@
 package apicast
 
 import (
-	"github.com/go-playground/validator"
+	validator "github.com/go-playground/validator/v10"
 	v1 "k8s.io/api/core/v1"
 	extensions "k8s.io/api/extensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
