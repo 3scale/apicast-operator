@@ -40,7 +40,7 @@ func TagObjectToDelete(obj KubernetesObject) {
 	annotations[DeleteTagAnnotation] = "true"
 }
 
-func IsObjectTaggedTorDelete(obj KubernetesObject) bool {
+func IsObjectTaggedToDelete(obj KubernetesObject) bool {
 	annotations := obj.GetAnnotations()
 	if annotations == nil {
 		return false

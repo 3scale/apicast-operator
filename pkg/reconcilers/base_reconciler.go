@@ -72,7 +72,7 @@ func (b *BaseReconciler) ReconcileResource(desired k8sutils.KubernetesObject, mu
 		}
 
 		// Not found
-		if !k8sutils.IsObjectTaggedTorDelete(desired) {
+		if !k8sutils.IsObjectTaggedToDelete(desired) {
 			return b.createResource(desired)
 		}
 
@@ -81,7 +81,7 @@ func (b *BaseReconciler) ReconcileResource(desired k8sutils.KubernetesObject, mu
 	}
 
 	// item found successfully
-	if k8sutils.IsObjectTaggedTorDelete(desired) {
+	if k8sutils.IsObjectTaggedToDelete(desired) {
 		return b.deleteResource(desired)
 	}
 
