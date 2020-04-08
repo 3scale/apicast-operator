@@ -13,10 +13,10 @@ type ExposedHost struct {
 }
 
 type APIcastOptions struct {
-	Namespace                    string        `validate:"required"`
-	DeploymentName               string        `validate:"required"`
-	Owner                        metav1.Object `validate:"required"`
-	ServiceName                  string        `validate:"required"`
+	Namespace                    string                 `validate:"required"`
+	DeploymentName               string                 `validate:"required"`
+	Owner                        *metav1.OwnerReference `validate:"required"`
+	ServiceName                  string                 `validate:"required"`
 	Replicas                     int32
 	AppLabel                     string            `validate:"required"`
 	AdditionalAnnotations        map[string]string `validate:"required"`

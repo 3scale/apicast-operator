@@ -11,10 +11,8 @@ import (
 	extensions "k8s.io/api/extensions/v1beta1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 const (
@@ -29,20 +27,19 @@ const (
 
 type APIcast struct {
 	options *APIcastOptions
-	scheme  *runtime.Scheme
 }
 
-func NewAPIcast(opts *APIcastOptions, scheme *runtime.Scheme) *APIcast {
-	return &APIcast{options: opts, scheme: scheme}
+func NewAPIcast(opts *APIcastOptions) *APIcast {
+	return &APIcast{options: opts}
 }
 
-func Factory(cr *appsv1alpha1.APIcast, cl client.Client, scheme *runtime.Scheme) (*APIcast, error) {
+func Factory(cr *appsv1alpha1.APIcast, cl client.Client) (*APIcast, error) {
 	optsProvider := NewApicastOptionsProvider(cr, cl)
 	opts, err := optsProvider.GetApicastOptions()
 	if err != nil {
 		return nil, err
 	}
-	return NewAPIcast(opts, scheme), nil
+	return NewAPIcast(opts), nil
 }
 
 func (a *APIcast) deploymentVolumeMounts() []v1.VolumeMount {
@@ -161,7 +158,7 @@ func (a *APIcast) deploymentEnv() []v1.EnvVar {
 	return env
 }
 
-func (a *APIcast) Deployment() (*appsv1.Deployment, error) {
+func (a *APIcast) Deployment() *appsv1.Deployment {
 	deployment := &appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "apps/v1",
@@ -221,11 +218,8 @@ func (a *APIcast) Deployment() (*appsv1.Deployment, error) {
 		},
 	}
 
-	if err := controllerutil.SetControllerReference(a.options.Owner, deployment, a.scheme); err != nil {
-		return nil, err
-	}
-
-	return deployment, nil
+	addOwnerRefToObject(deployment, *a.options.Owner)
+	return deployment
 }
 
 func (a *APIcast) deploymentLabelSelector() map[string]string {
@@ -254,7 +248,7 @@ func (a *APIcast) podAnnotations() map[string]string {
 	return annotations
 }
 
-func (a *APIcast) Service() (*v1.Service, error) {
+func (a *APIcast) Service() *v1.Service {
 	service := &v1.Service{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "v1",
@@ -274,11 +268,8 @@ func (a *APIcast) Service() (*v1.Service, error) {
 		},
 	}
 
-	if err := controllerutil.SetControllerReference(a.options.Owner, service, a.scheme); err != nil {
-		return nil, err
-	}
-
-	return service, nil
+	addOwnerRefToObject(service, *a.options.Owner)
+	return service
 }
 
 func (a *APIcast) livenessProbe() *v1.Probe {
@@ -309,7 +300,7 @@ func (a *APIcast) readinessProbe() *v1.Probe {
 	}
 }
 
-func (a *APIcast) Ingress() (*extensions.Ingress, error) {
+func (a *APIcast) Ingress() *extensions.Ingress {
 	ingress := &extensions.Ingress{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "networking.k8s.io/v1beta1",
@@ -342,37 +333,32 @@ func (a *APIcast) Ingress() (*extensions.Ingress, error) {
 		},
 	}
 
-	if err := controllerutil.SetControllerReference(a.options.Owner, ingress, a.scheme); err != nil {
-		return nil, err
-	}
-
-	return ingress, nil
+	addOwnerRefToObject(ingress, *a.options.Owner)
+	return ingress
 }
 
-func (a *APIcast) AdminPortalCredentialsSecret() (*v1.Secret, error) {
+func (a *APIcast) AdminPortalCredentialsSecret() *v1.Secret {
 	if a.options.AdminPortalCredentialsSecret == nil {
-		return nil, nil
+		return nil
 	}
 
 	secret := a.options.AdminPortalCredentialsSecret
 
-	if err := controllerutil.SetControllerReference(a.options.Owner, secret, a.scheme); err != nil {
-		return nil, err
-	}
-
-	return secret, nil
+	addOwnerRefToObject(secret, *a.options.Owner)
+	return secret
 }
 
-func (a *APIcast) GatewayConfigurationSecret() (*v1.Secret, error) {
+func (a *APIcast) GatewayConfigurationSecret() *v1.Secret {
 	if a.options.GatewayConfigurationSecret == nil {
-		return nil, nil
+		return nil
 	}
 
 	secret := a.options.GatewayConfigurationSecret
 
-	if err := controllerutil.SetControllerReference(a.options.Owner, secret, a.scheme); err != nil {
-		return nil, err
-	}
+	addOwnerRefToObject(secret, *a.options.Owner)
+	return secret
+}
 
-	return secret, nil
+func addOwnerRefToObject(o metav1.Object, owner metav1.OwnerReference) {
+	o.SetOwnerReferences(append(o.GetOwnerReferences(), owner))
 }

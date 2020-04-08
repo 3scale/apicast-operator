@@ -42,7 +42,7 @@ func (r *APIcastLogicReconciler) Reconcile() (reconcile.Result, error) {
 		return reconcile.Result{Requeue: true}, nil
 	}
 
-	apicastFactory, err := apicast.Factory(r.APIcastCR, r.Client(), r.Scheme())
+	apicastFactory, err := apicast.Factory(r.APIcastCR, r.Client())
 	if err != nil {
 		return reconcile.Result{}, err
 	}
@@ -50,10 +50,7 @@ func (r *APIcastLogicReconciler) Reconcile() (reconcile.Result, error) {
 	//
 	// Admin Portal Credentials secret
 	//
-	adminPortalSecret, err := apicastFactory.AdminPortalCredentialsSecret()
-	if err != nil {
-		return reconcile.Result{}, err
-	}
+	adminPortalSecret := apicastFactory.AdminPortalCredentialsSecret()
 	err = r.reconcileApicastSecret(adminPortalSecret)
 	if err != nil {
 		return reconcile.Result{}, err
@@ -62,10 +59,7 @@ func (r *APIcastLogicReconciler) Reconcile() (reconcile.Result, error) {
 	//
 	// Gateway configuration secret
 	//
-	confSecret, err := apicastFactory.GatewayConfigurationSecret()
-	if err != nil {
-		return reconcile.Result{}, err
-	}
+	confSecret := apicastFactory.GatewayConfigurationSecret()
 	err = r.reconcileApicastSecret(confSecret)
 	if err != nil {
 		return reconcile.Result{}, err
@@ -74,10 +68,7 @@ func (r *APIcastLogicReconciler) Reconcile() (reconcile.Result, error) {
 	//
 	// Gateway deployment
 	//
-	deployment, err := apicastFactory.Deployment()
-	if err != nil {
-		return reconcile.Result{}, err
-	}
+	deployment := apicastFactory.Deployment()
 	err = r.ReconcileResource(deployment, DeploymentMutator)
 	if err != nil {
 		return reconcile.Result{}, err
@@ -86,10 +77,7 @@ func (r *APIcastLogicReconciler) Reconcile() (reconcile.Result, error) {
 	//
 	// Gateway service
 	//
-	service, err := apicastFactory.Service()
-	if err != nil {
-		return reconcile.Result{}, err
-	}
+	service := apicastFactory.Service()
 	err = r.ReconcileResource(service, reconcilers.CreateOnlyMutator)
 	if err != nil {
 		return reconcile.Result{}, err
@@ -98,10 +86,7 @@ func (r *APIcastLogicReconciler) Reconcile() (reconcile.Result, error) {
 	//
 	// Gateway ingress
 	//
-	ingress, err := apicastFactory.Ingress()
-	if err != nil {
-		return reconcile.Result{}, err
-	}
+	ingress := apicastFactory.Ingress()
 	err = r.reconcileIngress(ingress)
 	if err != nil {
 		return reconcile.Result{}, err

@@ -203,21 +203,15 @@ func (r *ReconcileAPIcast) Reconcile(request reconcile.Request) (reconcile.Resul
 }
 
 func (r *ReconcileAPIcast) updateStatus(instance *appsv1alpha1.APIcast, reconciler *APIcastLogicReconciler) (reconcile.Result, error) {
-	apicastFactory, err := apicast.Factory(instance, r.Client(), r.Scheme())
+	apicastFactory, err := apicast.Factory(instance, r.Client())
 	if err != nil {
-		return reconcile.Result{}, err
-	}
-	desiredDeployment, err := apicastFactory.Deployment()
-	if err != nil {
-		return reconcile.Result{}, err
-	}
-	apicastDeployment := &appsv1.Deployment{}
-	err = r.Client().Get(context.TODO(), types.NamespacedName{Name: desiredDeployment.Name, Namespace: desiredDeployment.Namespace}, apicastDeployment)
-	if err != nil && !errors.IsNotFound(err) {
 		return reconcile.Result{}, err
 	}
 
-	if err != nil && errors.IsNotFound(err) {
+	desiredDeployment := apicastFactory.Deployment()
+	apicastDeployment := &appsv1.Deployment{}
+	err = r.Client().Get(context.TODO(), types.NamespacedName{Name: desiredDeployment.Name, Namespace: desiredDeployment.Namespace}, apicastDeployment)
+	if err != nil && !errors.IsNotFound(err) {
 		return reconcile.Result{}, err
 	}
 
