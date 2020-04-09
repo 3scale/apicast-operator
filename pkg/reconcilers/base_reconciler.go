@@ -55,13 +55,8 @@ func (b *BaseReconciler) Logger() logr.Logger {
 	return b.logger
 }
 
-func (b *BaseReconciler) ReconcileResource(desired k8sutils.KubernetesObject, mutateFn MutateFn) error {
-	existing, err := k8sutils.CopyKubernetesObject(desired)
-	if err != nil {
-		return err
-	}
-
-	key, err := client.ObjectKeyFromObject(existing)
+func (b *BaseReconciler) ReconcileResource(existing, desired k8sutils.KubernetesObject, mutateFn MutateFn) error {
+	key, err := client.ObjectKeyFromObject(desired)
 	if err != nil {
 		return err
 	}

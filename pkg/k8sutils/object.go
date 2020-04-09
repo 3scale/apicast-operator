@@ -16,16 +16,6 @@ type KubernetesObject interface {
 	runtime.Object
 }
 
-func CopyKubernetesObject(obj KubernetesObject) (KubernetesObject, error) {
-	copyRuntimeObj := obj.DeepCopyObject()
-	newObj, ok := copyRuntimeObj.(KubernetesObject)
-	if !ok {
-		return nil, fmt.Errorf("%T is not KubernetesObject", copyRuntimeObj)
-	}
-
-	return newObj, nil
-}
-
 func ObjectInfo(obj KubernetesObject) string {
 	return fmt.Sprintf("%s/%s", obj.GetObjectKind().GroupVersionKind().Kind, obj.GetName())
 }

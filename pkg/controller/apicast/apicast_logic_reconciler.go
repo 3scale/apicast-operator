@@ -69,7 +69,7 @@ func (r *APIcastLogicReconciler) Reconcile() (reconcile.Result, error) {
 	// Gateway deployment
 	//
 	deployment := apicastFactory.Deployment()
-	err = r.ReconcileResource(deployment, DeploymentMutator)
+	err = r.ReconcileResource(&appsv1.Deployment{}, deployment, DeploymentMutator)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
@@ -78,7 +78,7 @@ func (r *APIcastLogicReconciler) Reconcile() (reconcile.Result, error) {
 	// Gateway service
 	//
 	service := apicastFactory.Service()
-	err = r.ReconcileResource(service, reconcilers.CreateOnlyMutator)
+	err = r.ReconcileResource(&v1.Service{}, service, reconcilers.CreateOnlyMutator)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
@@ -100,7 +100,7 @@ func (r *APIcastLogicReconciler) reconcileApicastSecret(secret *v1.Secret) error
 		return nil
 	}
 
-	return r.ReconcileResource(secret, r.ensureOwnerReferenceMutator)
+	return r.ReconcileResource(&v1.Secret{}, secret, r.ensureOwnerReferenceMutator)
 }
 
 func (r *APIcastLogicReconciler) initialize() (bool, error) {
@@ -133,7 +133,7 @@ func (r *APIcastLogicReconciler) reconcileIngress(desired *extensions.Ingress) e
 		k8sutils.TagObjectToDelete(desired)
 	}
 
-	return r.ReconcileResource(desired, IngressMutator)
+	return r.ReconcileResource(&extensions.Ingress{}, desired, IngressMutator)
 }
 
 func (r *APIcastLogicReconciler) ensureOwnerReferenceMutator(existing, desired k8sutils.KubernetesObject) (bool, error) {
