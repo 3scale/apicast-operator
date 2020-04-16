@@ -55,13 +55,23 @@ func (b *BaseReconciler) Logger() logr.Logger {
 	return b.logger
 }
 
-func (b *BaseReconciler) ReconcileResource(existing, desired k8sutils.KubernetesObject, mutateFn MutateFn) error {
+// ReconcileResource attempts to mutate the existing state
+// in order to match the desired state. The object's desired state must be reconciled
+// with the existing state inside the passed in callback MutateFn.
+//
+// obj: Object of the same type as the 'desired' object.
+//            Used to read the resource from the kubernetes cluster.
+//            Could be zero-valued initialized object.
+// desired: Object representing the desired state
+//
+// It returns an error.
+func (b *BaseReconciler) ReconcileResource(obj, desired k8sutils.KubernetesObject, mutateFn MutateFn) error {
 	key, err := client.ObjectKeyFromObject(desired)
 	if err != nil {
 		return err
 	}
 
-	if err = b.Client().Get(context.TODO(), key, existing); err != nil {
+	if err = b.Client().Get(context.TODO(), key, obj); err != nil {
 		if !errors.IsNotFound(err) {
 			return err
 		}
@@ -80,13 +90,13 @@ func (b *BaseReconciler) ReconcileResource(existing, desired k8sutils.Kubernetes
 		return b.deleteResource(desired)
 	}
 
-	update, err := mutateFn(existing, desired)
+	update, err := mutateFn(obj, desired)
 	if err != nil {
 		return err
 	}
 
 	if update {
-		return b.updateResource(existing)
+		return b.updateResource(obj)
 	}
 
 	return nil

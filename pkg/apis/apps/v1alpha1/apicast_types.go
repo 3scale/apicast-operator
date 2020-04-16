@@ -142,6 +142,8 @@ func (a *APIcast) GetOwnerRefence() *metav1.OwnerReference {
 	}
 }
 
+func (a *APIcast) Reset() { *a = APIcast{} }
+
 func init() {
 	SchemeBuilder.Register(&APIcast{}, &APIcastList{})
 }
