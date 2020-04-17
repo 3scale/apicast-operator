@@ -1,6 +1,8 @@
 package v1alpha1
 
 import (
+	appscommon "github.com/3scale/apicast-operator/pkg/apis/apps"
+
 	v1 "k8s.io/api/core/v1"
 	extensions "k8s.io/api/extensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -128,6 +130,19 @@ type APIcastList struct {
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []APIcast `json:"items"`
 }
+
+func (a *APIcast) GetOwnerRefence() *metav1.OwnerReference {
+	trueVar := true
+	return &metav1.OwnerReference{
+		APIVersion: SchemeGroupVersion.String(),
+		Kind:       appscommon.APIcastKind,
+		Name:       a.Name,
+		UID:        a.UID,
+		Controller: &trueVar,
+	}
+}
+
+func (a *APIcast) Reset() { *a = APIcast{} }
 
 func init() {
 	SchemeBuilder.Register(&APIcast{}, &APIcastList{})

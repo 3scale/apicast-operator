@@ -5,7 +5,9 @@ import (
 
 	"github.com/3scale/apicast-operator/version"
 
+	apicast "github.com/3scale/apicast-operator/pkg/apicast"
 	appsv1alpha1 "github.com/3scale/apicast-operator/pkg/apis/apps/v1alpha1"
+	"github.com/3scale/apicast-operator/pkg/reconcilers"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	extensions "k8s.io/api/extensions/v1beta1"
@@ -53,9 +55,9 @@ func newReconciler(mgr manager.Manager) (reconcile.Reconciler, error) {
 		return nil, err
 	}
 
-	b := NewBaseReconciler(mgr.GetClient(), apiClientReader, mgr.GetScheme(), log)
+	b := reconcilers.NewBaseReconciler(mgr.GetClient(), apiClientReader, mgr.GetScheme(), log)
 	return &ReconcileAPIcast{
-		BaseControllerReconciler: NewBaseControllerReconciler(b),
+		BaseControllerReconciler: reconcilers.NewBaseControllerReconciler(b),
 	}, nil
 }
 
@@ -114,7 +116,7 @@ var _ reconcile.Reconciler = &ReconcileAPIcast{}
 
 // ReconcileAPIcast reconciles a APIcast object
 type ReconcileAPIcast struct {
-	BaseControllerReconciler
+	reconcilers.BaseControllerReconciler
 }
 
 const (
@@ -177,36 +179,39 @@ func (r *ReconcileAPIcast) Reconcile(request reconcile.Request) (reconcile.Resul
 
 	logicReconciler := NewAPIcastLogicReconciler(r.BaseReconciler, instance)
 	result, err := logicReconciler.Reconcile()
-	if err != nil || result.Requeue {
-		r.Logger().Error(err, "Requeuing request...")
+	if err != nil {
+		r.Logger().Error(err, "Main reconciler")
 		return result, err
+	}
+	if result.Requeue {
+		r.Logger().Info("Requeuing request...")
+		return result, nil
 	}
 	r.Logger().Info("APIcast logic reconciled")
 
 	result, err = r.updateStatus(instance, &logicReconciler)
-	if err != nil || result.Requeue {
-		r.Logger().Error(err, "Requeuing request...")
+	if err != nil {
+		r.Logger().Error(err, "Status reconciler")
 		return result, err
 	}
+	if result.Requeue {
+		r.Logger().Info("Requeuing request...")
+		return result, nil
+	}
 	r.Logger().Info("APIcast status reconciled")
-
-	r.Logger().Info("Finished current reconcile request successfully. Skipping requeue of the request")
 	return reconcile.Result{}, nil
 }
 
 func (r *ReconcileAPIcast) updateStatus(instance *appsv1alpha1.APIcast, reconciler *APIcastLogicReconciler) (reconcile.Result, error) {
-	apicast, err := reconciler.APIcastFromCRContents()
+	apicastFactory, err := apicast.Factory(instance, r.Client())
 	if err != nil {
 		return reconcile.Result{}, err
 	}
 
+	desiredDeployment := apicastFactory.Deployment()
 	apicastDeployment := &appsv1.Deployment{}
-	err = r.Client().Get(context.TODO(), types.NamespacedName{Name: apicast.DeploymentName, Namespace: apicast.Namespace}, apicastDeployment)
+	err = r.Client().Get(context.TODO(), types.NamespacedName{Name: desiredDeployment.Name, Namespace: desiredDeployment.Namespace}, apicastDeployment)
 	if err != nil && !errors.IsNotFound(err) {
-		return reconcile.Result{}, err
-	}
-
-	if err != nil && errors.IsNotFound(err) {
 		return reconcile.Result{}, err
 	}
 
