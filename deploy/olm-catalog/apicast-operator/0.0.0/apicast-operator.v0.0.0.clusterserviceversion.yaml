@@ -74,6 +74,8 @@ spec:
 
     ### Supported Features
     * **Installer** A way to install a APIcast gateway.on
+    * **Upgrade** Upgrade from previously installed APIcast gateway instance
+    * **Reconcilliation** Tunable CRD parameters after the APIcast gateway is installed
 
     ### Upgrading your installation
     The APIcast Operator understands how to run and upgrade between a set of APIcast versions.
