@@ -60,13 +60,6 @@ rules:
   verbs:
   - get
 - apiGroups:
-  - apps
-  resources:
-  - replicasets
-  - deployments
-  verbs:
-  - get
-- apiGroups:
   - apps.3scale.net
   resources:
   - '*'
