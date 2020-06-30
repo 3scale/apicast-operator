@@ -73,7 +73,7 @@ spec:
     APIcast is an API gateway built on top of [NGINX](https://www.nginx.com/). It is part of the [Red Hat 3scale API Management Platform](https://www.redhat.com/en/technologies/jboss-middleware/3scale).
 
     ### Supported Features
-    * **Installer** A way to install a APIcast gateway.on
+    * **Installer** A way to install an APIcast gateway instance on Kubernetes
     * **Upgrade** Upgrade from previously installed APIcast gateway instance
     * **Reconcilliation** Tunable CRD parameters after the APIcast gateway is installed
 
