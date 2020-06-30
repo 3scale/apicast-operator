@@ -27,6 +27,23 @@ metadata:
               "name": "mysecretname"
             }
           }
+        },
+        {
+          "apiVersion": "apps.3scale.net/v1alpha1",
+          "kind": "APIcast",
+          "metadata": {
+            "name": "example-apicast"
+          },
+          "spec": {
+            "adminPortalCredentialsRef": {
+              "name": "my-admin-portal-secret-name"
+            },
+            "exposedHost": {
+              "host": "my-apicast.mydomain.com"
+            },
+            "logLevel": "debug",
+            "replicas": 2
+          }
         }
       ]
     capabilities: Full Lifecycle
@@ -56,7 +73,9 @@ spec:
     APIcast is an API gateway built on top of [NGINX](https://www.nginx.com/). It is part of the [Red Hat 3scale API Management Platform](https://www.redhat.com/en/technologies/jboss-middleware/3scale).
 
     ### Supported Features
-    * **Installer** A way to install a APIcast gateway.on
+    * **Installer** A way to install an APIcast gateway instance on Kubernetes
+    * **Upgrade** Upgrade from previously installed APIcast gateway instance
+    * **Reconcilliation** Tunable CRD parameters after the APIcast gateway is installed
 
     ### Upgrading your installation
     The APIcast Operator understands how to run and upgrade between a set of APIcast versions.
