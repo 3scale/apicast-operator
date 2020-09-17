@@ -52,6 +52,8 @@ type APIcastSpec struct {
 	ManagementAPIScope *string `json:"managementAPIScope,omitempty"` // APICAST_MANAGEMENT_API
 	// +optional
 	OpenSSLPeerVerificationEnabled *bool `json:"openSSLPeerVerificationEnabled,omitempty"` // OPENSSL_VERIFY
+	// +optional
+	Resources *v1.ResourceRequirements `json:"resources,omitempty"`
 }
 
 type DeploymentEnvironmentType string
