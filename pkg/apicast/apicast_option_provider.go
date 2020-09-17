@@ -88,6 +88,11 @@ func (a *APIcastOptionsProvider) GetApicastOptions() (*APIcastOptions, error) {
 	// Annotations from user secrets. Used to rollout apicast deployment if any secrets changes
 	a.APIcastOptions.AdditionalAnnotations = a.additionalAnnotations()
 
+	// Resource requirements
+	if a.APIcastCR.Spec.Resources != nil {
+		a.APIcastOptions.ResourceRequirements = *a.APIcastCR.Spec.Resources
+	}
+
 	return a.APIcastOptions, a.APIcastOptions.Validate()
 }
 
