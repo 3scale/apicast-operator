@@ -9,7 +9,6 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	extensions "k8s.io/api/extensions/v1beta1"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -194,19 +193,10 @@ func (a *APIcast) Deployment() *appsv1.Deployment {
 							},
 							Image:           a.options.Image,
 							ImagePullPolicy: v1.PullAlways, // This is different than the currently used which is IfNotPresent
-							Resources: v1.ResourceRequirements{
-								Limits: v1.ResourceList{
-									v1.ResourceCPU:    resource.MustParse("1"),
-									v1.ResourceMemory: resource.MustParse("128Mi"),
-								},
-								Requests: v1.ResourceList{
-									v1.ResourceCPU:    resource.MustParse("500m"),
-									v1.ResourceMemory: resource.MustParse("64Mi"),
-								},
-							},
-							LivenessProbe:  a.livenessProbe(),
-							ReadinessProbe: a.readinessProbe(),
-							VolumeMounts:   a.deploymentVolumeMounts(),
+							Resources:       a.options.ResourceRequirements,
+							LivenessProbe:   a.livenessProbe(),
+							ReadinessProbe:  a.readinessProbe(),
+							VolumeMounts:    a.deploymentVolumeMounts(),
 							// Env takes precedence with respect to EnvFrom on duplicated
 							// var values
 							Env: a.deploymentEnv(),

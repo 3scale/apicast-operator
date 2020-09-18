@@ -153,6 +153,30 @@ func (r *APIcastLogicReconciler) ensureOwnerReferenceMutator(existing, desired k
 	return changed, nil
 }
 
+func DeploymentResourcesReconciler(desired, existing *appsv1.Deployment) bool {
+	desiredName := k8sutils.ObjectInfo(desired)
+	update := false
+
+	//
+	// Check container resource requirements
+	//
+	if len(desired.Spec.Template.Spec.Containers) != 1 {
+		panic(fmt.Sprintf("%s desired spec.template.spec.containers length changed to '%d', should be 1", desiredName, len(desired.Spec.Template.Spec.Containers)))
+	}
+
+	if len(existing.Spec.Template.Spec.Containers) != 1 {
+		existing.Spec.Template.Spec.Containers = desired.Spec.Template.Spec.Containers
+		update = true
+	}
+
+	if !k8sutils.CmpResources(&existing.Spec.Template.Spec.Containers[0].Resources, &desired.Spec.Template.Spec.Containers[0].Resources) {
+		existing.Spec.Template.Spec.Containers[0].Resources = desired.Spec.Template.Spec.Containers[0].Resources
+		update = true
+	}
+
+	return update
+}
+
 func DeploymentMutator(existingObj, desiredObj k8sutils.KubernetesObject) (bool, error) {
 	existing, ok := existingObj.(*appsv1.Deployment)
 	if !ok {
@@ -180,6 +204,9 @@ func DeploymentMutator(existingObj, desiredObj k8sutils.KubernetesObject) (bool,
 	}
 
 	updatedTmp := reconcilers.ReconcileEnvVar(&existing.Spec.Template.Spec.Containers[0].Env, desired.Spec.Template.Spec.Containers[0].Env)
+	changed = changed || updatedTmp
+
+	updatedTmp = DeploymentResourcesReconciler(desired, existing)
 	changed = changed || updatedTmp
 
 	// They are annotations of the PodTemplate, part of the Spec, not part of the meta info of the Pod or Environment object itself

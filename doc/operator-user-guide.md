@@ -8,6 +8,7 @@
     * [Providing the APIcast configuration through an available 3scale Porta endpoint](#Providing-the-APIcast-configuration-through-an-available-3scale-Porta-endpoint)
     * [Providing the APIcast configuration through a configuration file](#Providing-the-APIcast-configuration-through-a-configuration-file)
     * [Exposing APIcast externally via a Kubernetes Ingress](#Exposing-APIcast-externally-via-a-Kubernetes-Ingress)
+    * [Setting custom resource requirements](#setting-custom-resource-requirements)
 * [Reconciliation](#reconciliation)
 * [Upgrading APIcast](#upgrading-APIcast)
 * [APIcast CRD reference](apicast-crd-reference.md)
@@ -52,11 +53,11 @@ By default, the following deployment configuration options will be applied:
   following ports configured and accessible:
     * 8080/TCP: The APIcast gateway proxy port
     * 8090/TCP: The APIcast gateway management port
+* Resource requirements: *CPU* [Request: 500m, Limit: 1], *Memory* [Request: 64Mi, Limit: 128Mi]
 
 Default configuration option is suitable for PoC or evaluation.
 One, many or all of the default configuration options can be overriden with
 specific field values in the [*APIcast*](apicast-crd-reference.md) custom resource.
-
 #### Providing the APIcast configuration through an available 3scale Porta endpoint
 
 Follow [this](quickstart-guide.md#Providing-a-3scale-Porta-endpoint) section in the [quickstart guide](quickstart-guide.md)
@@ -101,6 +102,34 @@ installation.
 TLs for the exposedHost section can also be configured if desired. Details
 about the available fields in the `exposedHost` section can be
 found [here](apicast-crd-reference.md#APIcastExposedHost)
+
+#### Setting custom resource requirements
+
+Default [Resource Requirements](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/)
+can be customized to suit your needs via Apicast Custom Resource `resources` attribute field.
+
+For example, setting custom resource requirements:
+
+```yaml
+apiVersion: apps.3scale.net/v1alpha1
+kind: APIcast
+metadata:
+  name: apicast1
+spec:
+  resources:
+    requests:
+      memory: "150Mi"
+      cpu: "300m"
+    limits:
+      memory: "500Mi"
+      cpu: "2000m"
+```
+
+Two notes:
+* When resource requirements are not specified, the operator [defaults](#deployment-configuration-options) are being set.
+* When resource requests and/or resource limits are not specified, the operator [defaults](#deployment-configuration-options) will *NOT* be used, instead no requests and/or limit will be set.
+
+See [APIcast CRD reference](apicast-crd-reference.md) 
 
 ### Reconciliation
 After an APIcast self-managed gateway solution has been installed, APIcast
