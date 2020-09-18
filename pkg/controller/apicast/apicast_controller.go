@@ -2,6 +2,7 @@ package apicast
 
 import (
 	"context"
+	"encoding/json"
 
 	"github.com/3scale/apicast-operator/version"
 
@@ -144,6 +145,14 @@ func (r *ReconcileAPIcast) Reconcile(request reconcile.Request) (reconcile.Resul
 		return reconcile.Result{}, err
 	}
 
+	if reqLogger.V(1).Enabled() {
+		jsonData, err := json.MarshalIndent(instance, "", "  ")
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+		reqLogger.V(1).Info(string(jsonData))
+	}
+
 	if instance.ObjectMeta.Annotations == nil || instance.ObjectMeta.Annotations[APIcastOperatorVersionAnnotation] == "" {
 		r.Logger().Info("APIcast operator version not set in annotations. Setting it...")
 		if instance.ObjectMeta.Annotations == nil {
@@ -180,6 +189,12 @@ func (r *ReconcileAPIcast) Reconcile(request reconcile.Request) (reconcile.Resul
 	logicReconciler := NewAPIcastLogicReconciler(r.BaseReconciler, instance)
 	result, err := logicReconciler.Reconcile()
 	if err != nil {
+		// Ignore conflicts, resource might just be outdated.
+		if errors.IsConflict(err) {
+			reqLogger.Info("Resource update conflict error. Requeuing...", "error", err)
+			return reconcile.Result{Requeue: true}, nil
+		}
+
 		r.Logger().Error(err, "Main reconciler")
 		return result, err
 	}
@@ -191,6 +206,12 @@ func (r *ReconcileAPIcast) Reconcile(request reconcile.Request) (reconcile.Resul
 
 	result, err = r.updateStatus(instance, &logicReconciler)
 	if err != nil {
+		// Ignore conflicts, resource might just be outdated.
+		if errors.IsConflict(err) {
+			reqLogger.Info("Resource update conflict error. Requeuing...", "error", err)
+			return reconcile.Result{Requeue: true}, nil
+		}
+
 		r.Logger().Error(err, "Status reconciler")
 		return result, err
 	}
