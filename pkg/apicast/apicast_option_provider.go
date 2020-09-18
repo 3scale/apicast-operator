@@ -89,9 +89,11 @@ func (a *APIcastOptionsProvider) GetApicastOptions() (*APIcastOptions, error) {
 	a.APIcastOptions.AdditionalAnnotations = a.additionalAnnotations()
 
 	// Resource requirements
+	resourceRequirements := DefaultResourceRequirements()
 	if a.APIcastCR.Spec.Resources != nil {
-		a.APIcastOptions.ResourceRequirements = *a.APIcastCR.Spec.Resources
+		resourceRequirements = *a.APIcastCR.Spec.Resources
 	}
+	a.APIcastOptions.ResourceRequirements = resourceRequirements
 
 	return a.APIcastOptions, a.APIcastOptions.Validate()
 }
