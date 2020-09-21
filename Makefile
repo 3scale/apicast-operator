@@ -55,7 +55,7 @@ tag:
 
 ## local: push operator docker image to remote repo
 local:
-	OPERATOR_NAME=$(OPERATOR_NAME) $(OPERATOR_SDK) run --local --namespace $(NAMESPACE)
+	OPERATOR_NAME=$(OPERATOR_NAME) $(OPERATOR_SDK) run --local --namespace $(NAMESPACE) --operator-flags '--zap-devel=true --zap-level 1'
 
 ## e2e-setup: create Kubernetes namespace for the operator
 e2e-setup:
