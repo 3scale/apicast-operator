@@ -208,7 +208,7 @@ jobs:
 
   tag-operator-image-master:
     machine:
-      image: circleci/classic:latest
+      image: ubuntu-1604:202007-01
       docker_layer_caching: true
     steps:
       - attach-workspace
@@ -236,7 +236,7 @@ jobs:
 
   tag-operator-image-release:
     machine:
-      image: circleci/classic:latest
+      image: ubuntu-1604:202007-01
       docker_layer_caching: true
     steps:
       - attach-workspace
@@ -283,7 +283,7 @@ jobs:
 
   run-openshift-e2e-test:
     machine:
-      image: circleci/classic:latest
+      image: ubuntu-1604:202007-01
       docker_layer_caching: true
     resource_class: large
     working_directory: ~/go/src/github.com/3scale/apicast-operator
