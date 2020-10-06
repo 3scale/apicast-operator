@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 
 	"github.com/3scale/apicast-operator/version"
+	"github.com/go-logr/logr"
 
 	apicast "github.com/3scale/apicast-operator/pkg/apicast"
 	appsv1alpha1 "github.com/3scale/apicast-operator/pkg/apis/apps/v1alpha1"
@@ -56,9 +57,8 @@ func newReconciler(mgr manager.Manager) (reconcile.Reconciler, error) {
 		return nil, err
 	}
 
-	b := reconcilers.NewBaseReconciler(mgr.GetClient(), apiClientReader, mgr.GetScheme(), log)
 	return &ReconcileAPIcast{
-		BaseControllerReconciler: reconcilers.NewBaseControllerReconciler(b),
+		BaseControllerReconciler: reconcilers.NewBaseControllerReconciler(mgr.GetClient(), apiClientReader, mgr.GetScheme()),
 	}, nil
 }
 
@@ -138,10 +138,10 @@ func (r *ReconcileAPIcast) Reconcile(request reconcile.Request) (reconcile.Resul
 	instance, err := r.getAPIcast(request)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			r.Logger().Info("APIcast not found")
+			reqLogger.Info("APIcast not found")
 			return reconcile.Result{}, nil
 		}
-		r.Logger().Error(err, "Error getting APIcast")
+		reqLogger.Error(err, "Error getting APIcast")
 		return reconcile.Result{}, err
 	}
 
@@ -154,39 +154,40 @@ func (r *ReconcileAPIcast) Reconcile(request reconcile.Request) (reconcile.Resul
 	}
 
 	if instance.ObjectMeta.Annotations == nil || instance.ObjectMeta.Annotations[APIcastOperatorVersionAnnotation] == "" {
-		r.Logger().Info("APIcast operator version not set in annotations. Setting it...")
+		reqLogger.Info("APIcast operator version not set in annotations. Setting it...")
 		if instance.ObjectMeta.Annotations == nil {
 			instance.ObjectMeta.Annotations = map[string]string{}
 		}
-		err = r.updateAPIcastOperatorVersionInAnnotations(instance)
+		err = r.updateAPIcastOperatorVersionInAnnotations(instance, reqLogger)
 		if err != nil {
 			return reconcile.Result{}, err
 		}
-		r.Logger().Info("APIcast operator version in annotations set. Requeuing request...")
+		reqLogger.Info("APIcast operator version in annotations set. Requeuing request...")
 		return reconcile.Result{Requeue: true}, err
 	}
 
 	if instance.ObjectMeta.Annotations[APIcastOperatorVersionAnnotation] != version.Version {
-		r.Logger().Info("APIcast operator version in annotations does not match expected version. Applying upgrade procedure...")
+		reqLogger.Info("APIcast operator version in annotations does not match expected version. Applying upgrade procedure...")
 		upgradeReconcileResult, err := r.upgradeAPIcast()
 		if err != nil {
-			r.Logger().Error(err, "Error upgrading APIcast")
+			reqLogger.Error(err, "Error upgrading APIcast")
 			return reconcile.Result{}, err
 		}
 		if upgradeReconcileResult.Requeue {
 			return upgradeReconcileResult, nil
 		}
-		r.Logger().Info("APIcast upgrade procedure applied")
-		r.Logger().Info("Setting APIcast operator version in annotations...")
-		err = r.updateAPIcastOperatorVersionInAnnotations(instance)
+		reqLogger.Info("APIcast upgrade procedure applied")
+		reqLogger.Info("Setting APIcast operator version in annotations...")
+		err = r.updateAPIcastOperatorVersionInAnnotations(instance, reqLogger)
 		if err != nil {
 			return reconcile.Result{}, err
 		}
-		r.Logger().Info("APIcast operator version in annotations set. Requeuing request...")
+		reqLogger.Info("APIcast operator version in annotations set. Requeuing request...")
 		return reconcile.Result{Requeue: true}, nil
 	}
 
-	logicReconciler := NewAPIcastLogicReconciler(r.BaseReconciler, instance)
+	baseReconciler := reconcilers.NewBaseReconciler(r.Client(), r.APIClientReader(), r.Scheme(), reqLogger)
+	logicReconciler := NewAPIcastLogicReconciler(baseReconciler, instance)
 	result, err := logicReconciler.Reconcile()
 	if err != nil {
 		// Ignore conflicts, resource might just be outdated.
@@ -195,14 +196,14 @@ func (r *ReconcileAPIcast) Reconcile(request reconcile.Request) (reconcile.Resul
 			return reconcile.Result{Requeue: true}, nil
 		}
 
-		r.Logger().Error(err, "Main reconciler")
+		reqLogger.Error(err, "Main reconciler")
 		return result, err
 	}
 	if result.Requeue {
-		r.Logger().Info("Requeuing request...")
+		reqLogger.Info("Requeuing request...")
 		return result, nil
 	}
-	r.Logger().Info("APIcast logic reconciled")
+	reqLogger.Info("APIcast logic reconciled")
 
 	result, err = r.updateStatus(instance, &logicReconciler)
 	if err != nil {
@@ -212,14 +213,14 @@ func (r *ReconcileAPIcast) Reconcile(request reconcile.Request) (reconcile.Resul
 			return reconcile.Result{Requeue: true}, nil
 		}
 
-		r.Logger().Error(err, "Status reconciler")
+		reqLogger.Error(err, "Status reconciler")
 		return result, err
 	}
 	if result.Requeue {
-		r.Logger().Info("Requeuing request...")
+		reqLogger.Info("Requeuing request...")
 		return result, nil
 	}
-	r.Logger().Info("APIcast status reconciled")
+	reqLogger.Info("APIcast status reconciled")
 	return reconcile.Result{}, nil
 }
 
@@ -258,11 +259,11 @@ func (r *ReconcileAPIcast) getAPIcast(request reconcile.Request) (*appsv1alpha1.
 	return &instance, err
 }
 
-func (r *ReconcileAPIcast) updateAPIcastOperatorVersionInAnnotations(instance *appsv1alpha1.APIcast) error {
+func (r *ReconcileAPIcast) updateAPIcastOperatorVersionInAnnotations(instance *appsv1alpha1.APIcast, logger logr.Logger) error {
 	instance.Annotations[APIcastOperatorVersionAnnotation] = version.Version
 	err := r.Client().Update(context.TODO(), instance)
 	if err != nil {
-		r.Logger().Error(err, "Error setting APIcast operator version in annotations")
+		logger.Error(err, "Error setting APIcast operator version in annotations")
 	}
 	return err
 }
