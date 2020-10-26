@@ -26,6 +26,9 @@ endif
 OPERATOR_SDK ?= operator-sdk
 DOCKER ?= docker
 
+LICENSEFINDERBINARY := $(shell command -v license_finder 2> /dev/null)
+DEPENDENCY_DECISION_FILE = $(PROJECT_PATH)/doc/dependency_decisions.yml
+
 all: manager
 
 # Run tests
@@ -124,3 +127,27 @@ bundle: manifests
 .PHONY: bundle-build
 bundle-build:
 	$(DOCKER) build -f bundle.Dockerfile -t $(BUNDLE_IMG) .
+
+## 3scale-specific targets
+
+download:
+	@echo Download go.mod dependencies
+	@go mod download
+
+## licenses.xml: Generate licenses.xml file
+licenses.xml:
+ifndef LICENSEFINDERBINARY
+	$(error "license-finder is not available please install: gem install license_finder --version 5.7.1")
+endif
+	license_finder report --decisions-file=$(DEPENDENCY_DECISION_FILE) --quiet --format=xml > licenses.xml
+
+## licenses-check: Check license compliance of dependencies
+licenses-check:
+ifndef LICENSEFINDERBINARY
+	$(error "license-finder is not available please install: gem install license_finder --version 5.7.1")
+endif
+	@echo "Checking license compliance"
+	license_finder --decisions-file=$(DEPENDENCY_DECISION_FILE)
+
+docker-build-only:
+	$(DOCKER) build . -t ${IMG}
