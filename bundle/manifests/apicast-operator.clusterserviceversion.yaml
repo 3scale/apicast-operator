@@ -1,0 +1,283 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: |-
+      [
+        {
+          "apiVersion": "apps.3scale.net/v1alpha1",
+          "kind": "APIcast",
+          "metadata": {
+            "name": "example-apicast"
+          },
+          "spec": {
+            "adminPortalCredentialsRef": {
+              "name": "mysecretname"
+            }
+          }
+        },
+        {
+          "apiVersion": "apps.3scale.net/v1alpha1",
+          "kind": "APIcast",
+          "metadata": {
+            "name": "example-apicast-embedded"
+          },
+          "spec": {
+            "embeddedConfigurationSecretRef": {
+              "name": "mysecretname"
+            }
+          }
+        },
+        {
+          "apiVersion": "apps.3scale.net/v1alpha1",
+          "kind": "APIcast",
+          "metadata": {
+            "name": "example-apicast-exposed-host"
+          },
+          "spec": {
+            "adminPortalCredentialsRef": {
+              "name": "my-admin-portal-secret-name"
+            },
+            "exposedHost": {
+              "host": "my-apicast.mydomain.com"
+            },
+            "logLevel": "debug",
+            "replicas": 2
+          }
+        }
+      ]
+    capabilities: Basic Install
+    operators.operatorframework.io/builder: operator-sdk-v1.1.0
+    operators.operatorframework.io/project_layout: go.kubebuilder.io/v2
+  name: apicast-operator.v0.0.1
+  namespace: placeholder
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+    - description: APIcast is the Schema for the apicasts API
+      displayName: APIcast
+      kind: APIcast
+      name: apicasts.apps.3scale.net
+      version: v1alpha1
+  description: APIcast is an API gateway built on top of NGINX. It is part of the Red Hat 3scale API Management Platform
+  displayName: APIcast (nightly)
+  icon:
+  - base64data: ""
+    mediatype: ""
+  install:
+    spec:
+      clusterPermissions:
+      - rules:
+        - apiGroups:
+          - authentication.k8s.io
+          resources:
+          - tokenreviews
+          verbs:
+          - create
+        - apiGroups:
+          - authorization.k8s.io
+          resources:
+          - subjectaccessreviews
+          verbs:
+          - create
+        serviceAccountName: apicast-operator
+      deployments:
+      - name: apicast-operator-controller-manager
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              control-plane: controller-manager
+          strategy: {}
+          template:
+            metadata:
+              labels:
+                control-plane: controller-manager
+            spec:
+              containers:
+              - args:
+                - --secure-listen-address=0.0.0.0:8443
+                - --upstream=http://127.0.0.1:8080/
+                - --logtostderr=true
+                - --v=10
+                image: gcr.io/kubebuilder/kube-rbac-proxy:v0.5.0
+                name: kube-rbac-proxy
+                ports:
+                - containerPort: 8443
+                  name: https
+                resources: {}
+              - args:
+                - --metrics-addr=127.0.0.1:8080
+                - --enable-leader-election
+                command:
+                - /manager
+                env:
+                - name: WATCH_NAMESPACE
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.annotations['olm.targetNamespaces']
+                - name: APICAST_IMAGE
+                  value: quay.io/3scale/apicast:nightly
+                image: controller:latest
+                name: manager
+                resources:
+                  limits:
+                    cpu: 100m
+                    memory: 30Mi
+                  requests:
+                    cpu: 100m
+                    memory: 20Mi
+              serviceAccountName: apicast-operator
+              terminationGracePeriodSeconds: 10
+      permissions:
+      - rules:
+        - apiGroups:
+          - ""
+          resources:
+          - configmaps
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - ""
+          resources:
+          - configmaps/status
+          verbs:
+          - get
+          - update
+          - patch
+        - apiGroups:
+          - ""
+          resources:
+          - events
+          verbs:
+          - create
+          - patch
+        - apiGroups:
+          - apps
+          resources:
+          - daemonsets
+          - deployments
+          - replicasets
+          - statefulsets
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - apps
+          resources:
+          - deployments/finalizers
+          verbs:
+          - update
+        - apiGroups:
+          - apps.3scale.net
+          resources:
+          - apicasts
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - apps.3scale.net
+          resources:
+          - apicasts/status
+          verbs:
+          - get
+          - patch
+          - update
+        - apiGroups:
+          - ""
+          resources:
+          - configmaps
+          - endpoints
+          - events
+          - persistentvolumeclaims
+          - pods
+          - secrets
+          - services
+          - services/finalizers
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - extensions
+          resources:
+          - ingresses
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - monitoring.coreos.com
+          resources:
+          - servicemonitors
+          verbs:
+          - create
+          - get
+        - apiGroups:
+          - route.openshift.io
+          resources:
+          - routes/custom-host
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        serviceAccountName: apicast-operator
+    strategy: deployment
+  installModes:
+  - supported: false
+    type: OwnNamespace
+  - supported: false
+    type: SingleNamespace
+  - supported: false
+    type: MultiNamespace
+  - supported: true
+    type: AllNamespaces
+  keywords:
+  - 3scale
+  - API
+  - api
+  - apicast
+  - gateway
+  - api-gateway
+  - openresty
+  links:
+  - name: Apicast Operator
+    url: https://apicast-operator.domain
+  maintainers:
+  - email: msoriano+apicastoperator@redhat.com
+    name: Miguel Soriano
+  - email: eastizle+apicastoperator@redhat.com
+    name: Eguzki Astiz
+  maturity: alpha
+  provider:
+    name: Red Hat
+  version: 0.0.1
