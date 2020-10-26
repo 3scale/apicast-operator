@@ -1,0 +1,8 @@
+domain: 3scale.net
+layout: go.kubebuilder.io/v2
+projectName: apicast-operator
+repo: github.com/3scale/apicast-operator
+multigroup: true
+version: 3-alpha
+plugins:
+  go.sdk.operatorframework.io/v2-alpha: {}
