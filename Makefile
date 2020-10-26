@@ -23,7 +23,7 @@ else
 GOBIN=$(shell go env GOBIN)
 endif
 
-OPERATOR_SDK ?= operator-sdk
+OPERATOR_SDK ?= operator-sdk-v1.0.1
 DOCKER ?= docker
 
 all: manager
