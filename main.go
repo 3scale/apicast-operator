@@ -29,6 +29,8 @@ import (
 
 	appsv1alpha1 "github.com/3scale/apicast-operator/apis/apps/v1alpha1"
 	appscontroller "github.com/3scale/apicast-operator/controllers/apps"
+
+	"github.com/3scale/apicast-operator/pkg/reconcilers"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -68,9 +70,8 @@ func main() {
 	}
 
 	if err = (&appscontroller.APIcastReconciler{
-		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("APIcast"),
-		Scheme: mgr.GetScheme(),
+		BaseControllerReconciler: reconcilers.NewBaseControllerReconciler(mgr.GetClient(), mgr.GetAPIReader(), mgr.GetScheme()),
+		Log:                      ctrl.Log.WithName("controllers").WithName("APIcast"),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "APIcast")
 		os.Exit(1)

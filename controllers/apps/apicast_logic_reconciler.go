@@ -1,12 +1,12 @@
-package apicast
+package controllers
 
 import (
 	"context"
 	"fmt"
 	"reflect"
 
+	appsv1alpha1 "github.com/3scale/apicast-operator/apis/apps/v1alpha1"
 	apicast "github.com/3scale/apicast-operator/pkg/apicast"
-	appsv1alpha1 "github.com/3scale/apicast-operator/pkg/apis/apps/v1alpha1"
 	"github.com/3scale/apicast-operator/pkg/k8sutils"
 	"github.com/3scale/apicast-operator/pkg/reconcilers"
 
