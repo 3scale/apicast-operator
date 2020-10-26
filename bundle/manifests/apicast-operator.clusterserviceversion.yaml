@@ -158,7 +158,7 @@ spec:
                       fieldPath: metadata.annotations['olm.targetNamespaces']
                 - name: APICAST_IMAGE
                   value: quay.io/3scale/apicast:nightly
-                image: controller:latest
+                image: quay.io/3scale/apicast-operator:nightly
                 name: manager
                 resources:
                   limits:
