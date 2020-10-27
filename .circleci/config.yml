@@ -330,7 +330,7 @@ workflows:
     jobs:
 #      - license-check
 #      - verify-manifest
-#      - test-crds
+      - test-crds
       - install-operator:
           filters: # required since `tag-operator-image-release` job has tag filters AND requires `install-operator`. Otherwise tag build will not be triggered on new tags
             tags:
