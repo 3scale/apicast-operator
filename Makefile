@@ -35,12 +35,8 @@ DEPENDENCY_DECISION_FILE = $(PROJECT_PATH)/doc/dependency_decisions.yml
 
 all: manager
 
-# Run tests
-ENVTEST_ASSETS_DIR=$(PROJECT_PATH)/testbin
-test: generate fmt vet manifests
-	mkdir -p ${ENVTEST_ASSETS_DIR}
-	test -f $(ENVTEST_ASSETS_DIR)/setup-envtest.sh || curl -sSLo $(ENVTEST_ASSETS_DIR)/setup-envtest.sh https://raw.githubusercontent.com/kubernetes-sigs/controller-runtime/v0.6.3/hack/setup-envtest.sh
-	source ${ENVTEST_ASSETS_DIR}/setup-envtest.sh; fetch_envtest_tools $(ENVTEST_ASSETS_DIR); setup_envtest_env $(ENVTEST_ASSETS_DIR); go test ./... -coverprofile cover.out -ginkgo.v -ginkgo.progress -v
+# Run all tests
+test: test-unit test-crds test-e2e
 
 # Build manager binary
 manager: generate fmt vet
@@ -155,3 +151,22 @@ endif
 
 docker-build-only:
 	$(DOCKER) build . -t ${IMG}
+
+# Run unit tests
+TEST_UNIT_PKGS = $(shell go list ./... | grep -E 'github.com/3scale/apicast-operator/pkg/|github.com/3scale/apicast-operator/pkg/apis')
+test-unit: generate fmt vet manifests
+	go test -v $(TEST_UNIT_PKGS)
+
+# Run CRD tests
+TEST_CRD_PKGS = $(shell go list ./... | grep 'github.com/3scale/apicast-operator/test/crds')
+test-crds: generate fmt vet manifests
+	go test -v $(TEST_CRD_PKGS)
+
+# Run e2e tests
+
+TEST_E2E_PKGS = $(shell go list ./... | grep -E 'github.com/3scale/apicast-operator/controllers')
+ENVTEST_ASSETS_DIR=$(PROJECT_PATH)/testbin
+test-e2e: generate fmt vet manifests
+	mkdir -p ${ENVTEST_ASSETS_DIR}
+	test -f $(ENVTEST_ASSETS_DIR)/setup-envtest.sh || curl -sSLo $(ENVTEST_ASSETS_DIR)/setup-envtest.sh https://raw.githubusercontent.com/kubernetes-sigs/controller-runtime/v0.6.3/hack/setup-envtest.sh
+	source ${ENVTEST_ASSETS_DIR}/setup-envtest.sh; fetch_envtest_tools $(ENVTEST_ASSETS_DIR); setup_envtest_env $(ENVTEST_ASSETS_DIR); go test $(TEST_E2E_PKGS) -coverprofile cover.out -ginkgo.v -ginkgo.progress -v
