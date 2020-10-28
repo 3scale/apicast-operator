@@ -234,6 +234,18 @@ spec:
         - apiGroups:
           - apps.3scale.net
           resources:
+          - apicasts/finalizers
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - apps.3scale.net
+          resources:
           - apicasts/status
           verbs:
           - get

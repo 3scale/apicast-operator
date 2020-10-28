@@ -51,6 +51,7 @@ const (
 
 // +kubebuilder:rbac:groups=apps.3scale.net,namespace=placeholder,resources=apicasts,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=apps.3scale.net,namespace=placeholder,resources=apicasts/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=apps.3scale.net,namespace=placeholder,resources=apicasts/finalizers,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core,namespace=placeholder,resources=pods;services;services/finalizers;endpoints;persistentvolumeclaims;events;configmaps;secrets,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=apps,namespace=placeholder,resources=deployments;daemonsets;replicasets;statefulsets,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=monitoring.coreos.com,namespace=placeholder,resources=servicemonitors,verbs=get;create
