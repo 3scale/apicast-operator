@@ -1,0 +1,6 @@
+## Append samples you want in your CSV to this file as resources ##
+resources:
+- apps_v1alpha1_apicast_admin_portal_url_cr.yaml
+- apps_v1alpha1_apicast_embedded_config_cr.yaml
+- apps_v1alpha1_apicast_exposed_host_cr.yaml
+# +kubebuilder:scaffold:manifestskustomizesamples

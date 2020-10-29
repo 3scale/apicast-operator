@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/3scale/apicast-operator/pkg/apis/apps/v1alpha1"
+	"github.com/3scale/apicast-operator/apis/apps/v1alpha1"
 	"github.com/RHsyseng/operator-utils/pkg/validation"
 	"github.com/ghodss/yaml"
 
@@ -16,9 +16,9 @@ import (
 )
 
 func TestSampleCustomResources(t *testing.T) {
-	root := "../../deploy/crds"
+	root := "../../bundle/manifests"
 	crdCrMap := map[string]string{
-		"apps.3scale.net_apicasts_crd.yaml": "apps.3scale.net_v1alpha1_apicast",
+		"apps.3scale.net_apicasts.yaml": "apps.3scale.net_v1alpha1_apicast",
 	}
 	for crd, prefix := range crdCrMap {
 		validateCustomResources(t, root, crd, prefix)
@@ -47,9 +47,9 @@ func validateCustomResources(t *testing.T, root string, crd string, prefix strin
 }
 
 func TestCompleteCRD(t *testing.T) {
-	root := "../../deploy/crds"
+	root := "../../bundle/manifests"
 	crdStructMap := map[string]interface{}{
-		"apps.3scale.net_apicasts_crd.yaml": &v1alpha1.APIcast{},
+		"apps.3scale.net_apicasts.yaml": &v1alpha1.APIcast{},
 	}
 	for crd, obj := range crdStructMap {
 		schema := getSchema(t, fmt.Sprintf("%s/%s", root, crd))

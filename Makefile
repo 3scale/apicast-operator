@@ -1,80 +1,138 @@
-MKFILE_PATH := $(abspath $(lastword $(MAKEFILE_LIST)))
-PROJECT_PATH := $(patsubst %/,%,$(dir $(MKFILE_PATH)))
-.DEFAULT_GOAL := help
-.PHONY: build e2e licenses-check verify-manifest push-manifest test-crds
-UNAME := $(shell uname)
+SHELL := /bin/bash
+# Current Operator version
+VERSION ?= 0.0.1
+# Default bundle image tag
+BUNDLE_IMG ?= controller-bundle:$(VERSION)
+# Options for 'bundle-build'
+ifneq ($(origin CHANNELS), undefined)
+BUNDLE_CHANNELS := --channels=$(CHANNELS)
+endif
+ifneq ($(origin DEFAULT_CHANNEL), undefined)
+BUNDLE_DEFAULT_CHANNEL := --default-channel=$(DEFAULT_CHANNEL)
+endif
+BUNDLE_METADATA_OPTS ?= $(BUNDLE_CHANNELS) $(BUNDLE_DEFAULT_CHANNEL)
 
-ifeq (${UNAME}, Linux)
-  SED=sed
-else ifeq (${UNAME}, Darwin)
-  SED=gsed
+# Image URL to use all building/pushing image targets
+IMG ?= quay.io/3scale/apicast-operator:nightly
+# Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
+CRD_OPTIONS ?= "crd:trivialVersions=true"
+
+# Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
+ifeq (,$(shell go env GOBIN))
+GOBIN=$(shell go env GOPATH)/bin
+else
+GOBIN=$(shell go env GOBIN)
 endif
 
-OPERATORCOURIER := $(shell command -v operator-courier 2> /dev/null)
+OPERATOR_SDK ?= operator-sdk
+DOCKER ?= docker
+
+MKFILE_PATH := $(abspath $(lastword $(MAKEFILE_LIST)))
+PROJECT_PATH := $(patsubst %/,%,$(dir $(MKFILE_PATH)))
+
 LICENSEFINDERBINARY := $(shell command -v license_finder 2> /dev/null)
 DEPENDENCY_DECISION_FILE = $(PROJECT_PATH)/doc/dependency_decisions.yml
-OPERATOR_SDK ?= operator-sdk
-GO ?= go
-KUBECTL ?= kubectl
-DOCKER ?= docker
-MANIFEST_RELEASE ?= 1.0.$(shell git rev-list --count master)
-APPLICATION_REPOSITORY_NAMESPACE ?= apicastoperatormaster
 
-help: Makefile
-	@sed -n 's/^##//p' $<
+all: manager
 
-## vendor: Populate vendor directory
-vendor:
-	GO111MODULE=on $(GO) mod vendor
+# Run all tests
+test: test-unit test-crds test-e2e
 
-IMAGE ?= quay.io/3scale/apicast-operator
-SOURCE_VERSION ?= master
-VERSION ?= v0.0.1
-NAMESPACE ?= $(shell $(KUBECTL) config view --minify -o jsonpath='{.contexts[0].context.namespace}' 2>/dev/null || echo operator-test)
-OPERATOR_NAME ?= apicast-operator
+# Build manager binary
+manager: generate fmt vet
+	go build -o bin/manager main.go
 
-## download: Download go.mod dependencies
+# Run against the configured Kubernetes cluster in ~/.kube/config
+run: generate fmt vet manifests
+	go run ./main.go
+
+# Install CRDs into a cluster
+install: manifests kustomize
+	$(KUSTOMIZE) build config/crd | kubectl apply -f -
+
+# Uninstall CRDs from a cluster
+uninstall: manifests kustomize
+	$(KUSTOMIZE) build config/crd | kubectl delete -f -
+
+# Deploy controller in the configured Kubernetes cluster in ~/.kube/config
+deploy: manifests kustomize
+	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
+	$(KUSTOMIZE) build config/default | kubectl apply -f -
+
+# Generate manifests e.g. CRD, RBAC etc.
+manifests: controller-gen
+	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
+
+# Run go fmt against code
+fmt:
+	go fmt ./...
+
+# Run go vet against code
+vet:
+	go vet ./...
+
+# Generate code
+generate: controller-gen
+	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
+
+# Build the docker image
+docker-build: test
+	$(DOCKER) build . -t ${IMG}
+
+# Push the docker image
+docker-push:
+	$(DOCKER) push ${IMG}
+
+# find or download controller-gen
+# download controller-gen if necessary
+controller-gen:
+ifeq (, $(shell which controller-gen))
+	@{ \
+	set -e ;\
+	CONTROLLER_GEN_TMP_DIR=$$(mktemp -d) ;\
+	cd $$CONTROLLER_GEN_TMP_DIR ;\
+	go mod init tmp ;\
+	go get sigs.k8s.io/controller-tools/cmd/controller-gen@v0.3.0 ;\
+	rm -rf $$CONTROLLER_GEN_TMP_DIR ;\
+	}
+CONTROLLER_GEN=$(GOBIN)/controller-gen
+else
+CONTROLLER_GEN=$(shell which controller-gen)
+endif
+
+kustomize:
+ifeq (, $(shell which kustomize))
+	@{ \
+	set -e ;\
+	KUSTOMIZE_GEN_TMP_DIR=$$(mktemp -d) ;\
+	cd $$KUSTOMIZE_GEN_TMP_DIR ;\
+	go mod init tmp ;\
+	go get sigs.k8s.io/kustomize/kustomize/v3@v3.5.4 ;\
+	rm -rf $$KUSTOMIZE_GEN_TMP_DIR ;\
+	}
+KUSTOMIZE=$(GOBIN)/kustomize
+else
+KUSTOMIZE=$(shell which kustomize)
+endif
+
+# Generate bundle manifests and metadata, then validate generated files.
+.PHONY: bundle
+bundle: manifests
+	$(OPERATOR_SDK) generate kustomize manifests -q
+	cd config/manager && $(KUSTOMIZE) edit set image controller=$(IMG)
+	$(KUSTOMIZE) build config/manifests | $(OPERATOR_SDK) generate bundle -q --overwrite --version $(VERSION) $(BUNDLE_METADATA_OPTS)
+	$(OPERATOR_SDK) bundle validate ./bundle
+
+# Build the bundle image.
+.PHONY: bundle-build
+bundle-build:
+	$(DOCKER) build -f bundle.Dockerfile -t $(BUNDLE_IMG) .
+
+## 3scale-specific targets
+
 download:
 	@echo Download go.mod dependencies
 	@go mod download
-
-## build: Build operator
-build:
-	$(OPERATOR_SDK) build $(IMAGE):$(VERSION)
-
-## push: push operator docker image to remote repo
-push:
-	$(DOCKER) push $(IMAGE):$(VERSION)
-
-## pull: pull operator $(DOCKER) image from remote repo
-pull:
-	$(DOCKER) pull $(IMAGE):$(VERSION)
-
-tag:
-	$(DOCKER) tag $(IMAGE):$(SOURCE_VERSION) $(IMAGE):$(VERSION)
-
-## local: push operator docker image to remote repo
-local:
-	OPERATOR_NAME=$(OPERATOR_NAME) $(OPERATOR_SDK) run --local --namespace $(NAMESPACE) --operator-flags '--zap-devel=true --zap-level 1'
-
-## e2e-setup: create Kubernetes namespace for the operator
-e2e-setup:
-	$(KUBECTL) create namespace $(NAMESPACE)
-
-## e2e-local-run: running operator locally with go run instead of as an image in the cluster
-e2e-local-run:
-	OPERATOR_NAME=$(OPERATOR_NAME) $(OPERATOR_SDK) test local ./test/e2e --up-local --namespace $(NAMESPACE) --go-test-flags '-v -timeout 0'
-
-## e2e-run: operator local test
-e2e-run:
-	$(OPERATOR_SDK) test local ./test/e2e --go-test-flags '-v -timeout 0' --debug --image $(IMAGE) --namespace $(NAMESPACE)
-
-## e2e-clean: delete operator Kubernetes namespace
-e2e-clean:
-	$(KUBECTL) delete namespace --force $(NAMESPACE) || true
-
-## e2e: e2e-clean e2e-setup e2e-run
-e2e: e2e-clean e2e-setup e2e-run
 
 ## licenses.xml: Generate licenses.xml file
 licenses.xml:
@@ -84,27 +142,34 @@ endif
 	license_finder report --decisions-file=$(DEPENDENCY_DECISION_FILE) --quiet --format=xml > licenses.xml
 
 ## licenses-check: Check license compliance of dependencies
-licenses-check: vendor
+licenses-check:
 ifndef LICENSEFINDERBINARY
 	$(error "license-finder is not available please install: gem install license_finder --version 5.7.1")
 endif
 	@echo "Checking license compliance"
 	license_finder --decisions-file=$(DEPENDENCY_DECISION_FILE)
 
-## verify-manifest: Test manifests have expected format
-verify-manifest:
-ifndef OPERATORCOURIER
-	$(error "operator-courier is not available please install pip3 install operator-courier")
-endif
-	cd $(PROJECT_PATH)/deploy/olm-catalog && operator-courier verify --ui_validate_io apicast-operator/
+docker-build-only:
+	$(DOCKER) build . -t ${IMG}
 
-## test-crds: Run CRD unittests
-test-crds: vendor
-	cd $(PROJECT_PATH)/test/crds && $(GO) test -v
+# Run unit tests
+TEST_UNIT_PKGS = $(shell go list ./... | grep -E 'github.com/3scale/apicast-operator/pkg/|github.com/3scale/apicast-operator/pkg/apis')
+test-unit: generate fmt vet manifests
+	go test -v $(TEST_UNIT_PKGS)
 
-## push-manifest: Push manifests to application repository
-push-manifest:
-ifndef OPERATORCOURIER
-	$(error "operator-courier is not available please install pip3 install operator-courier")
-endif
-	cd $(PROJECT_PATH)/deploy/olm-catalog && operator-courier push apicast-operator/ $(APPLICATION_REPOSITORY_NAMESPACE) apicast-operator-master $(MANIFEST_RELEASE) "$(TOKEN)"
+# Run CRD tests
+TEST_CRD_PKGS = $(shell go list ./... | grep 'github.com/3scale/apicast-operator/test/crds')
+test-crds: generate fmt vet manifests
+	go test -v $(TEST_CRD_PKGS)
+
+# Run e2e tests
+
+TEST_E2E_PKGS = $(shell go list ./... | grep -E 'github.com/3scale/apicast-operator/controllers')
+ENVTEST_ASSETS_DIR=$(PROJECT_PATH)/testbin
+test-e2e: generate fmt vet manifests
+	mkdir -p ${ENVTEST_ASSETS_DIR}
+	test -f $(ENVTEST_ASSETS_DIR)/setup-envtest.sh || curl -sSLo $(ENVTEST_ASSETS_DIR)/setup-envtest.sh https://raw.githubusercontent.com/kubernetes-sigs/controller-runtime/v0.6.3/hack/setup-envtest.sh
+	source ${ENVTEST_ASSETS_DIR}/setup-envtest.sh; fetch_envtest_tools $(ENVTEST_ASSETS_DIR); setup_envtest_env $(ENVTEST_ASSETS_DIR); go test $(TEST_E2E_PKGS) -coverprofile cover.out -ginkgo.v -ginkgo.progress -v
+
+bundle-validate:
+	$(OPERATOR_SDK) bundle validate ./bundle

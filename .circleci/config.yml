@@ -56,7 +56,7 @@ commands:
       - run:
           name: Install operator-sdk
           command: |
-            export OPERATOR_SDK_RELEASE_VERSION=v0.15.2
+            export OPERATOR_SDK_RELEASE_VERSION=v1.1.0
             curl -OJL https://github.com/operator-framework/operator-sdk/releases/download/${OPERATOR_SDK_RELEASE_VERSION}/operator-sdk-${OPERATOR_SDK_RELEASE_VERSION}-x86_64-linux-gnu
             chmod +x operator-sdk-${OPERATOR_SDK_RELEASE_VERSION}-x86_64-linux-gnu && sudo cp operator-sdk-${OPERATOR_SDK_RELEASE_VERSION}-x86_64-linux-gnu /usr/local/bin/operator-sdk && rm operator-sdk-${OPERATOR_SDK_RELEASE_VERSION}-x86_64-linux-gnu
 
@@ -157,16 +157,15 @@ commands:
     steps:
       - restore_cache:
           keys:
-            - v3-apicastoperator-vendor-{{ arch }}-{{ checksum "go.sum" }}
-            - v3-apicastoperator-vendor-{{ arch }}
+            - apicast-operator-go-mod-v1-{{ arch }}-{{ checksum "go.sum" }}
       - run:
           name: Install operator dependencies
           command: |
-            make vendor
+            make download
       - save_cache:
-          key: v3-apicastoperator-vendor-{{ arch }}-{{ checksum "go.sum" }}
+          key: apicast-operator-go-mod-v1-{{ arch }}-{{ checksum "go.sum" }}
           paths:
-            - "/go/pkg"
+            - "/go/pkg/mod"
 
   build-operator-image:
     steps:
@@ -176,7 +175,7 @@ commands:
       - run:
           name: Build Operator
           command: |
-              make build IMAGE=172.30.1.1:5000/openshift/apicast-operator VERSION=test
+              make docker-build-only IMG=172.30.1.1:5000/openshift/apicast-operator:test
 
 jobs:
   install-operator:
@@ -269,15 +268,12 @@ jobs:
           name: Unpack and use local images by re-using the Docker daemon
           command: |
             docker load -i /tmp/workspace/images/operator-image.tar
-      - kubernetes/create-or-update-resource:
-          resource-file-path: test/resources/namespace-operator-test.yaml
-          show-kubectl-command: true
       - watch-operator-pod
       - watch-operator-pod-logs
       - run:
           name: run E2E tests
           command: |
-            make e2e-run IMAGE=172.30.1.1:5000/openshift/apicast-operator:test NAMESPACE=operator-test
+            make test-e2e
           no_output_timeout: 30m
       - k8s-show-events
 
@@ -308,7 +304,7 @@ jobs:
       - run:
           name: run E2E tests
           command: |
-            make e2e-run IMAGE=172.30.1.1:5000/openshift/apicast-operator:test NAMESPACE=operator-test
+            make test-e2e
           no_output_timeout: 30m
       - oc-status
 
@@ -320,20 +316,21 @@ jobs:
       - checkout
       - run: make test-crds
 
-  verify-manifest:
+  bundle-validate:
     docker:
-      - image: circleci/python:3.6.4
+      - image: circleci/golang:1.13.7
+    working_directory: /go/src/github.com/3scale/apicast-operator
     steps:
       - checkout
-      - run: sudo pip3 install operator-courier
-      - run: make verify-manifest
+      - install-operator-sdk
+      - run: make bundle-validate
 
 workflows:
   version: 2
   build:
     jobs:
       - license-check
-      - verify-manifest
+      - bundle-validate
       - test-crds
       - install-operator:
           filters: # required since `tag-operator-image-release` job has tag filters AND requires `install-operator`. Otherwise tag build will not be triggered on new tags

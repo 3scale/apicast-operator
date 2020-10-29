@@ -6,23 +6,26 @@
 * [Building APIcast operator image](#building-APIcast-operator-image)
 * [Run APIcast Operator](#run-APIcast-operator)
   * [Run APIcast Operator Locally](#run-APIcast-operator-locally)
-  * [Deploy and run APIcast Operator Manually](#deploy-and-run-APIcast-operator-manually)
-    * [Cleanup manually deployed operator](#cleanup-manually-deployed-operator)
   * [Deploy custom APIcast Operator using OLM](#deploy-custom-APIcast-operator-using-olm)
 * [Run tests](#run-tests)
-* [Manifest management](#manifest-management)
-  * [Verify operator manifest](#verify-operator-manifest)
-  * [Push an operator bundle into external app registry](#push-an-operator-bundle-into-external-app-registry)
+  * [Run all tests](#run-all-tests)
+  * [Run unit tests](#run-unit-tests)
+  * [Run end-to-end tests](#run-end-to-end-tests)
+* [Bundle management](#bundle-management)
+  * [(re)Generate an operator bundle image](#(re)generate-an-operator-bundle-image)
+  * [Validate an operator bundle image](#validate-an-operator-bundle-image)
+  * [Push an operator bundle into an external container repository](#push-an-operator-bundle-into-an-external-container-repository)
 * [Licenses management](#licenses-management)
   * [Manually adding a new license](#manually-adding-a-new-license)
 
 ## Prerequisites
 
-* [operator-sdk] version v0.15.2
+* [operator-sdk] version v1.1.0
+* [docker] version 17.03+
 * [git][git_tool]
 * [go] version 1.13+
-* [kubernetes] version v1.11.0+
-* [kubectl] version v1.11+
+* [kubernetes] version v1.11.3+
+* [kubectl] version v1.11.3+
 * Access to a Kubernetes v1.11.0+ cluster.
 * A user with administrative privileges in the Kubernetes cluster.
 
@@ -42,7 +45,7 @@ git checkout master
 Build operator image
 
 ```sh
-make build IMAGE=quay.io/myorg/apicast-operator VERSION=test
+make docker-build IMG=quay.io/myorg/apicast-operator:myversiontag
 ```
 
 ## Run APIcast Operator
@@ -59,7 +62,7 @@ Run operator from command line, it will not be deployed as pod.
 
 ```sh
 // As a cluster admin
-for i in `ls deploy/crds/*_crd.yaml`; do kubectl create -f $i ; done
+for i in `ls bundle/manifests/**apps.3scale.net_*.yaml`; do kubectl create -f $i ; done
 ```
 
 * Create a new Kubernetes namespace (optional)
@@ -76,95 +79,64 @@ active context
 * Install the dependencies
 
 ```sh
-make vendor
+make download
 ```
 
 * Run operator
 
 ```sh
-make local
-```
-
-### Deploy and run APIcast Operator Manually
-
-Build operator image and deploy manually as a pod
-
-* [Build APIcast operator image](#Building-APIcast-operator-image)
-
-* Push image to public repo (for instance `quay.io`)
-
-```sh
-make push IMAGE=quay.io/myorg/apicast-operator VERSION=test
-```
-
-* Register the APIcast operator CRDs in the OpenShift API Server
-
-```sh
-// As a cluster admin
-for i in `ls deploy/crds/*_crd.yaml`; do kubectl create -f $i ; done
-```
-
-* Create a new Kubernetes namespace (optional)
-
-```sh
-export NAMESPACE=operator-test
-kubectl create namespace ${NAMESPACE}
-
-Do not forget to change the current Kubernetes context to the newly
-created namespace or create a new context for it and set the new one as the
-active context
-```
-
-* Deploy the needed roles and ServiceAccounts
-
-```sh
-kubectl create -f deploy/service_account.yaml
-kubectl create -f deploy/role.yaml
-kubectl create -f deploy/role_binding.yaml
-```
-
-* Deploy the APIcast operator
-
-```sh
-sed -i 's|REPLACE_IMAGE|quay.io/myorg/apicast-operator:test|g' deploy/operator.yaml
-kubectl create -f deploy/operator.yaml
-```
-
-#### Cleanup manually deployed operator
-
-* Delete all `apicast` custom resources:
-
-```sh
-kubectl delete apicasts --all
-```
-
-* Delete the APIcast operator, its associated roles and service accounts
-
-```sh
-kubectl delete -f deploy/operator.yaml
-kubectl delete -f deploy/role_binding.yaml
-kubectl delete -f deploy/service_account.yaml
-kubectl delete -f deploy/role.yaml
-```
-
-* Delete the APIcast CRD:
-
-```sh
-kubectl delete crds apicasts.apps.3scale.net
+make run
 ```
 
 ### Deploy custom APIcast Operator using OLM
 
-To install this operator on OpenShift 4 using OLM for end-to-end testing, 
+To install this operator on an OpenShift 4.5+ cluster using OLM for
+end-to-end testing:
 
-* [Push an operator bundle into external app registry](#push-an-operator-bundle-into-external-app-registry).
+* Perform naming changes to avoid collision with existing APIcast Operator
+  official public operators catalog entries:
+  * Edit the `bundle/manifests/apicast-operator.clusterserviceversion.yaml` file
+    and perform the following changes:
+      * Change the current value of `.metadata.name` to a different name
+        than `apicast-operator.v*`. For example to `myorg-apicast-operator.v0.0.1`
+      * Change the current value of `.spec.displayName` to a value that helps you
+        identify the catalog entry name from other operators and the official
+        APIcast operator entries. For example to `"MyOrg apicast operator"`
+      * Change the current value of `.spec.provider.Name` to a value that helps
+        you identify the catalog entry name from other operators and the official
+        APIcast operator entries. For example, to `MyOrg`
+  * Edit the `bundle.Dockerfile` file and change the value of
+    the Dockerfile label `LABEL operators.operatorframework.io.bundle.package.v1`
+    to a different value than `apicast-operator`. For example to
+    `myorg-apicast-operator`
+  * Edit the `bundle/metadata/annotations.yaml` file and change the value of
+    `.annotations.operators.operatorframework.io.bundle.package.v1` to a
+    different value than `apicast-operator`. For example to
+    `myorg-apicast-operator`. The new value should match the
+    Dockerfile label `LABEL operators.operatorframework.io.bundle.package.v1`
+    in the `bundle.Dockerfile` as explained in the point above
 
-* Create the [Operator Source](https://github.com/operator-framework/community-operators/blob/master/docs/testing-operators.md#4-create-the-operatorsource)
-provided in `deploy/olm-catalog/apicast-operatorsource.yaml` to load your operator bundle in OpenShift.
+  It is really important that all the previously shown fields are changed
+  to avoid overwriting the APIcast operator official public operator
+  catalog entry in your cluster and to avoid confusion having two equal entries
+  on it.
 
-```bash
-kubectl create -f deploy/olm-catalog/apicast-operatorsource.yaml
-```
+* [Create an operator bundle image](#(re)Generate-operator-bundle) using the
+  changed contents above
+
+* [Push the operator bundle into an external container repository](#push-an-operator-bundle-into-an-external-container-repository).
+
+* Run the following command to deploy the operator in your currently configured
+  and active cluster in $HOME/.kube/config:
+  ```sh
+  operator-sdk run bundle --namespace <mynamespace>
+  ```
+
+  Additionally, a specific kubeconfig file with a desired Kubernetes
+  configuration can be provided too:
+  ```sh
+  operator-sdk run bundle --namespace <mynamespace> --kubeconfig <path>
+  ```
 
 It will take a few minutes for the operator to become visible under
 the _OperatorHub_ section of the OpenShift console _Catalog_. It can be
@@ -172,71 +144,52 @@ easily found by filtering the provider type to _Custom_.
 
 [git_tool]:https://git-scm.com/downloads
 [operator-sdk]:https://github.com/operator-framework/operator-sdk
+[docker]:https://docs.docker.com/install/
 [go]:https://golang.org/
 [kubernetes]:https://kubernetes.io/
 [kubectl]:https://kubernetes.io/docs/tasks/tools/install-kubectl/
 
 ### Run tests
 
-#### Run unittests
-
-No access to a Kubernetes cluster is required
+#### Run all tests
 
 ```sh
-make test-crds
+make test
 ```
 
-#### Run integration tests
-
-Access to a Kubernetes v1.11.0+ cluster required
-
-* Run tests locally deploying image
-```sh
-export NAMESPACE=operator-test
-make e2e-run
-```
-
-* Run tests locally running operator with go run instead of as an image in the cluster
-```sh
-export NAMESPACE=operator-test
-make e2e-local-run
-```
-
-## Manifest management
-
-`operator-courier` is used for metadata syntax checking and validation.
-This can be installed directly from pip:
+#### Run unit tests
 
 ```sh
-pip3 install operator-courier
+make test-unit
 ```
 
-### Verify operator manifest
-
-Check [Required fields within your CSV](https://github.com/operator-framework/community-operators/blob/master/docs/required-fields.md)
-
-`operator-courier` will verify the fields included in the Operator metadata (CSV)
+#### Run end-to-end tests
 
 ```sh
-make verify-manifest
+make test-e2e
 ```
 
-### Push an operator bundle into external app registry
+## Bundle management
 
-* Get quay token
+### (re)Generate an operator bundle image
 
-Detailed information on this [guide](https://github.com/operator-framework/operator-courier/#authentication)
-
-```bash
-curl -sH "Content-Type: application/json" -XPOST https://quay.io/cnr/api/v1/users/login -d '{"user": {"username": "YOURUSERNAME", "password": "YOURPASSWORD"}}' | jq '.token'
+```sh
+make bundle
 ```
 
-* Push bundle to Quay.io
+The generated output will be saved in the `bundle` directory
 
-Detailed information on this [guide](https://github.com/operator-framework/community-operators/blob/master/docs/testing-operators.md#push-to-quayio).
+### Validate an operator bundle image
 
-```bash
-make push-manifest APPLICATION_REPOSITORY_NAMESPACE=YOUR_QUAY_NAMESPACE MANIFEST_RELEASE=1.0.0 TOKEN=YOUR_TOKEN
+```sh
+make bundle-validate
+```
+
+
+### Push an operator bundle into an external container repository
+
+```sh
+make docker-push IMG=quay.io/myorg/apicast-operator:myversiontag
 ```
 
 ## Licenses management

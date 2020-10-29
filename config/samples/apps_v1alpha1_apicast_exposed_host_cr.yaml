@@ -1,0 +1,11 @@
+apiVersion: apps.3scale.net/v1alpha1
+kind: APIcast
+metadata:
+  name: example-apicast-exposed-host
+spec:
+  replicas: 2
+  adminPortalCredentialsRef:
+    name: my-admin-portal-secret-name
+  exposedHost:
+    host: my-apicast.mydomain.com
+  logLevel: debug

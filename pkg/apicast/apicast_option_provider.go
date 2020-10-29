@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/url"
 
-	appsv1alpha1 "github.com/3scale/apicast-operator/pkg/apis/apps/v1alpha1"
+	appsv1alpha1 "github.com/3scale/apicast-operator/apis/apps/v1alpha1"
 	"github.com/3scale/apicast-operator/pkg/k8sutils"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
