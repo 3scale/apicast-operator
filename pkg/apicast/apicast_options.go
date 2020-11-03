@@ -39,6 +39,7 @@ type APIcastOptions struct {
 	ManagementAPIScope             *string
 	OpenSSLPeerVerificationEnabled *bool
 	UpstreamRetryCases             *string
+	CacheMaxTime                   *string
 }
 
 func NewAPIcastOptions() *APIcastOptions {

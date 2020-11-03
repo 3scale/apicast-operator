@@ -45,6 +45,9 @@ spec:
             cacheConfigurationSeconds:
               format: int64
               type: integer
+            cacheMaxTime:
+              description: CacheMaxTime indicates the maximum time to be cached. If cache-control header is not set, the time to be cached will be the defined one.
+              type: string
             configurationLoadMode:
               enum:
               - boot

@@ -73,6 +73,9 @@ type APIcastSpec struct {
 	// +kubebuilder:validation:Enum=error;timeout;invalid_header;http_500;http_502;http_503;http_504;http_403;http_404;http_429;non_idempotent; off
 	// +optional
 	UpstreamRetryCases *string `json:"upstreamRetryCases,omitempty"`
+	// CacheMaxTime indicates the maximum time to be cached. If cache-control header is not set, the time to be cached will be the defined one.
+	// +optional
+	CacheMaxTime *string `json:"cacheMaxTime,omitempty"` // APICAST_CACHE_MAX_TIME
 }
 
 type DeploymentEnvironmentType string

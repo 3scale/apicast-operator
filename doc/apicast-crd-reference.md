@@ -27,6 +27,7 @@
 | `openSSLPeerVerificationEnabled` | bool | No | N/A | Controls the OpenSSL Peer Verification (see [docs](https://github.com/3scale/APIcast/blob/master/doc/parameters.md#openssl_verify)) |
 | `resources` | [v1.ResourceRequirements](https://v1-17.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.17/#resourcerequirements-v1-core) | No | *CPU* [Request: 500m, Limit: 1], *Memory* [Request: 64Mi, Limit: 128Mi] | Resources describes the compute resource requirements |
 | `upstreamRetryCases` | string | No | N/A | Specifies in which cases a request to the upstream API should be retried (see [docs](https://github.com/3scale/APIcast/blob/master/doc/parameters.md#apicast_upstream_retry_cases)) |
+| `cacheMaxTime` | string | No | N/A | When the response is selected to be cached in the system, the value of this variable indicates the maximum time to be cached. If cache-control header is not set, the time to be cached will be the defined one. (see [docs](https://github.com/3scale/APIcast/blob/master/doc/parameters.md#apicast_cache_max_time)) |
 
 #### APIcastStatus
 

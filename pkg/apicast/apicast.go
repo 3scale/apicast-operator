@@ -158,6 +158,10 @@ func (a *APIcast) deploymentEnv() []v1.EnvVar {
 		env = append(env, a.envVarFromValue("APICAST_UPSTREAM_RETRY_CASES", *a.options.UpstreamRetryCases))
 	}
 
+	if a.options.CacheMaxTime != nil {
+		env = append(env, a.envVarFromValue("APICAST_CACHE_MAX_TIME", *a.options.CacheMaxTime))
+	}
+
 	return env
 }
 
