@@ -121,7 +121,7 @@ end-to-end testing:
   catalog entry in your cluster and to avoid confusion having two equal entries
   on it.
 
-* [Create an operator bundle image](#generate-operator-bundle) using the
+* [Create an operator bundle image](#generate-an-operator-bundle-image) using the
   changed contents above
 
 * [Push the operator bundle into an external container repository](#push-an-operator-bundle-into-an-external-container-repository).
