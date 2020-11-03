@@ -12,7 +12,7 @@
   * [Run unit tests](#run-unit-tests)
   * [Run end-to-end tests](#run-end-to-end-tests)
 * [Bundle management](#bundle-management)
-  * [(re)Generate an operator bundle image](#(re)generate-an-operator-bundle-image)
+  * [Generate an operator bundle image](#generate-an-operator-bundle-image)
   * [Validate an operator bundle image](#validate-an-operator-bundle-image)
   * [Push an operator bundle into an external container repository](#push-an-operator-bundle-into-an-external-container-repository)
 * [Licenses management](#licenses-management)
@@ -121,7 +121,7 @@ end-to-end testing:
   catalog entry in your cluster and to avoid confusion having two equal entries
   on it.
 
-* [Create an operator bundle image](#(re)Generate-operator-bundle) using the
+* [Create an operator bundle image](#generate-operator-bundle) using the
   changed contents above
 
 * [Push the operator bundle into an external container repository](#push-an-operator-bundle-into-an-external-container-repository).
@@ -171,7 +171,7 @@ make test-e2e
 
 ## Bundle management
 
-### (re)Generate an operator bundle image
+### Generate an operator bundle image
 
 ```sh
 make bundle
@@ -184,7 +184,6 @@ The generated output will be saved in the `bundle` directory
 ```sh
 make bundle-validate
 ```
-
 
 ### Push an operator bundle into an external container repository
 
