@@ -76,6 +76,9 @@ type APIcastSpec struct {
 	// CacheMaxTime indicates the maximum time to be cached. If cache-control header is not set, the time to be cached will be the defined one.
 	// +optional
 	CacheMaxTime *string `json:"cacheMaxTime,omitempty"` // APICAST_CACHE_MAX_TIME
+	// CacheStatusCodes defines the status codes for which the response content will be cached.
+	// +optional
+	CacheStatusCodes *string `json:"cacheStatusCodes,omitempty"` // APICAST_CACHE_STATUS_CODES
 }
 
 type DeploymentEnvironmentType string

@@ -40,6 +40,7 @@ type APIcastOptions struct {
 	OpenSSLPeerVerificationEnabled *bool
 	UpstreamRetryCases             *string
 	CacheMaxTime                   *string
+	CacheStatusCodes               *string
 }
 
 func NewAPIcastOptions() *APIcastOptions {

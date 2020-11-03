@@ -162,6 +162,10 @@ func (a *APIcast) deploymentEnv() []v1.EnvVar {
 		env = append(env, a.envVarFromValue("APICAST_CACHE_MAX_TIME", *a.options.CacheMaxTime))
 	}
 
+	if a.options.CacheStatusCodes != nil {
+		env = append(env, a.envVarFromValue("APICAST_CACHE_STATUS_CODES", *a.options.CacheStatusCodes))
+	}
+
 	return env
 }
 

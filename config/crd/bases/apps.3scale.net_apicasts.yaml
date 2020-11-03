@@ -53,6 +53,10 @@ spec:
                 cache-control header is not set, the time to be cached will be the
                 defined one.
               type: string
+            cacheStatusCodes:
+              description: CacheStatusCodes defines the status codes for which the
+                response content will be cached.
+              type: string
             configurationLoadMode:
               enum:
               - boot
