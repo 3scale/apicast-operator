@@ -87,6 +87,7 @@ func (a *APIcastOptionsProvider) GetApicastOptions() (*APIcastOptions, error) {
 	a.APIcastOptions.UpstreamRetryCases = a.APIcastCR.Spec.UpstreamRetryCases
 	a.APIcastOptions.CacheMaxTime = a.APIcastCR.Spec.CacheMaxTime
 	a.APIcastOptions.CacheStatusCodes = a.APIcastCR.Spec.CacheStatusCodes
+	a.APIcastOptions.OidcLogLevel = a.APIcastCR.Spec.OidcLogLevel
 
 	// Annotations from user secrets. Used to rollout apicast deployment if any secrets changes
 	a.APIcastOptions.AdditionalAnnotations = a.additionalAnnotations()

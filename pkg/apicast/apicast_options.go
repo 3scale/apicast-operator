@@ -41,6 +41,7 @@ type APIcastOptions struct {
 	UpstreamRetryCases             *string
 	CacheMaxTime                   *string
 	CacheStatusCodes               *string
+	OidcLogLevel                   *string
 }
 
 func NewAPIcastOptions() *APIcastOptions {

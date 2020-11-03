@@ -29,6 +29,7 @@
 | `upstreamRetryCases` | string | No | N/A | Specifies in which cases a request to the upstream API should be retried (see [docs](https://github.com/3scale/APIcast/blob/master/doc/parameters.md#apicast_upstream_retry_cases)) |
 | `cacheMaxTime` | string | No | N/A | When the response is selected to be cached in the system, the value of this variable indicates the maximum time to be cached. If cache-control header is not set, the time to be cached will be the defined one. (see [docs](https://github.com/3scale/APIcast/blob/master/doc/parameters.md#apicast_cache_max_time)) |
 | `cacheStatusCodes` | string | No | N/A | When the response code from upstream matches one of the status codes defined in this environment variable, the response content will be cached (see [docs](https://github.com/3scale/APIcast/blob/master/doc/parameters.md#apicast_cache_status_codes)) |
+| `oidcLogLevel` | string | No | N/A | Allows to set the log level for the logs related to OpenID Connect integration (see [docs](https://github.com/3scale/APIcast/blob/master/doc/parameters.md#apicast_cache_status_codes)) |
 
 #### APIcastStatus
 

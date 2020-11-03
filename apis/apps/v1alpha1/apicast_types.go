@@ -79,6 +79,10 @@ type APIcastSpec struct {
 	// CacheStatusCodes defines the status codes for which the response content will be cached.
 	// +optional
 	CacheStatusCodes *string `json:"cacheStatusCodes,omitempty"` // APICAST_CACHE_STATUS_CODES
+	// OidcLogLevel allows to set the log level for the logs related to OpenID Connect integration.
+	// +kubebuilder:validation:Enum=debug;info;notice;warn;error;crit;alert;emerg
+	// +optional
+	OidcLogLevel *string `json:"oidcLogLevel,omitempty"` // APICAST_OIDC_LOG_LEVEL
 }
 
 type DeploymentEnvironmentType string

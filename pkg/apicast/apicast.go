@@ -166,6 +166,10 @@ func (a *APIcast) deploymentEnv() []v1.EnvVar {
 		env = append(env, a.envVarFromValue("APICAST_CACHE_STATUS_CODES", *a.options.CacheStatusCodes))
 	}
 
+	if a.options.OidcLogLevel != nil {
+		env = append(env, a.envVarFromValue("APICAST_OIDC_LOG_LEVEL", *a.options.OidcLogLevel))
+	}
+
 	return env
 }
 

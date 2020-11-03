@@ -130,6 +130,19 @@ spec:
               - policies
               - debug
               type: string
+            oidcLogLevel:
+              description: OidcLogLevel allows to set the log level for the logs related
+                to OpenID Connect integration.
+              enum:
+              - debug
+              - info
+              - notice
+              - warn
+              - error
+              - crit
+              - alert
+              - emerg
+              type: string
             openSSLPeerVerificationEnabled:
               type: boolean
             pathRoutingEnabled:
