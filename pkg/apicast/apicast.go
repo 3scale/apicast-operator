@@ -154,6 +154,10 @@ func (a *APIcast) deploymentEnv() []v1.EnvVar {
 		})
 	}
 
+	if a.options.UpstreamRetryCases != nil {
+		env = append(env, a.envVarFromValue("APICAST_UPSTREAM_RETRY_CASES", *a.options.UpstreamRetryCases))
+	}
+
 	return env
 }
 

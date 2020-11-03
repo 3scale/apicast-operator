@@ -69,6 +69,10 @@ type APIcastSpec struct {
 	OpenSSLPeerVerificationEnabled *bool `json:"openSSLPeerVerificationEnabled,omitempty"` // OPENSSL_VERIFY
 	// +optional
 	Resources *v1.ResourceRequirements `json:"resources,omitempty"`
+	// UpstreamRetryCases Used only when the retry policy is configured. Specified in which cases a request to the upstream API should be retried.
+	// +kubebuilder:validation:Enum=error;timeout;invalid_header;http_500;http_502;http_503;http_504;http_403;http_404;http_429;non_idempotent; off
+	// +optional
+	UpstreamRetryCases *string `json:"upstreamRetryCases,omitempty"`
 }
 
 type DeploymentEnvironmentType string

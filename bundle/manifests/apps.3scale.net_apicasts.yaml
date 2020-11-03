@@ -139,6 +139,22 @@ spec:
               type: boolean
             serviceAccount:
               type: string
+            upstreamRetryCases:
+              description: UpstreamRetryCases Used only when the retry policy is configured. Specified in which cases a request to the upstream API should be retried.
+              enum:
+              - error
+              - timeout
+              - invalid_header
+              - http_500
+              - http_502
+              - http_503
+              - http_504
+              - http_403
+              - http_404
+              - http_429
+              - non_idempotent
+              - "off"
+              type: string
           type: object
         status:
           description: APIcastStatus defines the observed state of APIcast
