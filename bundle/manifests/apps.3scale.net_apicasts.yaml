@@ -94,6 +94,9 @@ spec:
               type: object
             image:
               type: string
+            loadServicesWhenNeeded:
+              description: LoadServicesWhenNeeded makes the configurations to be loaded lazily. APIcast will only load the ones configured for the host specified in the host header of the request.
+              type: boolean
             logLevel:
               enum:
               - debug

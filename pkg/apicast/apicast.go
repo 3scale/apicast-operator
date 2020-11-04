@@ -170,6 +170,10 @@ func (a *APIcast) deploymentEnv() []v1.EnvVar {
 		env = append(env, a.envVarFromValue("APICAST_OIDC_LOG_LEVEL", *a.options.OidcLogLevel))
 	}
 
+	if a.options.LoadServicesWhenNeeded != nil {
+		env = append(env, a.envVarFromValue("APICAST_LOAD_SERVICES_WHEN_NEEDED", strconv.FormatBool(*a.options.LoadServicesWhenNeeded)))
+	}
+
 	return env
 }
 

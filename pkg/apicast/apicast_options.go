@@ -42,6 +42,7 @@ type APIcastOptions struct {
 	CacheMaxTime                   *string
 	CacheStatusCodes               *string
 	OidcLogLevel                   *string
+	LoadServicesWhenNeeded         *bool
 }
 
 func NewAPIcastOptions() *APIcastOptions {
