@@ -129,13 +129,13 @@ end-to-end testing:
 * Run the following command to deploy the operator in your currently configured
   and active cluster in $HOME/.kube/config:
   ```sh
-  operator-sdk run bundle --namespace <mynamespace>
+  operator-sdk run bundle --namespace <mynamespace> <BUNDLE_IMAGE_URL>
   ```
 
   Additionally, a specific kubeconfig file with a desired Kubernetes
   configuration can be provided too:
   ```sh
-  operator-sdk run bundle --namespace <mynamespace> --kubeconfig <path>
+  operator-sdk run bundle --namespace <mynamespace> --kubeconfig <path> <BUNDLE_IMAGE_URL>
   ```
 
 It will take a few minutes for the operator to become visible under
