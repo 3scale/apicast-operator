@@ -170,6 +170,7 @@ jobs:
     working_directory: /go/src/github.com/3scale/apicast-operator
     steps:
       - checkout
+      - install-operator-dependencies
       - run: make test-crds
 
   bundle-validate:
@@ -188,11 +189,13 @@ workflows:
       - license-check
       - bundle-validate
       - test-crds
+      - run-e2e-test
       - install-operator:
           filters: # required since `tag-operator-image-release` job has tag filters AND requires `install-operator`. Otherwise tag build will not be triggered on new tags
             tags:
               only: /^v.*/
-      - run-e2e-test
+            branches:
+              only: master
       - tag-operator-image-master:
           context: org-global
           requires:
