@@ -34,7 +34,7 @@ PROJECT_PATH := $(patsubst %/,%,$(dir $(MKFILE_PATH)))
 LICENSEFINDERBINARY := $(shell command -v license_finder 2> /dev/null)
 DEPENDENCY_DECISION_FILE = $(PROJECT_PATH)/doc/dependency_decisions.yml
 
-NAMESPACE ?= $(shell $(KUBECTL) project -q 2>/dev/null || echo operator-test)
+NAMESPACE ?= $(shell $(KUBECTL) config view --minify -o jsonpath='{.contexts[0].context.namespace}' 2>/dev/null || echo operator-test)
 
 all: manager
 
@@ -46,7 +46,7 @@ manager: generate fmt vet
 	go build -o bin/manager main.go
 
 # Run against the configured Kubernetes cluster in ~/.kube/config
-run: export WATCH_NAMESPACE = $(NAMESPACE)
+run: export WATCH_NAMESPACE=$(NAMESPACE)
 run: generate fmt vet manifests
 	go run ./main.go
 
