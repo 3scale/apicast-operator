@@ -1,6 +1,7 @@
 package apicast
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -176,6 +177,10 @@ func (a *APIcast) deploymentEnv() []v1.EnvVar {
 
 	if a.options.ServicesFilterByURL != nil {
 		env = append(env, a.envVarFromValue("APICAST_SERVICES_FILTER_BY_URL", *a.options.ServicesFilterByURL))
+	}
+
+	for serviceID, serviceVersion := range a.options.ServiceConfigurationVersionOverride {
+		env = append(env, a.envVarFromValue(fmt.Sprintf("APICAST_SERVICE_%s_CONFIGURATION_VERSION", serviceID), serviceVersion))
 	}
 
 	return env

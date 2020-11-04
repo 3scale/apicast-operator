@@ -185,6 +185,12 @@ spec:
               type: boolean
             serviceAccount:
               type: string
+            serviceConfigurationVersionOverride:
+              additionalProperties:
+                type: string
+              description: ServiceConfigurationVersionOverride contains service configuration
+                version map to prevent it from auto-updating.
+              type: object
             servicesFilterByURL:
               description: ServicesFilterByURL is used to filter the service configured
                 in the 3scale API Manager, the filter matches with the public base

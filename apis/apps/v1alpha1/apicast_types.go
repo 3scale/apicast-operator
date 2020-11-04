@@ -89,6 +89,9 @@ type APIcastSpec struct {
 	// ServicesFilterByURL is used to filter the service configured in the 3scale API Manager, the filter matches with the public base URL (Staging or production).
 	// +optional
 	ServicesFilterByURL *string `json:"servicesFilterByURL,omitempty"` // APICAST_SERVICES_FILTER_BY_URL
+	// ServiceConfigurationVersionOverride contains service configuration version map to prevent it from auto-updating.
+	// +optional
+	ServiceConfigurationVersionOverride map[string]string `json:"serviceConfigurationVersionOverride,omitempty"` // APICAST_SERVICE_${ID}_CONFIGURATION_VERSION
 }
 
 type DeploymentEnvironmentType string

@@ -28,22 +28,23 @@ type APIcastOptions struct {
 	GatewayConfigurationSecret   *v1.Secret              `validate:"required_without=AdminPortalCredentialsSecret"`
 	ResourceRequirements         v1.ResourceRequirements `validate:"-"`
 
-	DeploymentEnvironment          *string
-	DNSResolverAddress             *string
-	EnabledServices                []string
-	ConfigurationLoadMode          *string
-	LogLevel                       *string
-	PathRoutingEnabled             *bool
-	ResponseCodesIncluded          *bool
-	CacheConfigurationSeconds      *int64
-	ManagementAPIScope             *string
-	OpenSSLPeerVerificationEnabled *bool
-	UpstreamRetryCases             *string
-	CacheMaxTime                   *string
-	CacheStatusCodes               *string
-	OidcLogLevel                   *string
-	LoadServicesWhenNeeded         *bool
-	ServicesFilterByURL            *string
+	DeploymentEnvironment               *string
+	DNSResolverAddress                  *string
+	EnabledServices                     []string
+	ConfigurationLoadMode               *string
+	LogLevel                            *string
+	PathRoutingEnabled                  *bool
+	ResponseCodesIncluded               *bool
+	CacheConfigurationSeconds           *int64
+	ManagementAPIScope                  *string
+	OpenSSLPeerVerificationEnabled      *bool
+	UpstreamRetryCases                  *string
+	CacheMaxTime                        *string
+	CacheStatusCodes                    *string
+	OidcLogLevel                        *string
+	LoadServicesWhenNeeded              *bool
+	ServicesFilterByURL                 *string
+	ServiceConfigurationVersionOverride map[string]string
 }
 
 func NewAPIcastOptions() *APIcastOptions {
