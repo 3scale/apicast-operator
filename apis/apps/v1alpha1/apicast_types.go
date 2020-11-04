@@ -86,6 +86,9 @@ type APIcastSpec struct {
 	// LoadServicesWhenNeeded makes the configurations to be loaded lazily. APIcast will only load the ones configured for the host specified in the host header of the request.
 	// +optional
 	LoadServicesWhenNeeded *bool `json:"loadServicesWhenNeeded,omitempty"` // APICAST_LOAD_SERVICES_WHEN_NEEDED
+	// ServicesFilterByURL is used to filter the service configured in the 3scale API Manager, the filter matches with the public base URL (Staging or production).
+	// +optional
+	ServicesFilterByURL *string `json:"servicesFilterByURL,omitempty"` // APICAST_SERVICES_FILTER_BY_URL
 }
 
 type DeploymentEnvironmentType string

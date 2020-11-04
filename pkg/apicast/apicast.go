@@ -174,6 +174,10 @@ func (a *APIcast) deploymentEnv() []v1.EnvVar {
 		env = append(env, a.envVarFromValue("APICAST_LOAD_SERVICES_WHEN_NEEDED", strconv.FormatBool(*a.options.LoadServicesWhenNeeded)))
 	}
 
+	if a.options.ServicesFilterByURL != nil {
+		env = append(env, a.envVarFromValue("APICAST_SERVICES_FILTER_BY_URL", *a.options.ServicesFilterByURL))
+	}
+
 	return env
 }
 

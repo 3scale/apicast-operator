@@ -43,6 +43,7 @@ type APIcastOptions struct {
 	CacheStatusCodes               *string
 	OidcLogLevel                   *string
 	LoadServicesWhenNeeded         *bool
+	ServicesFilterByURL            *string
 }
 
 func NewAPIcastOptions() *APIcastOptions {

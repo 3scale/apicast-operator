@@ -27,10 +27,11 @@
 | `openSSLPeerVerificationEnabled` | bool | No | N/A | Controls the OpenSSL Peer Verification (see [docs](https://github.com/3scale/APIcast/blob/master/doc/parameters.md#openssl_verify)) |
 | `resources` | [v1.ResourceRequirements](https://v1-17.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.17/#resourcerequirements-v1-core) | No | *CPU* [Request: 500m, Limit: 1], *Memory* [Request: 64Mi, Limit: 128Mi] | Resources describes the compute resource requirements |
 | `upstreamRetryCases` | string | No | N/A | Specifies in which cases a request to the upstream API should be retried (see [docs](https://github.com/3scale/APIcast/blob/master/doc/parameters.md#apicast_upstream_retry_cases)) |
-| `cacheMaxTime` | string | No | N/A | When the response is selected to be cached in the system, the value of this variable indicates the maximum time to be cached. If cache-control header is not set, the time to be cached will be the defined one. (see [docs](https://github.com/3scale/APIcast/blob/master/doc/parameters.md#apicast_cache_max_time)) |
-| `cacheStatusCodes` | string | No | N/A | When the response code from upstream matches one of the status codes defined in this environment variable, the response content will be cached (see [docs](https://github.com/3scale/APIcast/blob/master/doc/parameters.md#apicast_cache_status_codes)) |
-| `oidcLogLevel` | string | No | N/A | Allows to set the log level for the logs related to OpenID Connect integration (see [docs](https://github.com/3scale/APIcast/blob/master/doc/parameters.md#apicast_oidc_log_level)) |
-| `loadServicesWhenNeeded` | bool | No | N/A | The configurations are loaded lazily (see [docs](https://github.com/3scale/APIcast/blob/master/doc/parameters.md#apicast_load_services_when_needed)) |
+| `cacheMaxTime` | string | No | 1m | When the response is selected to be cached in the system, the value of this variable indicates the maximum time to be cached. If cache-control header is not set, the time to be cached will be the defined one. (see [docs](https://github.com/3scale/APIcast/blob/master/doc/parameters.md#apicast_cache_max_time)) |
+| `cacheStatusCodes` | string | No | 200 302 | When the response code from upstream matches one of the status codes defined in this environment variable, the response content will be cached (see [docs](https://github.com/3scale/APIcast/blob/master/doc/parameters.md#apicast_cache_status_codes)) |
+| `oidcLogLevel` | string | No | err | Allows to set the log level for the logs related to OpenID Connect integration (see [docs](https://github.com/3scale/APIcast/blob/master/doc/parameters.md#apicast_oidc_log_level)) |
+| `loadServicesWhenNeeded` | bool | No | false | The configurations are loaded lazily (see [docs](https://github.com/3scale/APIcast/blob/master/doc/parameters.md#apicast_load_services_when_needed)) |
+| `servicesFilterByURL` | string | No | N/A |  Used to filter the service configured in the 3scale API Manager, the filter matches with the public base URL (Staging or production) (see [docs](https://github.com/3scale/APIcast/blob/master/doc/parameters.md#apicast_services_filter_by_url)) |
 
 #### APIcastStatus
 
