@@ -4,16 +4,6 @@ orbs:
   kubernetes: circleci/kubernetes@0.7.0
 
 commands:
-  start-minikube:
-    steps:
-    - run:
-        name: Start Kubernetes 1.14.10 on minikube 1.8.2
-        command: |
-          curl -Lo minikube https://github.com/kubernetes/minikube/releases/download/v1.8.2/minikube-linux-amd64 \
-            && chmod +x minikube
-          sudo cp minikube /usr/local/bin && rm minikube
-          sudo -E minikube start --vm-driver=none --kubernetes-version v1.14.10
-
   attach-workspace:
     steps:
     - run:
@@ -60,99 +50,6 @@ commands:
             curl -OJL https://github.com/operator-framework/operator-sdk/releases/download/${OPERATOR_SDK_RELEASE_VERSION}/operator-sdk-${OPERATOR_SDK_RELEASE_VERSION}-x86_64-linux-gnu
             chmod +x operator-sdk-${OPERATOR_SDK_RELEASE_VERSION}-x86_64-linux-gnu && sudo cp operator-sdk-${OPERATOR_SDK_RELEASE_VERSION}-x86_64-linux-gnu /usr/local/bin/operator-sdk && rm operator-sdk-${OPERATOR_SDK_RELEASE_VERSION}-x86_64-linux-gnu
 
-  install-openshift:
-    steps:
-      - run:
-          name: Install OpenShift Client Tools
-          working_directory: /tmp
-          command: |
-            curl --fail -L  https://github.com/openshift/origin/releases/download/v3.11.0/openshift-origin-client-tools-v3.11.0-0cbc58b-linux-64bit.tar.gz | tar -xzf-
-            sudo mv /tmp/openshift-origin-client-tools-*-linux-64bit/oc /usr/local/bin/
-            sudo mv /tmp/openshift-origin-client-tools-*-linux-64bit/kubectl /usr/local/bin/
-      - run:
-          name: Configure Docker
-          command: |
-            echo '{"insecure-registries": ["172.30.0.0/16"]}' | sudo tee --append /etc/docker/daemon.json
-            sudo service docker restart
-
-      - run:
-          name: Get docker host IP
-          command: |
-            echo "export DOCKER_HOST_IP=$(docker run --net=host codenvy/che-ip)" >> $BASH_ENV
-
-      - run:
-          name: Start and Configure OpenShift Cluster
-          working_directory: /tmp/openshift
-          command: |
-            oc cluster up --public-hostname=${DOCKER_HOST_IP} --enable=persistent-volumes \
-              --enable=registry --enable=router
-            oc login https://${DOCKER_HOST_IP}:8443 -u system:admin --insecure-skip-tls-verify=true > /dev/null
-            oc adm policy add-cluster-role-to-user cluster-admin developer > /dev/null
-            oc adm policy add-scc-to-group hostmount-anyuid system:serviceaccounts
-            oc login https://${DOCKER_HOST_IP}:8443 -u developer --insecure-skip-tls-verify=true > /dev/null
-
-            oc wait --timeout=90s --for=condition=available dc/docker-registry --namespace=default || oc rollout retry dc/docker-registry --namespace=default
-
-  oc-observe:
-    steps:
-      - run:
-          name: Observe OpenShift Pod changes
-          command: |
-            oc observe pods --maximum-errors=-1 --no-headers --object-env-var=OBJECT --type-env-var=TYPE -- jq -n --raw-output 'env.OBJECT | fromjson | "\(env.TYPE) \(.kind) \(.metadata.name) started at \(.status.startTime) (\(.status.phase)) \(.status.conditions // [] | map("\(.type): \(.status) @ \(.lastTransitionTime)") | join(", "))"'
-          background: true
-
-  watch-operator-pod:
-    steps:
-      - run:
-          name: Watch pod resource
-          command: |
-            OPERATOR_POD=$(kubectl get pods -l name=apicast-operator -n operator-test -o 'jsonpath={..metadata.name}')
-            while [[ -z "${OPERATOR_POD}" ]]; do
-              echo "waiting for pod" && sleep 1;
-              OPERATOR_POD=$(kubectl get pods -l name=apicast-operator -n operator-test -o 'jsonpath={..metadata.name}')
-            done
-            while true; do kubectl describe pods ${OPERATOR_POD} -n operator-test; sleep 5; done
-
-          background: true
-
-  watch-operator-pod-logs:
-    steps:
-      - run:
-          name: Watch pod logs
-          command: |
-            while [[ $(kubectl get pods -l name=apicast-operator -n operator-test -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}') != "True" ]]; do
-              echo "waiting for pod" && sleep 1
-            done
-            OPERATOR_POD=$(kubectl get pods -l name=apicast-operator -n operator-test -o 'jsonpath={..metadata.name}')
-            echo "watching logs on $OPERATOR_POD"
-            kubectl -n operator-test logs -f $OPERATOR_POD
-
-          background: true
-
-  k8s-show-events:
-    steps:
-      - run:
-          name: Collect k8s events
-          command: |
-            kubectl get events -n operator-test
-          when: always
-
-  oc-status:
-    parameters:
-      report_name:
-        type: string
-        default: "events"
-    steps:
-      - run:
-          name: Collect OpenShift events and status
-          command: |
-            mkdir -p reports
-            oc status
-            oc get events -o json > reports/<< parameters.report_name >>.json
-          when: always
-      - store_artifacts:
-          path: reports
-
   install-operator-dependencies:
     steps:
       - restore_cache:
@@ -175,7 +72,7 @@ commands:
       - run:
           name: Build Operator
           command: |
-              make docker-build-only IMG=172.30.1.1:5000/openshift/apicast-operator:test
+              make docker-build-only IMG=apicast-operator:latest
 
 jobs:
   install-operator:
@@ -190,7 +87,7 @@ jobs:
           name: Sharing requirements to downstream job
           command: |
             mkdir -p /tmp/workspace/images
-            docker save -o /tmp/workspace/images/operator-image.tar 172.30.1.1:5000/openshift/apicast-operator:test
+            docker save -o /tmp/workspace/images/operator-image.tar apicast-operator:latest
       - persist_to_workspace:
           root: /tmp/workspace
           paths:
@@ -218,7 +115,7 @@ jobs:
       - run:
           name: Tag image as master
           command: |
-              docker tag 172.30.1.1:5000/openshift/apicast-operator:test quay.io/3scale/apicast-operator:master
+              docker tag apicast-operator:latest quay.io/3scale/apicast-operator:master
       - docker-login
       - run:
           name: Push master image
@@ -246,67 +143,26 @@ jobs:
       - run:
           name: Tag image as release ${CIRCLE_TAG}
           command: |
-              docker tag 172.30.1.1:5000/openshift/apicast-operator:test quay.io/3scale/apicast-operator:${CIRCLE_TAG}
+              docker tag apicast-operator:latest quay.io/3scale/apicast-operator:${CIRCLE_TAG}
       - docker-login
       - run:
           name: Push ${CIRCLE_TAG} tag
           command: |
               docker push quay.io/3scale/apicast-operator:${CIRCLE_TAG}
-  run-k8s-e2e-test:
-    environment: CHANGE_MINIKUBE_NONE_USER=true
-    machine:
-      image: ubuntu-1604:201903-01
-    steps:
-      - kubernetes/install-kubectl
-      - start-minikube
-      - install-golang
-      - install-operator-sdk
-      - checkout
-      - install-operator-dependencies
-      - attach-workspace
-      - run:
-          name: Unpack and use local images by re-using the Docker daemon
-          command: |
-            docker load -i /tmp/workspace/images/operator-image.tar
-      - watch-operator-pod
-      - watch-operator-pod-logs
-      - run:
-          name: run E2E tests
-          command: |
-            make test-e2e
-          no_output_timeout: 30m
-      - k8s-show-events
 
-  run-openshift-e2e-test:
-    machine:
-      image: ubuntu-1604:202007-01
-      docker_layer_caching: true
-    resource_class: large
-    working_directory: ~/go/src/github.com/3scale/apicast-operator
+  run-e2e-test:
+    docker:
+      - image: circleci/golang:1.13.7
+    working_directory: /go/src/github.com/3scale/apicast-operator
     steps:
-      - install-openshift
-      - install-golang
       - install-operator-sdk
       - checkout
       - install-operator-dependencies
-      - attach-workspace
-      - run:
-          name: Unpack and push operator to internal registry
-          command: |
-            docker load -i /tmp/workspace/images/operator-image.tar
-            oc whoami -t | docker login --username developer --password-stdin 172.30.1.1:5000
-            docker push 172.30.1.1:5000/openshift/apicast-operator:test
-      - run:
-          name: Change to new testing namespace
-          command: |
-            oc new-project operator-test
-      - oc-observe
       - run:
           name: run E2E tests
           command: |
             make test-e2e
           no_output_timeout: 30m
-      - oc-status
 
   test-crds:
     docker:
@@ -336,15 +192,11 @@ workflows:
           filters: # required since `tag-operator-image-release` job has tag filters AND requires `install-operator`. Otherwise tag build will not be triggered on new tags
             tags:
               only: /^v.*/
-      - run-openshift-e2e-test:
-          requires:
-            - install-operator
-      - run-k8s-e2e-test:
-          requires:
-            - install-operator
+      - run-e2e-test
       - tag-operator-image-master:
           context: org-global
           requires:
+            - run-e2e-test
             - install-operator
           filters:
             branches:
@@ -352,6 +204,7 @@ workflows:
       - tag-operator-image-release:
           context: org-global
           requires:
+            - run-e2e-test
             - install-operator
           filters:
             tags:
