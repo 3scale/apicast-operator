@@ -84,6 +84,13 @@ func (a *APIcastOptionsProvider) GetApicastOptions() (*APIcastOptions, error) {
 	a.APIcastOptions.CacheConfigurationSeconds = a.APIcastCR.Spec.CacheConfigurationSeconds
 	a.APIcastOptions.ManagementAPIScope = a.APIcastCR.Spec.ManagementAPIScope
 	a.APIcastOptions.OpenSSLPeerVerificationEnabled = a.APIcastCR.Spec.OpenSSLPeerVerificationEnabled
+	a.APIcastOptions.UpstreamRetryCases = a.APIcastCR.Spec.UpstreamRetryCases
+	a.APIcastOptions.CacheMaxTime = a.APIcastCR.Spec.CacheMaxTime
+	a.APIcastOptions.CacheStatusCodes = a.APIcastCR.Spec.CacheStatusCodes
+	a.APIcastOptions.OidcLogLevel = a.APIcastCR.Spec.OidcLogLevel
+	a.APIcastOptions.LoadServicesWhenNeeded = a.APIcastCR.Spec.LoadServicesWhenNeeded
+	a.APIcastOptions.ServicesFilterByURL = a.APIcastCR.Spec.ServicesFilterByURL
+	a.APIcastOptions.ServiceConfigurationVersionOverride = a.APIcastCR.Spec.ServiceConfigurationVersionOverride
 
 	// Annotations from user secrets. Used to rollout apicast deployment if any secrets changes
 	a.APIcastOptions.AdditionalAnnotations = a.additionalAnnotations()

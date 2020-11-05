@@ -69,6 +69,29 @@ type APIcastSpec struct {
 	OpenSSLPeerVerificationEnabled *bool `json:"openSSLPeerVerificationEnabled,omitempty"` // OPENSSL_VERIFY
 	// +optional
 	Resources *v1.ResourceRequirements `json:"resources,omitempty"`
+	// UpstreamRetryCases Used only when the retry policy is configured. Specified in which cases a request to the upstream API should be retried.
+	// +kubebuilder:validation:Enum=error;timeout;invalid_header;http_500;http_502;http_503;http_504;http_403;http_404;http_429;non_idempotent; off
+	// +optional
+	UpstreamRetryCases *string `json:"upstreamRetryCases,omitempty"` // APICAST_UPSTREAM_RETRY_CASES
+	// CacheMaxTime indicates the maximum time to be cached. If cache-control header is not set, the time to be cached will be the defined one.
+	// +optional
+	CacheMaxTime *string `json:"cacheMaxTime,omitempty"` // APICAST_CACHE_MAX_TIME
+	// CacheStatusCodes defines the status codes for which the response content will be cached.
+	// +optional
+	CacheStatusCodes *string `json:"cacheStatusCodes,omitempty"` // APICAST_CACHE_STATUS_CODES
+	// OidcLogLevel allows to set the log level for the logs related to OpenID Connect integration.
+	// +kubebuilder:validation:Enum=debug;info;notice;warn;error;crit;alert;emerg
+	// +optional
+	OidcLogLevel *string `json:"oidcLogLevel,omitempty"` // APICAST_OIDC_LOG_LEVEL
+	// LoadServicesWhenNeeded makes the configurations to be loaded lazily. APIcast will only load the ones configured for the host specified in the host header of the request.
+	// +optional
+	LoadServicesWhenNeeded *bool `json:"loadServicesWhenNeeded,omitempty"` // APICAST_LOAD_SERVICES_WHEN_NEEDED
+	// ServicesFilterByURL is used to filter the service configured in the 3scale API Manager, the filter matches with the public base URL (Staging or production).
+	// +optional
+	ServicesFilterByURL *string `json:"servicesFilterByURL,omitempty"` // APICAST_SERVICES_FILTER_BY_URL
+	// ServiceConfigurationVersionOverride contains service configuration version map to prevent it from auto-updating.
+	// +optional
+	ServiceConfigurationVersionOverride map[string]string `json:"serviceConfigurationVersionOverride,omitempty"` // APICAST_SERVICE_${ID}_CONFIGURATION_VERSION
 }
 
 type DeploymentEnvironmentType string

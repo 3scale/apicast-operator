@@ -1,6 +1,7 @@
 package apicast
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -152,6 +153,34 @@ func (a *APIcast) deploymentEnv() []v1.EnvVar {
 			Name:  "THREESCALE_CONFIG_FILE",
 			Value: EmbeddedConfigurationMountPath + "/" + EmbeddedConfigurationSecretKey,
 		})
+	}
+
+	if a.options.UpstreamRetryCases != nil {
+		env = append(env, a.envVarFromValue("APICAST_UPSTREAM_RETRY_CASES", *a.options.UpstreamRetryCases))
+	}
+
+	if a.options.CacheMaxTime != nil {
+		env = append(env, a.envVarFromValue("APICAST_CACHE_MAX_TIME", *a.options.CacheMaxTime))
+	}
+
+	if a.options.CacheStatusCodes != nil {
+		env = append(env, a.envVarFromValue("APICAST_CACHE_STATUS_CODES", *a.options.CacheStatusCodes))
+	}
+
+	if a.options.OidcLogLevel != nil {
+		env = append(env, a.envVarFromValue("APICAST_OIDC_LOG_LEVEL", *a.options.OidcLogLevel))
+	}
+
+	if a.options.LoadServicesWhenNeeded != nil {
+		env = append(env, a.envVarFromValue("APICAST_LOAD_SERVICES_WHEN_NEEDED", strconv.FormatBool(*a.options.LoadServicesWhenNeeded)))
+	}
+
+	if a.options.ServicesFilterByURL != nil {
+		env = append(env, a.envVarFromValue("APICAST_SERVICES_FILTER_BY_URL", *a.options.ServicesFilterByURL))
+	}
+
+	for serviceID, serviceVersion := range a.options.ServiceConfigurationVersionOverride {
+		env = append(env, a.envVarFromValue(fmt.Sprintf("APICAST_SERVICE_%s_CONFIGURATION_VERSION", serviceID), serviceVersion))
 	}
 
 	return env
