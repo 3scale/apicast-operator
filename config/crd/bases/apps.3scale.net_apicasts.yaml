@@ -110,6 +110,11 @@ spec:
               required:
               - host
               type: object
+            httpsPort:
+              description: HttpsPort controls on which port APIcast should start listening
+                for HTTPS connections. If this clashes with HTTP port it will be used
+                only for HTTPS.
+              type: integer
             image:
               type: string
             loadServicesWhenNeeded:

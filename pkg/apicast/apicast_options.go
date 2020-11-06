@@ -45,6 +45,7 @@ type APIcastOptions struct {
 	LoadServicesWhenNeeded              *bool
 	ServicesFilterByURL                 *string
 	ServiceConfigurationVersionOverride map[string]string
+	HTTPSPort                           *int
 }
 
 func NewAPIcastOptions() *APIcastOptions {

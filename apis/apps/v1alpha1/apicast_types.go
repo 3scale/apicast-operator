@@ -92,6 +92,9 @@ type APIcastSpec struct {
 	// ServiceConfigurationVersionOverride contains service configuration version map to prevent it from auto-updating.
 	// +optional
 	ServiceConfigurationVersionOverride map[string]string `json:"serviceConfigurationVersionOverride,omitempty"` // APICAST_SERVICE_${ID}_CONFIGURATION_VERSION
+	// HttpsPort controls on which port APIcast should start listening for HTTPS connections. If this clashes with HTTP port it will be used only for HTTPS.
+	// +optional
+	HTTPSPort *int `json:"httpsPort,omitempty"` // APICAST_HTTPS_PORT
 }
 
 type DeploymentEnvironmentType string

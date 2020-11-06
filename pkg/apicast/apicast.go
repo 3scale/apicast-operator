@@ -183,6 +183,10 @@ func (a *APIcast) deploymentEnv() []v1.EnvVar {
 		env = append(env, a.envVarFromValue(fmt.Sprintf("APICAST_SERVICE_%s_CONFIGURATION_VERSION", serviceID), serviceVersion))
 	}
 
+	if a.options.HTTPSPort != nil {
+		env = append(env, a.envVarFromValue("APICAST_HTTPS_PORT", strconv.Itoa(*a.options.HTTPSPort)))
+	}
+
 	return env
 }
 
