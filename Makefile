@@ -129,7 +129,7 @@ bundle: manifests kustomize
 
 # Build the bundle image.
 .PHONY: bundle-build
-bundle-build:
+bundle-build: bundle
 	$(DOCKER) build -f bundle.Dockerfile -t $(BUNDLE_IMG) .
 
 ## 3scale-specific targets
@@ -175,5 +175,10 @@ test-e2e: generate fmt vet manifests
 	test -f $(ENVTEST_ASSETS_DIR)/setup-envtest.sh || curl -sSLo $(ENVTEST_ASSETS_DIR)/setup-envtest.sh https://raw.githubusercontent.com/kubernetes-sigs/controller-runtime/v0.6.3/hack/setup-envtest.sh
 	source ${ENVTEST_ASSETS_DIR}/setup-envtest.sh; fetch_envtest_tools $(ENVTEST_ASSETS_DIR); setup_envtest_env $(ENVTEST_ASSETS_DIR); go test $(TEST_E2E_PKGS) -coverprofile cover.out -ginkgo.v -ginkgo.progress -v
 
-bundle-validate:
-	$(OPERATOR_SDK) bundle validate ./bundle
+.PHONY: bundle-validate-image
+bundle-validate-image:
+	$(OPERATOR_SDK) bundle validate $(BUNDLE_IMG)
+
+.PHONY: bundle-run
+bundle-run: bundle-build
+	$(OPERATOR_SDK) run bundle --namespace $(NAMESPACE) $(BUNDLE_IMG)

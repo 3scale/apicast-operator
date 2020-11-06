@@ -62,7 +62,7 @@ Run operator from command line, it will not be deployed as pod.
 
 ```sh
 // As a cluster admin
-for i in `ls bundle/manifests/**apps.3scale.net_*.yaml`; do kubectl create -f $i ; done
+make install
 ```
 
 * Create a new Kubernetes namespace (optional)
@@ -129,7 +129,7 @@ end-to-end testing:
 * Run the following command to deploy the operator in your currently configured
   and active cluster in $HOME/.kube/config:
   ```sh
-  operator-sdk run bundle --namespace <mynamespace> <BUNDLE_IMAGE_URL>
+  make bundle-run BUNDLE_IMG=quay.io/myorg/myrepo:myversiontag
   ```
 
   Additionally, a specific kubeconfig file with a desired Kubernetes
@@ -174,21 +174,25 @@ make test-e2e
 ### Generate an operator bundle image
 
 ```sh
-make bundle
+make bundle-build
 ```
 
-The generated output will be saved in the `bundle` directory
-
-### Validate an operator bundle image
-
 ```sh
-make bundle-validate
+make bundle-build BUNDLE_IMG=quay.io/myorg/myrepo:myversiontag
 ```
 
 ### Push an operator bundle into an external container repository
 
 ```sh
-make docker-push IMG=quay.io/myorg/apicast-operator:myversiontag
+docker push quay.io/myorg/myrepo:myversiontag
+```
+
+### Validate an operator bundle image
+
+NOTE: if validating an image, the image must exist in a remote registry, not just locally.
+
+```sh
+make bundle-validate-image BUNDLE_IMG=quay.io/myorg/myrepo:myversiontag
 ```
 
 ## Licenses management

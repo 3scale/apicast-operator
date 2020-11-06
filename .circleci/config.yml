@@ -180,7 +180,7 @@ jobs:
     steps:
       - checkout
       - install-operator-sdk
-      - run: make bundle-validate
+      - run: make bundle
 
 workflows:
   version: 2
