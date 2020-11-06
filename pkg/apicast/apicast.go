@@ -17,12 +17,20 @@ import (
 
 const (
 	AdminPortalURLAttributeName = "AdminPortalURL"
+	DefaultHTTPPort             = 8080
+	DefaultManagementPort       = 8090
+	DefaultMetricsPort          = 9421
 )
 
 const (
 	EmbeddedConfigurationMountPath  = "/tmp/gateway-configuration-volume"
 	EmbeddedConfigurationVolumeName = "gateway-configuration-volume"
 	EmbeddedConfigurationSecretKey  = "config.json"
+)
+
+const (
+	HTTPSCertificatesMountPath  = "/var/run/secrets/apicast"
+	HTTPSCertificatesVolumeName = "https-certificates"
 )
 
 type APIcast struct {
@@ -52,6 +60,14 @@ func (a *APIcast) deploymentVolumeMounts() []v1.VolumeMount {
 		})
 	}
 
+	if a.options.HTTPSCertificateSecret != nil {
+		volumeMounts = append(volumeMounts, v1.VolumeMount{
+			Name:      HTTPSCertificatesVolumeName,
+			MountPath: HTTPSCertificatesMountPath,
+			ReadOnly:  true,
+		})
+	}
+
 	return volumeMounts
 }
 
@@ -69,6 +85,17 @@ func (a *APIcast) deploymentVolumes() []v1.Volume {
 							Path: EmbeddedConfigurationSecretKey,
 						},
 					},
+				},
+			},
+		})
+	}
+
+	if a.options.HTTPSCertificateSecret != nil {
+		volumes = append(volumes, v1.Volume{
+			Name: HTTPSCertificatesVolumeName,
+			VolumeSource: v1.VolumeSource{
+				Secret: &v1.SecretVolumeSource{
+					SecretName: a.options.HTTPSCertificateSecret.Name,
 				},
 			},
 		})
@@ -184,11 +211,17 @@ func (a *APIcast) deploymentEnv() []v1.EnvVar {
 	}
 
 	if a.options.HTTPSPort != nil {
-		env = append(env, a.envVarFromValue("APICAST_HTTPS_PORT", strconv.Itoa(*a.options.HTTPSPort)))
+		env = append(env, a.envVarFromValue("APICAST_HTTPS_PORT", strconv.FormatInt(int64(*a.options.HTTPSPort), 10)))
 	}
 
 	if a.options.HTTPSVerifyDepth != nil {
 		env = append(env, a.envVarFromValue("APICAST_HTTPS_VERIFY_DEPTH", strconv.Itoa(*a.options.HTTPSVerifyDepth)))
+	}
+
+	if a.options.HTTPSCertificateSecret != nil {
+		env = append(env,
+			a.envVarFromValue("APICAST_HTTPS_CERTIFICATE", fmt.Sprintf("%s/%s", HTTPSCertificatesMountPath, v1.TLSCertKey)),
+			a.envVarFromValue("APICAST_HTTPS_CERTIFICATE_KEY", fmt.Sprintf("%s/%s", HTTPSCertificatesMountPath, v1.TLSPrivateKeyKey)))
 	}
 
 	return env
@@ -222,12 +255,8 @@ func (a *APIcast) Deployment() *appsv1.Deployment {
 					Volumes:            a.deploymentVolumes(),
 					Containers: []v1.Container{
 						v1.Container{
-							Name: a.options.DeploymentName,
-							Ports: []v1.ContainerPort{
-								v1.ContainerPort{Name: "proxy", ContainerPort: 8080, Protocol: v1.ProtocolTCP},
-								v1.ContainerPort{Name: "management", ContainerPort: 8090, Protocol: v1.ProtocolTCP},
-								v1.ContainerPort{Name: "metrics", ContainerPort: 9421, Protocol: v1.ProtocolTCP},
-							},
+							Name:            a.options.DeploymentName,
+							Ports:           a.containerPorts(),
 							Image:           a.options.Image,
 							ImagePullPolicy: v1.PullAlways, // This is different than the currently used which is IfNotPresent
 							Resources:       a.options.ResourceRequirements,
@@ -287,16 +316,46 @@ func (a *APIcast) Service() *v1.Service {
 			Labels:    a.commonLabels(),
 		},
 		Spec: v1.ServiceSpec{
-			Ports: []v1.ServicePort{
-				v1.ServicePort{Name: "proxy", Port: 8080, Protocol: v1.ProtocolTCP, TargetPort: intstr.FromInt(8080)},
-				v1.ServicePort{Name: "management", Port: 8090, Protocol: v1.ProtocolTCP, TargetPort: intstr.FromInt(8090)},
-			},
+			Ports:    a.servicePorts(),
 			Selector: a.deploymentLabelSelector(),
 		},
 	}
 
 	addOwnerRefToObject(service, *a.options.Owner)
 	return service
+}
+
+func (a *APIcast) servicePorts() []v1.ServicePort {
+	servicePorts := []v1.ServicePort{
+		v1.ServicePort{Name: "proxy", Port: DefaultHTTPPort, Protocol: v1.ProtocolTCP, TargetPort: intstr.FromString("proxy")},
+		v1.ServicePort{Name: "management", Port: DefaultManagementPort, Protocol: v1.ProtocolTCP, TargetPort: intstr.FromString("management")},
+	}
+
+	// According to APIcast upstream doc, if HTTPS port conflicts with HTTP port, the port will be used only for HTTPS.
+	// https://github.com/3scale/APIcast/blob/master/doc/parameters.md#apicast_https_port
+	if a.options.HTTPSPort != nil && *a.options.HTTPSPort != DefaultHTTPPort {
+		servicePorts = append(servicePorts,
+			v1.ServicePort{Name: "httpsproxy", Port: *a.options.HTTPSPort, Protocol: v1.ProtocolTCP, TargetPort: intstr.FromString("httpsproxy")})
+	}
+
+	return servicePorts
+}
+
+func (a *APIcast) containerPorts() []v1.ContainerPort {
+	ports := []v1.ContainerPort{
+		v1.ContainerPort{Name: "proxy", ContainerPort: DefaultHTTPPort, Protocol: v1.ProtocolTCP},
+		v1.ContainerPort{Name: "management", ContainerPort: DefaultManagementPort, Protocol: v1.ProtocolTCP},
+		v1.ContainerPort{Name: "metrics", ContainerPort: DefaultMetricsPort, Protocol: v1.ProtocolTCP},
+	}
+
+	// According to APIcast upstream doc, if HTTPS port conflicts with HTTP port, the port will be used only for HTTPS.
+	// https://github.com/3scale/APIcast/blob/master/doc/parameters.md#apicast_https_port
+	if a.options.HTTPSPort != nil && *a.options.HTTPSPort != DefaultHTTPPort {
+		ports = append(ports,
+			v1.ContainerPort{Name: "httpsproxy", ContainerPort: *a.options.HTTPSPort, Protocol: v1.ProtocolTCP})
+	}
+
+	return ports
 }
 
 func (a *APIcast) livenessProbe() *v1.Probe {

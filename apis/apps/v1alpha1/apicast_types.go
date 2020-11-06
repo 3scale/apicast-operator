@@ -17,11 +17,12 @@ limitations under the License.
 package v1alpha1
 
 import (
+	appscommon "github.com/3scale/apicast-operator/apis/apps"
+
 	v1 "k8s.io/api/core/v1"
 	extensions "k8s.io/api/extensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	appscommon "github.com/3scale/apicast-operator/apis/apps"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -94,11 +95,14 @@ type APIcastSpec struct {
 	ServiceConfigurationVersionOverride map[string]string `json:"serviceConfigurationVersionOverride,omitempty"` // APICAST_SERVICE_${ID}_CONFIGURATION_VERSION
 	// HttpsPort controls on which port APIcast should start listening for HTTPS connections. If this clashes with HTTP port it will be used only for HTTPS.
 	// +optional
-	HTTPSPort *int `json:"httpsPort,omitempty"` // APICAST_HTTPS_PORT
+	HTTPSPort *int32 `json:"httpsPort,omitempty"` // APICAST_HTTPS_PORT
 	// HTTPSVerifyDepth defines the maximum length of the client certificate chain.
 	// +kubebuilder:validation:Minimum=0
 	// +optional
 	HTTPSVerifyDepth *int `json:"httpsVerifyDepth,omitempty"` // APICAST_HTTPS_VERIFY_DEPTH
+	// HTTPSCertificateSecretRef references secret containing the X.509 certificate in the PEM format and the X.509 certificate secret key.
+	// +optional
+	HTTPSCertificateSecretRef *v1.LocalObjectReference `json:"httpsCertificateSecretRef,omitempty"`
 }
 
 type DeploymentEnvironmentType string
@@ -187,6 +191,26 @@ func (a *APIcast) GetOwnerRefence() *metav1.OwnerReference {
 }
 
 func (a *APIcast) Reset() { *a = APIcast{} }
+
+func (a *APIcast) Validate() field.ErrorList {
+	errors := field.ErrorList{}
+
+	// check HTTPSPort is required for httpsCertificateSecretRef
+	// check httpsCertificateSecretRef is required for HTTPSPort
+	specFldPath := field.NewPath("spec")
+	httpsPortFldPath := specFldPath.Child("httpsPort")
+	httpsCertificateSecretRefFldPath := specFldPath.Child("httpsCertificateSecretRef")
+
+	if a.Spec.HTTPSPort != nil && a.Spec.HTTPSCertificateSecretRef == nil {
+		errors = append(errors, field.Required(httpsCertificateSecretRefFldPath, "credentials secret is required when https port is set"))
+	}
+
+	if a.Spec.HTTPSCertificateSecretRef != nil && a.Spec.HTTPSPort == nil {
+		errors = append(errors, field.Required(httpsPortFldPath, "https port is required when credentials secret is provided"))
+	}
+
+	return errors
+}
 
 func init() {
 	SchemeBuilder.Register(&APIcast{}, &APIcastList{})

@@ -45,8 +45,9 @@ type APIcastOptions struct {
 	LoadServicesWhenNeeded              *bool
 	ServicesFilterByURL                 *string
 	ServiceConfigurationVersionOverride map[string]string
-	HTTPSPort                           *int
+	HTTPSPort                           *int32 `validate:"required_with=HTTPSCertificatesSecret"`
 	HTTPSVerifyDepth                    *int
+	HTTPSCertificateSecret              *v1.Secret `validate:"required_with=HTTPSPort"`
 }
 
 func NewAPIcastOptions() *APIcastOptions {

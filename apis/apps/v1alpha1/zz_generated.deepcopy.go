@@ -249,12 +249,17 @@ func (in *APIcastSpec) DeepCopyInto(out *APIcastSpec) {
 	}
 	if in.HTTPSPort != nil {
 		in, out := &in.HTTPSPort, &out.HTTPSPort
-		*out = new(int)
+		*out = new(int32)
 		**out = **in
 	}
 	if in.HTTPSVerifyDepth != nil {
 		in, out := &in.HTTPSVerifyDepth, &out.HTTPSVerifyDepth
 		*out = new(int)
+		**out = **in
+	}
+	if in.HTTPSCertificateSecretRef != nil {
+		in, out := &in.HTTPSCertificateSecretRef, &out.HTTPSCertificateSecretRef
+		*out = new(v1.LocalObjectReference)
 		**out = **in
 	}
 }
