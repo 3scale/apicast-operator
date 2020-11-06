@@ -187,6 +187,10 @@ func (a *APIcast) deploymentEnv() []v1.EnvVar {
 		env = append(env, a.envVarFromValue("APICAST_HTTPS_PORT", strconv.Itoa(*a.options.HTTPSPort)))
 	}
 
+	if a.options.HTTPSVerifyDepth != nil {
+		env = append(env, a.envVarFromValue("APICAST_HTTPS_VERIFY_DEPTH", strconv.Itoa(*a.options.HTTPSVerifyDepth)))
+	}
+
 	return env
 }
 

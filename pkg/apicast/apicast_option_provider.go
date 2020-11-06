@@ -92,6 +92,7 @@ func (a *APIcastOptionsProvider) GetApicastOptions() (*APIcastOptions, error) {
 	a.APIcastOptions.ServicesFilterByURL = a.APIcastCR.Spec.ServicesFilterByURL
 	a.APIcastOptions.ServiceConfigurationVersionOverride = a.APIcastCR.Spec.ServiceConfigurationVersionOverride
 	a.APIcastOptions.HTTPSPort = a.APIcastCR.Spec.HTTPSPort
+	a.APIcastOptions.HTTPSVerifyDepth = a.APIcastCR.Spec.HTTPSVerifyDepth
 
 	// Annotations from user secrets. Used to rollout apicast deployment if any secrets changes
 	a.APIcastOptions.AdditionalAnnotations = a.additionalAnnotations()

@@ -115,6 +115,11 @@ spec:
                 for HTTPS connections. If this clashes with HTTP port it will be used
                 only for HTTPS.
               type: integer
+            httpsVerifyDepth:
+              description: HTTPSVerifyDepth defines the maximum length of the client
+                certificate chain.
+              minimum: 0
+              type: integer
             image:
               type: string
             loadServicesWhenNeeded:

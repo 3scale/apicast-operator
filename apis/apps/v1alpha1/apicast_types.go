@@ -95,6 +95,10 @@ type APIcastSpec struct {
 	// HttpsPort controls on which port APIcast should start listening for HTTPS connections. If this clashes with HTTP port it will be used only for HTTPS.
 	// +optional
 	HTTPSPort *int `json:"httpsPort,omitempty"` // APICAST_HTTPS_PORT
+	// HTTPSVerifyDepth defines the maximum length of the client certificate chain.
+	// +kubebuilder:validation:Minimum=0
+	// +optional
+	HTTPSVerifyDepth *int `json:"httpsVerifyDepth,omitempty"` // APICAST_HTTPS_VERIFY_DEPTH
 }
 
 type DeploymentEnvironmentType string

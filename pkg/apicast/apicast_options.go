@@ -46,6 +46,7 @@ type APIcastOptions struct {
 	ServicesFilterByURL                 *string
 	ServiceConfigurationVersionOverride map[string]string
 	HTTPSPort                           *int
+	HTTPSVerifyDepth                    *int
 }
 
 func NewAPIcastOptions() *APIcastOptions {
