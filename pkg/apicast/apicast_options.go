@@ -46,7 +46,7 @@ type APIcastOptions struct {
 	ServicesFilterByURL                 *string
 	ServiceConfigurationVersionOverride map[string]string
 	HTTPSPort                           *int32 `validate:"required_with=HTTPSCertificatesSecret"`
-	HTTPSVerifyDepth                    *int
+	HTTPSVerifyDepth                    *int64
 	HTTPSCertificateSecret              *v1.Secret `validate:"required_with=HTTPSPort"`
 }
 

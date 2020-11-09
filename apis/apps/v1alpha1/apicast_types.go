@@ -99,7 +99,7 @@ type APIcastSpec struct {
 	// HTTPSVerifyDepth defines the maximum length of the client certificate chain.
 	// +kubebuilder:validation:Minimum=0
 	// +optional
-	HTTPSVerifyDepth *int `json:"httpsVerifyDepth,omitempty"` // APICAST_HTTPS_VERIFY_DEPTH
+	HTTPSVerifyDepth *int64 `json:"httpsVerifyDepth,omitempty"` // APICAST_HTTPS_VERIFY_DEPTH
 	// HTTPSCertificateSecretRef references secret containing the X.509 certificate in the PEM format and the X.509 certificate secret key.
 	// +optional
 	HTTPSCertificateSecretRef *v1.LocalObjectReference `json:"httpsCertificateSecretRef,omitempty"`

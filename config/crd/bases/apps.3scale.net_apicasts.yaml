@@ -129,6 +129,7 @@ spec:
             httpsVerifyDepth:
               description: HTTPSVerifyDepth defines the maximum length of the client
                 certificate chain.
+              format: int64
               minimum: 0
               type: integer
             image:

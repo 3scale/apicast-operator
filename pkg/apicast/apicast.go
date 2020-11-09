@@ -215,7 +215,7 @@ func (a *APIcast) deploymentEnv() []v1.EnvVar {
 	}
 
 	if a.options.HTTPSVerifyDepth != nil {
-		env = append(env, a.envVarFromValue("APICAST_HTTPS_VERIFY_DEPTH", strconv.Itoa(*a.options.HTTPSVerifyDepth)))
+		env = append(env, a.envVarFromValue("APICAST_HTTPS_VERIFY_DEPTH", strconv.FormatInt(*a.options.HTTPSVerifyDepth, 10)))
 	}
 
 	if a.options.HTTPSCertificateSecret != nil {

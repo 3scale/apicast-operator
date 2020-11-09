@@ -254,7 +254,7 @@ func (in *APIcastSpec) DeepCopyInto(out *APIcastSpec) {
 	}
 	if in.HTTPSVerifyDepth != nil {
 		in, out := &in.HTTPSVerifyDepth, &out.HTTPSVerifyDepth
-		*out = new(int)
+		*out = new(int64)
 		**out = **in
 	}
 	if in.HTTPSCertificateSecretRef != nil {
