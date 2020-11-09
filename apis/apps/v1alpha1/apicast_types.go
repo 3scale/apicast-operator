@@ -195,20 +195,6 @@ func (a *APIcast) Reset() { *a = APIcast{} }
 func (a *APIcast) Validate() field.ErrorList {
 	errors := field.ErrorList{}
 
-	// check HTTPSPort is required for httpsCertificateSecretRef
-	// check httpsCertificateSecretRef is required for HTTPSPort
-	specFldPath := field.NewPath("spec")
-	httpsPortFldPath := specFldPath.Child("httpsPort")
-	httpsCertificateSecretRefFldPath := specFldPath.Child("httpsCertificateSecretRef")
-
-	if a.Spec.HTTPSPort != nil && a.Spec.HTTPSCertificateSecretRef == nil {
-		errors = append(errors, field.Required(httpsCertificateSecretRefFldPath, "credentials secret is required when https port is set"))
-	}
-
-	if a.Spec.HTTPSCertificateSecretRef != nil && a.Spec.HTTPSPort == nil {
-		errors = append(errors, field.Required(httpsPortFldPath, "https port is required when credentials secret is provided"))
-	}
-
 	return errors
 }
 

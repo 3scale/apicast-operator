@@ -16,10 +16,11 @@ import (
 )
 
 const (
-	AdminPortalURLAttributeName = "AdminPortalURL"
-	DefaultHTTPPort             = 8080
-	DefaultManagementPort       = 8090
-	DefaultMetricsPort          = 9421
+	AdminPortalURLAttributeName       = "AdminPortalURL"
+	DefaultHTTPPort             int32 = 8080
+	DefaultHTTPSPort            int32 = 8443
+	DefaultManagementPort       int32 = 8090
+	DefaultMetricsPort          int32 = 9421
 )
 
 const (

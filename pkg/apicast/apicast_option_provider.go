@@ -93,8 +93,16 @@ func (a *APIcastOptionsProvider) GetApicastOptions() (*APIcastOptions, error) {
 	a.APIcastOptions.ServicesFilterByURL = a.APIcastCR.Spec.ServicesFilterByURL
 	a.APIcastOptions.ServiceConfigurationVersionOverride = a.APIcastCR.Spec.ServiceConfigurationVersionOverride
 	a.APIcastOptions.HTTPSPort = a.APIcastCR.Spec.HTTPSPort
+	// when HTTPS certificate is provided and HTTPS port is not provided, assing default https port
+	if a.APIcastCR.Spec.HTTPSCertificateSecretRef != nil && a.APIcastCR.Spec.HTTPSPort == nil {
+		tmpDefaultPort := DefaultHTTPSPort
+		a.APIcastOptions.HTTPSPort = &tmpDefaultPort
+	}
 	a.APIcastOptions.HTTPSVerifyDepth = a.APIcastCR.Spec.HTTPSVerifyDepth
 
+	// when HTTPS port is provided and HTTPS Certificate secret is not provided,
+	// Apicast will use some default certificate
+	// Should the operator raise a warning?
 	httpsCertificateSecret, err := a.getHTTPSCertificateSecret()
 	if err != nil {
 		return nil, err
