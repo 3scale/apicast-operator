@@ -112,6 +112,11 @@ const (
 	DeploymentEnvironmentStaging    = "staging"
 )
 
+const (
+	DefaultHTTPPort  int32 = 8080
+	DefaultHTTPSPort int32 = 8443
+)
+
 type APIcastExposedHost struct {
 	Host string `json:"host"`
 	// +optional
@@ -194,6 +199,14 @@ func (a *APIcast) Reset() { *a = APIcast{} }
 
 func (a *APIcast) Validate() field.ErrorList {
 	errors := field.ErrorList{}
+
+	// check HTTPSPort does not conflict with default HTTPPort
+	specFldPath := field.NewPath("spec")
+	httpsPortFldPath := specFldPath.Child("httpsPort")
+
+	if a.Spec.HTTPSPort != nil && *a.Spec.HTTPSPort == DefaultHTTPPort {
+		errors = append(errors, field.Invalid(httpsPortFldPath, a.Spec.HTTPSPort, "HTTPS port conflicts with HTTP port"))
+	}
 
 	return errors
 }

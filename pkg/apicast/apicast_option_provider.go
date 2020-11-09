@@ -95,7 +95,7 @@ func (a *APIcastOptionsProvider) GetApicastOptions() (*APIcastOptions, error) {
 	a.APIcastOptions.HTTPSPort = a.APIcastCR.Spec.HTTPSPort
 	// when HTTPS certificate is provided and HTTPS port is not provided, assing default https port
 	if a.APIcastCR.Spec.HTTPSCertificateSecretRef != nil && a.APIcastCR.Spec.HTTPSPort == nil {
-		tmpDefaultPort := DefaultHTTPSPort
+		tmpDefaultPort := appsv1alpha1.DefaultHTTPSPort
 		a.APIcastOptions.HTTPSPort = &tmpDefaultPort
 	}
 	a.APIcastOptions.HTTPSVerifyDepth = a.APIcastCR.Spec.HTTPSVerifyDepth

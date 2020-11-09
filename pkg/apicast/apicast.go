@@ -17,8 +17,6 @@ import (
 
 const (
 	AdminPortalURLAttributeName       = "AdminPortalURL"
-	DefaultHTTPPort             int32 = 8080
-	DefaultHTTPSPort            int32 = 8443
 	DefaultManagementPort       int32 = 8090
 	DefaultMetricsPort          int32 = 9421
 )
@@ -328,13 +326,11 @@ func (a *APIcast) Service() *v1.Service {
 
 func (a *APIcast) servicePorts() []v1.ServicePort {
 	servicePorts := []v1.ServicePort{
-		v1.ServicePort{Name: "proxy", Port: DefaultHTTPPort, Protocol: v1.ProtocolTCP, TargetPort: intstr.FromString("proxy")},
+		v1.ServicePort{Name: "proxy", Port: appsv1alpha1.DefaultHTTPPort, Protocol: v1.ProtocolTCP, TargetPort: intstr.FromString("proxy")},
 		v1.ServicePort{Name: "management", Port: DefaultManagementPort, Protocol: v1.ProtocolTCP, TargetPort: intstr.FromString("management")},
 	}
 
-	// According to APIcast upstream doc, if HTTPS port conflicts with HTTP port, the port will be used only for HTTPS.
-	// https://github.com/3scale/APIcast/blob/master/doc/parameters.md#apicast_https_port
-	if a.options.HTTPSPort != nil && *a.options.HTTPSPort != DefaultHTTPPort {
+	if a.options.HTTPSPort != nil {
 		servicePorts = append(servicePorts,
 			v1.ServicePort{Name: "httpsproxy", Port: *a.options.HTTPSPort, Protocol: v1.ProtocolTCP, TargetPort: intstr.FromString("httpsproxy")})
 	}
@@ -344,14 +340,12 @@ func (a *APIcast) servicePorts() []v1.ServicePort {
 
 func (a *APIcast) containerPorts() []v1.ContainerPort {
 	ports := []v1.ContainerPort{
-		v1.ContainerPort{Name: "proxy", ContainerPort: DefaultHTTPPort, Protocol: v1.ProtocolTCP},
+		v1.ContainerPort{Name: "proxy", ContainerPort: appsv1alpha1.DefaultHTTPPort, Protocol: v1.ProtocolTCP},
 		v1.ContainerPort{Name: "management", ContainerPort: DefaultManagementPort, Protocol: v1.ProtocolTCP},
 		v1.ContainerPort{Name: "metrics", ContainerPort: DefaultMetricsPort, Protocol: v1.ProtocolTCP},
 	}
 
-	// According to APIcast upstream doc, if HTTPS port conflicts with HTTP port, the port will be used only for HTTPS.
-	// https://github.com/3scale/APIcast/blob/master/doc/parameters.md#apicast_https_port
-	if a.options.HTTPSPort != nil && *a.options.HTTPSPort != DefaultHTTPPort {
+	if a.options.HTTPSPort != nil {
 		ports = append(ports,
 			v1.ContainerPort{Name: "httpsproxy", ContainerPort: *a.options.HTTPSPort, Protocol: v1.ProtocolTCP})
 	}
