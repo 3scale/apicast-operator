@@ -33,6 +33,9 @@
 | `loadServicesWhenNeeded` | bool | No | false | The configurations are loaded lazily (see [docs](https://github.com/3scale/APIcast/blob/master/doc/parameters.md#apicast_load_services_when_needed)) |
 | `servicesFilterByURL` | string | No | N/A |  Used to filter the service configured in the 3scale API Manager, the filter matches with the public base URL (Staging or production) (see [docs](https://github.com/3scale/APIcast/blob/master/doc/parameters.md#apicast_services_filter_by_url)) |
 | `serviceConfigurationVersionOverride` | [Service Configuration Version Override object](#service-configuration-version-override-map) | No | N/A | Service configuration version map to prevent it from auto-updating (see [docs](https://github.com/3scale/APIcast/blob/master/doc/parameters.md#apicast_service_id_configuration_version)) |
+| `httpsPort` | int | No | 8443 only when `httpsCertificateSecretRef` is provided | Controls on which port APIcast should start listening for HTTPS connections. Do not use `8080` as HTTPS port (see [docs](https://github.com/3scale/APIcast/blob/master/doc/parameters.md#apicast_https_port)) |
+| `httpsVerifyDepth` | int | No | N/A | Defines the maximum length of the client certificate chain. (see [docs](https://github.com/3scale/APIcast/blob/master/doc/parameters.md#apicast_https_verify_depth)) |
+| `httpsCertificateSecretRef` | LocalObjectReference | No | APIcast has a default certificate used when `httpsPort` is provided | References secret containing the X.509 certificate in the PEM format and the X.509 certificate secret key |
 
 #### APIcastStatus
 

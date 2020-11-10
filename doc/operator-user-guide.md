@@ -9,6 +9,7 @@
     * [Providing the APIcast configuration through a configuration file](#Providing-the-APIcast-configuration-through-a-configuration-file)
     * [Exposing APIcast externally via a Kubernetes Ingress](#Exposing-APIcast-externally-via-a-Kubernetes-Ingress)
     * [Setting custom resource requirements](#setting-custom-resource-requirements)
+    * [Enabling TLS at pod level](#enabling-tls-at-pod-level)
 * [Reconciliation](#reconciliation)
 * [Upgrading APIcast](#upgrading-APIcast)
 * [APIcast CRD reference](apicast-crd-reference.md)
@@ -99,9 +100,41 @@ the OpenShift default Ingress Controller will create a Route object using
 the Ingress object created by APIcast to allow external access to the APIcast
 installation.
 
-TLs for the exposedHost section can also be configured if desired. Details
-about the available fields in the `exposedHost` section can be
-found [here](apicast-crd-reference.md#APIcastExposedHost)
+**Enabling TLS terminator in the ingress object**
+
+TLS for the exposedHost section can also be configured optionally. Steps are:
+
+1.- Optionally generate self signed certificates for your DOMAIN
+```
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout server.key -out server.crt
+```
+
+Fill out the prompts appropriately. The most important line is the one that requests the Common Name (e.g. server FQDN or YOUR name).
+You need to enter the domain name associated with your server or, more likely, your server’s public IP address.
+
+2.- Create the certificate secret
+```
+kubectl create secret tls mycertsecret --cert=server.crt --key=server.key
+```
+
+3.- Reference the certificate secret in APIcast CR
+
+```
+apiVersion: apps.3scale.net/v1alpha1
+kind: APIcast
+metadata:
+  name: apicast1
+spec:
+  ...
+  exposedHost:
+    host: example.com
+    tls:
+    - hosts:
+      - example.com
+      secretName: mycertsecret
+```
+
+Details about the available fields in the `exposedHost` section can be found [here](apicast-crd-reference.md#APIcastExposedHost)
 
 #### Setting custom resource requirements
 
@@ -129,7 +162,63 @@ Two notes:
 * When resource requirements are not specified, the operator [defaults](#deployment-configuration-options) are being set.
 * When resource requests and/or resource limits are not specified, the operator [defaults](#deployment-configuration-options) will *NOT* be used, instead no requests and/or limit will be set.
 
-See [APIcast CRD reference](apicast-crd-reference.md) 
+See [APIcast CRD reference](apicast-crd-reference.md)
+
+#### Enabling TLS at pod level
+
+You can use your SSL certificate to enable TLS at APIcast pod level setting either `httpsPort` or `httpsCertificateSecretRef` fields or both.
+
+
+Steps to enable TLS at pod level:
+
+1.- Optionally generate self signed certificates for your DOMAIN
+```
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout server.key -out server.crt
+```
+
+Fill out the prompts appropriately. The most important line is the one that requests the Common Name (e.g. server FQDN or YOUR name).
+You need to enter the domain name associated with your server or, more likely, your server’s public IP address.
+
+2.- Create the certificate secret
+```
+kubectl create secret tls mycertsecret --cert=server.crt --key=server.key
+```
+
+3.- Reference the certificate secret in APIcast CR
+
+```
+apiVersion: apps.3scale.net/v1alpha1
+kind: APIcast
+metadata:
+  name: apicast1
+spec:
+  ...
+  httpsPort: 8443
+  httpsCertificateSecretRef:
+    name: mycertsecret
+```
+
+**NOTE 1**: If `httpsPort` is set and `httpsCertificateSecretRef` is not set, APIcast will use a default certificate bundled in the image.
+
+**NOTE 2**: If `httpsCertificateSecretRef` is set and `httpsPort` is not set, APIcast will enable TLS at port number `8443`.
+
+See [APIcast CRD reference](apicast-crd-reference.md)
+
+The TLS port can be accessed using apicast service's named port `httpsproxy`. You can check using `kubectl port-forward` command.
+
+Open a terminal and run the port forwarding command for `httpsproxy` named port.
+```
+$ kubectl port-forward service/apicast-apicast1 httpsproxy
+Forwarding from 127.0.0.1:8443 -> 8443
+Forwarding from [::1]:8443 -> 8443
+```
+
+In other terminal, download used certificate.
+```
+$ echo quit | openssl s_client -showcerts -connect 127.0.0.1:8443 2>/dev/null | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p'
+```
+
+The downloaded certificate should match provided certificate.
 
 ### Reconciliation
 After an APIcast self-managed gateway solution has been installed, APIcast

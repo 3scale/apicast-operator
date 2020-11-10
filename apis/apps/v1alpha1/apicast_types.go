@@ -17,11 +17,12 @@ limitations under the License.
 package v1alpha1
 
 import (
+	appscommon "github.com/3scale/apicast-operator/apis/apps"
+
 	v1 "k8s.io/api/core/v1"
 	extensions "k8s.io/api/extensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	appscommon "github.com/3scale/apicast-operator/apis/apps"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -92,6 +93,16 @@ type APIcastSpec struct {
 	// ServiceConfigurationVersionOverride contains service configuration version map to prevent it from auto-updating.
 	// +optional
 	ServiceConfigurationVersionOverride map[string]string `json:"serviceConfigurationVersionOverride,omitempty"` // APICAST_SERVICE_${ID}_CONFIGURATION_VERSION
+	// HttpsPort controls on which port APIcast should start listening for HTTPS connections. If this clashes with HTTP port it will be used only for HTTPS.
+	// +optional
+	HTTPSPort *int32 `json:"httpsPort,omitempty"` // APICAST_HTTPS_PORT
+	// HTTPSVerifyDepth defines the maximum length of the client certificate chain.
+	// +kubebuilder:validation:Minimum=0
+	// +optional
+	HTTPSVerifyDepth *int64 `json:"httpsVerifyDepth,omitempty"` // APICAST_HTTPS_VERIFY_DEPTH
+	// HTTPSCertificateSecretRef references secret containing the X.509 certificate in the PEM format and the X.509 certificate secret key.
+	// +optional
+	HTTPSCertificateSecretRef *v1.LocalObjectReference `json:"httpsCertificateSecretRef,omitempty"`
 }
 
 type DeploymentEnvironmentType string
@@ -99,6 +110,11 @@ type DeploymentEnvironmentType string
 const (
 	DeploymentEnvironmentProduction = "production"
 	DeploymentEnvironmentStaging    = "staging"
+)
+
+const (
+	DefaultHTTPPort  int32 = 8080
+	DefaultHTTPSPort int32 = 8443
 )
 
 type APIcastExposedHost struct {
@@ -180,6 +196,20 @@ func (a *APIcast) GetOwnerRefence() *metav1.OwnerReference {
 }
 
 func (a *APIcast) Reset() { *a = APIcast{} }
+
+func (a *APIcast) Validate() field.ErrorList {
+	errors := field.ErrorList{}
+
+	// check HTTPSPort does not conflict with default HTTPPort
+	specFldPath := field.NewPath("spec")
+	httpsPortFldPath := specFldPath.Child("httpsPort")
+
+	if a.Spec.HTTPSPort != nil && *a.Spec.HTTPSPort == DefaultHTTPPort {
+		errors = append(errors, field.Invalid(httpsPortFldPath, a.Spec.HTTPSPort, "HTTPS port conflicts with HTTP port"))
+	}
+
+	return errors
+}
 
 func init() {
 	SchemeBuilder.Register(&APIcast{}, &APIcastList{})

@@ -13,6 +13,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	extensions "k8s.io/api/extensions/v1beta1"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -40,6 +41,11 @@ func (r *APIcastLogicReconciler) Reconcile() (reconcile.Result, error) {
 		// Stop the reconciliation cycle and order requeue to stop processing
 		// of reconciliation
 		return reconcile.Result{Requeue: true}, nil
+	}
+
+	err = r.validateAPicastCR()
+	if err != nil {
+		return reconcile.Result{}, err
 	}
 
 	apicastFactory, err := apicast.Factory(r.APIcastCR, r.Client())
@@ -153,6 +159,18 @@ func (r *APIcastLogicReconciler) ensureOwnerReferenceMutator(existing, desired k
 	return changed, nil
 }
 
+func (r *APIcastLogicReconciler) validateAPicastCR() error {
+	errors := field.ErrorList{}
+	// internal validation
+	errors = append(errors, r.APIcastCR.Validate()...)
+
+	if len(errors) == 0 {
+		return nil
+	}
+
+	return errors.ToAggregate()
+}
+
 func DeploymentResourcesReconciler(desired, existing *appsv1.Deployment) bool {
 	desiredName := k8sutils.ObjectInfo(desired)
 	update := false
@@ -225,6 +243,11 @@ func DeploymentMutator(existingObj, desiredObj k8sutils.KubernetesObject) (bool,
 	if !reflect.DeepEqual(existing.Spec.Template.Spec.Containers[0].VolumeMounts, desired.Spec.Template.Spec.Containers[0].VolumeMounts) {
 		changed = true
 		existing.Spec.Template.Spec.Containers[0].VolumeMounts = desired.Spec.Template.Spec.Containers[0].VolumeMounts
+	}
+
+	if !reflect.DeepEqual(existing.Spec.Template.Spec.Containers[0].Ports, desired.Spec.Template.Spec.Containers[0].Ports) {
+		changed = true
+		existing.Spec.Template.Spec.Containers[0].Ports = desired.Spec.Template.Spec.Containers[0].Ports
 	}
 
 	return changed, nil

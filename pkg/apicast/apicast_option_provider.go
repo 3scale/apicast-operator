@@ -9,6 +9,7 @@ import (
 	"github.com/3scale/apicast-operator/pkg/k8sutils"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -91,6 +92,22 @@ func (a *APIcastOptionsProvider) GetApicastOptions() (*APIcastOptions, error) {
 	a.APIcastOptions.LoadServicesWhenNeeded = a.APIcastCR.Spec.LoadServicesWhenNeeded
 	a.APIcastOptions.ServicesFilterByURL = a.APIcastCR.Spec.ServicesFilterByURL
 	a.APIcastOptions.ServiceConfigurationVersionOverride = a.APIcastCR.Spec.ServiceConfigurationVersionOverride
+	a.APIcastOptions.HTTPSPort = a.APIcastCR.Spec.HTTPSPort
+	// when HTTPS certificate is provided and HTTPS port is not provided, assing default https port
+	if a.APIcastCR.Spec.HTTPSCertificateSecretRef != nil && a.APIcastCR.Spec.HTTPSPort == nil {
+		tmpDefaultPort := appsv1alpha1.DefaultHTTPSPort
+		a.APIcastOptions.HTTPSPort = &tmpDefaultPort
+	}
+	a.APIcastOptions.HTTPSVerifyDepth = a.APIcastCR.Spec.HTTPSVerifyDepth
+
+	// when HTTPS port is provided and HTTPS Certificate secret is not provided,
+	// Apicast will use some default certificate
+	// Should the operator raise a warning?
+	httpsCertificateSecret, err := a.getHTTPSCertificateSecret()
+	if err != nil {
+		return nil, err
+	}
+	a.APIcastOptions.HTTPSCertificateSecret = httpsCertificateSecret
 
 	// Annotations from user secrets. Used to rollout apicast deployment if any secrets changes
 	a.APIcastOptions.AdditionalAnnotations = a.additionalAnnotations()
@@ -192,4 +209,52 @@ func (a *APIcastOptionsProvider) getAdminPortalCredentialsSecret() (*v1.Secret, 
 	}
 
 	return &adminPortalCredentialsSecret, err
+}
+
+func (a *APIcastOptionsProvider) getHTTPSCertificateSecret() (*v1.Secret, error) {
+	if a.APIcastCR.Spec.HTTPSCertificateSecretRef == nil {
+		return nil, nil
+	}
+
+	errors := field.ErrorList{}
+	specFldPath := field.NewPath("spec")
+	httpsCertificateSecretRefFldPath := specFldPath.Child("httpsCertificateSecretRef")
+	secretNameFldPath := httpsCertificateSecretRefFldPath.Child("name")
+
+	ns := a.APIcastCR.Namespace
+
+	if a.APIcastCR.Spec.HTTPSCertificateSecretRef.Name == "" {
+		errors = append(errors, field.Required(secretNameFldPath, "secret name not provided"))
+		return nil, errors.ToAggregate()
+	}
+
+	namespacedName := types.NamespacedName{
+		Name:      a.APIcastCR.Spec.HTTPSCertificateSecretRef.Name,
+		Namespace: ns,
+	}
+
+	secret := &v1.Secret{}
+	err := a.Client.Get(context.TODO(), namespacedName, secret)
+
+	if err != nil {
+		// NotFoundError is also an error, it is required to exist
+		return nil, err
+	}
+
+	if secret.Type != v1.SecretTypeTLS {
+		errors = append(errors, field.Invalid(httpsCertificateSecretRefFldPath, a.APIcastCR.Spec.HTTPSCertificateSecretRef, "Required kubernetes.io/tls secret type"))
+		return nil, errors.ToAggregate()
+	}
+
+	if _, ok := secret.Data[v1.TLSCertKey]; !ok {
+		errors = append(errors, field.Required(httpsCertificateSecretRefFldPath, fmt.Sprintf("Required secret key, %s not found", v1.TLSCertKey)))
+		return nil, errors.ToAggregate()
+	}
+
+	if _, ok := secret.Data[v1.TLSPrivateKeyKey]; !ok {
+		errors = append(errors, field.Required(httpsCertificateSecretRefFldPath, fmt.Sprintf("Required secret key, %s not found", v1.TLSPrivateKeyKey)))
+		return nil, errors.ToAggregate()
+	}
+
+	return secret, err
 }
