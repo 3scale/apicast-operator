@@ -181,6 +181,10 @@ func (r *APIcastReconciler) updateStatus(instance *appsv1alpha1.APIcast, reconci
 		return ctrl.Result{}, err
 	}
 
+	if err != nil && errors.IsNotFound(err) {
+		return ctrl.Result{Requeue: true}, nil
+	}
+
 	deployedImage := apicastDeployment.Spec.Template.Spec.Containers[0].Image
 	if instance.Status.Image != deployedImage {
 		instance.Status.Image = deployedImage
