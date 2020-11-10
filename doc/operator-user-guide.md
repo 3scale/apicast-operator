@@ -204,6 +204,22 @@ spec:
 
 See [APIcast CRD reference](apicast-crd-reference.md)
 
+The TLS port can be accessed using apicast service's named port `httpsproxy`. You can check using `kubectl port-forward` command.
+
+Open a terminal and run the port forwarding command for `httpsproxy` named port.
+```
+$ kubectl port-forward service/apicast-apicast1 httpsproxy
+Forwarding from 127.0.0.1:8443 -> 8443
+Forwarding from [::1]:8443 -> 8443
+```
+
+In other terminal, download used certificate.
+```
+$ echo quit | openssl s_client -showcerts -connect 127.0.0.1:8443 2>/dev/null | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p'
+```
+
+The downloaded certificate should match provided certificate.
+
 ### Reconciliation
 After an APIcast self-managed gateway solution has been installed, APIcast
 operator enables updating a given set of parameters from the custom resource
