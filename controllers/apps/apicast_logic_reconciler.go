@@ -245,6 +245,11 @@ func DeploymentMutator(existingObj, desiredObj k8sutils.KubernetesObject) (bool,
 		existing.Spec.Template.Spec.Containers[0].VolumeMounts = desired.Spec.Template.Spec.Containers[0].VolumeMounts
 	}
 
+	if !reflect.DeepEqual(existing.Spec.Template.Spec.Containers[0].Ports, desired.Spec.Template.Spec.Containers[0].Ports) {
+		changed = true
+		existing.Spec.Template.Spec.Containers[0].Ports = desired.Spec.Template.Spec.Containers[0].Ports
+	}
+
 	return changed, nil
 }
 
