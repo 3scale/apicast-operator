@@ -49,7 +49,7 @@ metadata:
     capabilities: Full Lifecycle
     categories: Integration & Delivery
     certified: "false"
-    containerImage: quay.io/3scale/apicast-operator:nightly
+    containerImage: quay.io/3scale/apicast-operator:master
     createdAt: "2019-10-27T22:40:00Z"
     description: APIcast is an API gateway built on top of NGINX. It is part of the Red Hat 3scale API Management Platform
     operators.openshift.io/infrastructure-features: '["Disconnected"]'
@@ -158,7 +158,7 @@ spec:
                       fieldPath: metadata.annotations['olm.targetNamespaces']
                 - name: APICAST_IMAGE
                   value: quay.io/3scale/apicast:nightly
-                image: quay.io/3scale/apicast-operator:nightly
+                image: quay.io/3scale/apicast-operator:master
                 name: manager
                 resources:
                   limits:
