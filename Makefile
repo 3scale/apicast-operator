@@ -27,6 +27,7 @@ endif
 OPERATOR_SDK ?= operator-sdk
 DOCKER ?= docker
 KUBECTL ?= kubectl
+YQ := $(shell command -v yq 2> /dev/null)
 
 MKFILE_PATH := $(abspath $(lastword $(MAKEFILE_LIST)))
 PROJECT_PATH := $(patsubst %/,%,$(dir $(MKFILE_PATH)))
@@ -35,6 +36,8 @@ LICENSEFINDERBINARY := $(shell command -v license_finder 2> /dev/null)
 DEPENDENCY_DECISION_FILE = $(PROJECT_PATH)/doc/dependency_decisions.yml
 
 NAMESPACE ?= $(shell $(KUBECTL) config view --minify -o jsonpath='{.contexts[0].context.namespace}' 2>/dev/null || echo operator-test)
+
+CURRENT_DATE=$(shell date +%s)
 
 all: manager
 
@@ -83,9 +86,16 @@ generate: controller-gen
 docker-build: test
 	$(DOCKER) build . -t ${IMG}
 
-# Push the docker image
-docker-push:
+docker-build-only:
+	$(DOCKER) build . -t ${IMG}
+
+# Push the operator docker image
+operator-docker-image-push:
 	$(DOCKER) push ${IMG}
+
+# Push the bundle docker image
+bundle-docker-image-push:
+	$(DOCKER) push ${BUNDLE_IMG}
 
 # find or download controller-gen
 # download controller-gen if necessary
@@ -134,7 +144,7 @@ bundle-update-test:
 
 # Build the bundle image.
 .PHONY: bundle-build
-bundle-build: bundle
+bundle-build: bundle-validate
 	$(DOCKER) build -f bundle.Dockerfile -t $(BUNDLE_IMG) .
 
 ## 3scale-specific targets
@@ -158,8 +168,6 @@ endif
 	@echo "Checking license compliance"
 	license_finder --decisions-file=$(DEPENDENCY_DECISION_FILE)
 
-docker-build-only:
-	$(DOCKER) build . -t ${IMG}
 
 # Run unit tests
 TEST_UNIT_PKGS = $(shell go list ./... | grep -E 'github.com/3scale/apicast-operator/pkg/|github.com/3scale/apicast-operator/pkg/apis')
@@ -188,6 +196,29 @@ bundle-validate:
 bundle-validate-image:
 	$(OPERATOR_SDK) bundle validate $(BUNDLE_IMG)
 
+.PHONY: bundle-custom-updates
+bundle-custom-updates: BUNDLE_PREFIX=dev$(CURRENT_DATE)
+bundle-custom-updates:
+ifndef YQ
+	$(error "yq is not available please install: https://github.com/mikefarah/yq/releases/latest")
+endif
+	@echo "Update metadata to avoid collision with existing APIcast Operator official public operators catalog entries"
+	$(YQ) w --inplace $(PROJECT_PATH)/bundle/manifests/apicast-operator.clusterserviceversion.yaml metadata.name $(BUNDLE_PREFIX)-apicast-operator.v0.0.1
+	$(YQ) w --inplace $(PROJECT_PATH)/bundle/manifests/apicast-operator.clusterserviceversion.yaml spec.displayName "$(BUNDLE_PREFIX) apicast operator"
+	$(YQ) w --inplace $(PROJECT_PATH)/bundle/manifests/apicast-operator.clusterserviceversion.yaml spec.provider.Name $(BUNDLE_PREFIX)
+	$(YQ) w --inplace $(PROJECT_PATH)/bundle/metadata/annotations.yaml 'annotations."operators.operatorframework.io.bundle.package.v1"' $(BUNDLE_PREFIX)-apicast-operator
+	sed -E -i 's/(operators\.operatorframework\.io\.bundle\.package\.v1=).+/\1$(BUNDLE_PREFIX)-apicast-operator/' $(PROJECT_PATH)/bundle.Dockerfile
+	@echo "Update operator image reference URL"
+	$(YQ) w --inplace $(PROJECT_PATH)/bundle/manifests/apicast-operator.clusterserviceversion.yaml metadata.annotations.containerImage $(IMG)
+	$(YQ) w --inplace $(PROJECT_PATH)/bundle/manifests/apicast-operator.clusterserviceversion.yaml spec.install.spec.deployments[0].spec.template.spec.containers[1].image $(IMG)
+
+.PHONY: bundle-restore
+bundle-restore:
+	git checkout bundle/manifests/apicast-operator.clusterserviceversion.yaml bundle/metadata/annotations.yaml bundle.Dockerfile
+
+.PHONY: bundle-custom-build
+bundle-custom-build: | bundle-custom-updates bundle-build bundle-restore
+
 .PHONY: bundle-run
-bundle-run: bundle-build
+bundle-run:
 	$(OPERATOR_SDK) run bundle --namespace $(NAMESPACE) $(BUNDLE_IMG)
