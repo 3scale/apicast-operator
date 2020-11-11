@@ -27,7 +27,6 @@ endif
 OPERATOR_SDK ?= operator-sdk
 DOCKER ?= docker
 KUBECTL ?= kubectl
-YQ := $(shell command -v yq 2> /dev/null)
 
 MKFILE_PATH := $(abspath $(lastword $(MAKEFILE_LIST)))
 PROJECT_PATH := $(patsubst %/,%,$(dir $(MKFILE_PATH)))
@@ -132,6 +131,23 @@ else
 KUSTOMIZE=$(shell which kustomize)
 endif
 
+# find or download yq
+# download yq if necessary
+yq:
+ifeq (, $(shell command -v yq 2> /dev/null))
+	@{ \
+	set -e ;\
+	YQ_TMP_DIR=$$(mktemp -d) ;\
+	cd $$YQ_TMP_DIR ;\
+	go mod init tmp ;\
+	go get github.com/mikefarah/yq/v3 ;\
+	rm -rf $$YQ_TMP_DIR ;\
+	}
+YQ=$(GOBIN)/yq
+else
+YQ=$(shell command -v yq 2> /dev/null)
+endif
+
 # Generate bundle manifests and metadata, then validate generated files.
 .PHONY: bundle
 bundle: manifests kustomize
@@ -201,10 +217,7 @@ bundle-validate-image:
 
 .PHONY: bundle-custom-updates
 bundle-custom-updates: BUNDLE_PREFIX=dev$(CURRENT_DATE)
-bundle-custom-updates:
-ifndef YQ
-	$(error "yq is not available please install: https://github.com/mikefarah/yq/releases/latest")
-endif
+bundle-custom-updates: yq
 	@echo "Update metadata to avoid collision with existing APIcast Operator official public operators catalog entries"
 	@echo "using BUNDLE_PREFIX $(BUNDLE_PREFIX)"
 	$(YQ) w --inplace $(PROJECT_PATH)/bundle/manifests/apicast-operator.clusterserviceversion.yaml metadata.name $(BUNDLE_PREFIX)-apicast-operator.$(VERSION)
