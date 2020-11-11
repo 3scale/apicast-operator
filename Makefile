@@ -205,7 +205,7 @@ endif
 	@echo "Update metadata to avoid collision with existing APIcast Operator official public operators catalog entries"
 	$(YQ) w --inplace $(PROJECT_PATH)/bundle/manifests/apicast-operator.clusterserviceversion.yaml metadata.name $(BUNDLE_PREFIX)-apicast-operator.v0.0.1
 	$(YQ) w --inplace $(PROJECT_PATH)/bundle/manifests/apicast-operator.clusterserviceversion.yaml spec.displayName "$(BUNDLE_PREFIX) apicast operator"
-	$(YQ) w --inplace $(PROJECT_PATH)/bundle/manifests/apicast-operator.clusterserviceversion.yaml spec.provider.Name $(BUNDLE_PREFIX)
+	$(YQ) w --inplace $(PROJECT_PATH)/bundle/manifests/apicast-operator.clusterserviceversion.yaml spec.provider.name $(BUNDLE_PREFIX)
 	$(YQ) w --inplace $(PROJECT_PATH)/bundle/metadata/annotations.yaml 'annotations."operators.operatorframework.io.bundle.package.v1"' $(BUNDLE_PREFIX)-apicast-operator
 	sed -E -i 's/(operators\.operatorframework\.io\.bundle\.package\.v1=).+/\1$(BUNDLE_PREFIX)-apicast-operator/' $(PROJECT_PATH)/bundle.Dockerfile
 	@echo "Update operator image reference URL"

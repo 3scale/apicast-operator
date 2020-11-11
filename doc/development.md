@@ -100,7 +100,7 @@ APIcast Operator official public operators catalog entries:
     * Change the current value of `.spec.displayName` to a value that helps you
       identify the catalog entry name from other operators and the official
       APIcast operator entries. For example to `"MyOrg apicast operator"`
-    * Change the current value of `.spec.provider.Name` to a value that helps
+    * Change the current value of `.spec.provider.name` to a value that helps
       you identify the catalog entry name from other operators and the official
       APIcast operator entries. For example, to `MyOrg`
 * Edit the `bundle.Dockerfile` file and change the value of
