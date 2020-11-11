@@ -32,15 +32,10 @@
 ## Clone repository
 
 ```sh
-mkdir -p $GOPATH/src/github.com/3scale
-cd $GOPATH/src/github.com/3scale
 git clone https://github.com/3scale/apicast-operator
 cd apicast-operator
-git checkout master
 ```
 ## Building APIcast operator image
-
-[Clone the repo](#Clone-repository)
 
 Build operator image
 
@@ -55,8 +50,6 @@ make docker-build-only IMG=quay.io/myorg/apicast-operator:myversiontag
 Run the operator locally with the default Kubernetes config file present at $HOME/.kube/config
 
 Run operator from command line, it will not be deployed as pod.
-
-* [Clone the repo](#Clone-repository)
 
 * Register the APIcast operator CRD in the Kubernetes API Server
 
@@ -124,13 +117,13 @@ Steps to deploy custom apicast operator using OLM:
 * Build and upload custom operator image
 ```
 make docker-build-only IMG=quay.io/myorg/apicast-operator:myversiontag
-make operator-docker-image-push IMG=quay.io/myorg/apicast-operator:myversiontag
+make operator-image-push IMG=quay.io/myorg/apicast-operator:myversiontag
 ```
 
 * Build and upload custom operator bundle image. Changes to avoid conflicts will be made by the makefile.
 ```
 make bundle-custom-build IMG=quay.io/myorg/apicast-operator:myversiontag BUNDLE_IMG=quay.io/myorg/apicast-operator-bundles:myversiontag
-make bundle-docker-image-push BUNDLE_IMG=quay.io/myorg/apicast-operator-bundles:myversiontag
+make bundle-image-push BUNDLE_IMG=quay.io/myorg/apicast-operator-bundles:myversiontag
 ```
 
 * Deploy the operator in your currently configured and active cluster in $HOME/.kube/config:
@@ -177,7 +170,7 @@ make bundle-build BUNDLE_IMG=quay.io/myorg/myrepo:myversiontag
 ### Push an operator bundle into an external container repository
 
 ```sh
-docker push quay.io/myorg/myrepo:myversiontag
+make bundle-image-push BUNDLE_IMG=quay.io/myorg/myrepo:myversiontag
 ```
 
 ### Validate an operator bundle image

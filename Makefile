@@ -83,18 +83,21 @@ generate: controller-gen
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
 
 # Build the docker image
-docker-build: test
-	$(DOCKER) build . -t ${IMG}
+.PHONY: docker-build
+docker-build: test docker-build-only
 
+.PHONY: docker-build-only
 docker-build-only:
 	$(DOCKER) build . -t ${IMG}
 
 # Push the operator docker image
-operator-docker-image-push:
+.PHONY: operator-image-push
+operator-image-push:
 	$(DOCKER) push ${IMG}
 
 # Push the bundle docker image
-bundle-docker-image-push:
+.PHONY: bundle-image-push
+bundle-image-push:
 	$(DOCKER) push ${BUNDLE_IMG}
 
 # find or download controller-gen
@@ -203,7 +206,8 @@ ifndef YQ
 	$(error "yq is not available please install: https://github.com/mikefarah/yq/releases/latest")
 endif
 	@echo "Update metadata to avoid collision with existing APIcast Operator official public operators catalog entries"
-	$(YQ) w --inplace $(PROJECT_PATH)/bundle/manifests/apicast-operator.clusterserviceversion.yaml metadata.name $(BUNDLE_PREFIX)-apicast-operator.v0.0.1
+	@echo "using BUNDLE_PREFIX $(BUNDLE_PREFIX)"
+	$(YQ) w --inplace $(PROJECT_PATH)/bundle/manifests/apicast-operator.clusterserviceversion.yaml metadata.name $(BUNDLE_PREFIX)-apicast-operator.$(VERSION)
 	$(YQ) w --inplace $(PROJECT_PATH)/bundle/manifests/apicast-operator.clusterserviceversion.yaml spec.displayName "$(BUNDLE_PREFIX) apicast operator"
 	$(YQ) w --inplace $(PROJECT_PATH)/bundle/manifests/apicast-operator.clusterserviceversion.yaml spec.provider.name $(BUNDLE_PREFIX)
 	$(YQ) w --inplace $(PROJECT_PATH)/bundle/metadata/annotations.yaml 'annotations."operators.operatorframework.io.bundle.package.v1"' $(BUNDLE_PREFIX)-apicast-operator
