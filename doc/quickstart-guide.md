@@ -18,7 +18,7 @@ to use this installation method.
 
 Procedure
 1. In the OpenShift Container Platform console, log in using an account with administrator privileges
-1. Create new project `operator-test` in *Projects > Create Project*
+1. Create a new project `operator-test` in *Projects > Create Project*
 1. Click *Catalog > OperatorHub*
 1. In the Filter by keyword box, type `apicast` to find the APIcast operator
 1. Click the APIcast operator. Information about the Operator is displayed
@@ -37,7 +37,7 @@ installation method.
 Procedure
 1. Access to the [OperatorHub.io](https://operatorhub.io/) website
 1. In the filter search bar type `apicast` to find the APIcast operator
-1. Click the APIcast operator. Information about the Operaotr is displayed
+1. Click the APIcast operator. Information about the Operator is displayed
 1. Click the *Install* button. A new window with the instructions to install
    the operator will appear. Follow them to install the operator. This will
    install the operator in a namespace called `my-apicast-community-operator`
@@ -52,7 +52,7 @@ Procedure
 ## Deploying an APIcast gateway self-managed solution using the operator
 
 Deploying the *APIcast* custom resource will make the operator begin processing
-and will deploy an APIcast gateway self-managed solution solution from it.
+and will deploy an APIcast gateway self-managed solution from it.
 
 To deploy an APIcast custom resource the kubectl command line tool can be used.
 Alternatively, if the APIcast operator has been installed in an OpenShift
@@ -104,7 +104,7 @@ After creating the APIcast object you should verify that the APIcast pod is
 running and ready.
 
 To do so verify that the `readyReplicas` field of the Kubernetes Deployment
-associated to the APIcast object is 1 or wait until it is:
+associated with the APIcast object is 1 or wait until it is:
 
 ```
 $ echo $(kubectl get deployment apicast-example-apicast -o jsonpath='{.status.readyReplicas}')
@@ -175,7 +175,7 @@ stringData:
 ```
 
 For more information about the contents of the secret and the
-configuration of the gateway see the
+configuration of the gateway sees the
 [Embedded configuration secret](apicast-crd-reference.md#EmbeddedConfSecret) reference.
 
 2. Create APIcast object:
@@ -196,7 +196,7 @@ After creating the APIcast object you should verify that the APIcast pod is
 running and ready.
 
 To do so verify that the `readyReplicas` field of the Kubernetes Deployment
-associated to the APIcast object is 1 or wait until it is:
+associated with the APIcast object is 1 or wait until it is:
 
 ```
 $ echo $(kubectl get deployment apicast-example-apicast -o jsonpath='{.status.readyReplicas}')
