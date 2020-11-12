@@ -83,37 +83,6 @@ make run
 
 ### Deploy custom APIcast Operator using OLM
 
-To install this operator on an OpenShift 4.5+ cluster using OLM for
-end-to-end testing, there are some changes needed to avoid collision with existing
-APIcast Operator official public operators catalog entries:
-* Edit the `bundle/manifests/apicast-operator.clusterserviceversion.yaml` file
-  and perform the following changes:
-    * Change the current value of `.metadata.name` to a different name
-      than `apicast-operator.v*`. For example to `myorg-apicast-operator.v0.0.1`
-    * Change the current value of `.spec.displayName` to a value that helps you
-      identify the catalog entry name from other operators and the official
-      APIcast operator entries. For example to `"MyOrg apicast operator"`
-    * Change the current value of `.spec.provider.name` to a value that helps
-      you identify the catalog entry name from other operators and the official
-      APIcast operator entries. For example, to `MyOrg`
-* Edit the `bundle.Dockerfile` file and change the value of
-  the Dockerfile label `LABEL operators.operatorframework.io.bundle.package.v1`
-  to a different value than `apicast-operator`. For example to
-  `myorg-apicast-operator`
-* Edit the `bundle/metadata/annotations.yaml` file and change the value of
-  `.annotations.operators.operatorframework.io.bundle.package.v1` to a
-  different value than `apicast-operator`. For example to
-  `myorg-apicast-operator`. The new value should match the
-  Dockerfile label `LABEL operators.operatorframework.io.bundle.package.v1`
-  in the `bundle.Dockerfile` as explained in the point above
-
-It is really important that all the previously shown fields are changed
-to avoid overwriting the APIcast operator official public operator
-catalog entry in your cluster and to avoid confusion having two equal entries
-on it.
-
-Steps to deploy custom apicast operator using OLM:
-
 * Build and upload custom operator image
 ```
 make docker-build-only IMG=quay.io/myorg/apicast-operator:myversiontag
