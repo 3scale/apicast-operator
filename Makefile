@@ -36,6 +36,8 @@ DEPENDENCY_DECISION_FILE = $(PROJECT_PATH)/doc/dependency_decisions.yml
 
 NAMESPACE ?= $(shell $(KUBECTL) config view --minify -o jsonpath='{.contexts[0].context.namespace}' 2>/dev/null || echo operator-test)
 
+CURRENT_DATE=$(shell date +%s)
+
 all: manager
 
 # Run all tests
@@ -80,12 +82,22 @@ generate: controller-gen
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
 
 # Build the docker image
-docker-build: test
+.PHONY: docker-build
+docker-build: test docker-build-only
+
+.PHONY: docker-build-only
+docker-build-only:
 	$(DOCKER) build . -t ${IMG}
 
-# Push the docker image
-docker-push:
+# Push the operator docker image
+.PHONY: operator-image-push
+operator-image-push:
 	$(DOCKER) push ${IMG}
+
+# Push the bundle docker image
+.PHONY: bundle-image-push
+bundle-image-push:
+	$(DOCKER) push ${BUNDLE_IMG}
 
 # find or download controller-gen
 # download controller-gen if necessary
@@ -119,6 +131,23 @@ else
 KUSTOMIZE=$(shell which kustomize)
 endif
 
+# find or download yq
+# download yq if necessary
+yq:
+ifeq (, $(shell command -v yq 2> /dev/null))
+	@{ \
+	set -e ;\
+	YQ_TMP_DIR=$$(mktemp -d) ;\
+	cd $$YQ_TMP_DIR ;\
+	go mod init tmp ;\
+	go get github.com/mikefarah/yq/v3 ;\
+	rm -rf $$YQ_TMP_DIR ;\
+	}
+YQ=$(GOBIN)/yq
+else
+YQ=$(shell command -v yq 2> /dev/null)
+endif
+
 # Generate bundle manifests and metadata, then validate generated files.
 .PHONY: bundle
 bundle: manifests kustomize
@@ -127,9 +156,14 @@ bundle: manifests kustomize
 	$(KUSTOMIZE) build config/manifests | $(OPERATOR_SDK) generate bundle -q --overwrite --version $(VERSION) $(BUNDLE_METADATA_OPTS)
 	$(OPERATOR_SDK) bundle validate ./bundle
 
+.PHONY: bundle-update-test
+bundle-update-test:
+	git diff --exit-code ./bundle
+	[ -z "$$(git ls-files --other --exclude-standard --directory --no-empty-directory ./bundle)" ]
+
 # Build the bundle image.
 .PHONY: bundle-build
-bundle-build:
+bundle-build: bundle-validate
 	$(DOCKER) build -f bundle.Dockerfile -t $(BUNDLE_IMG) .
 
 ## 3scale-specific targets
@@ -153,8 +187,6 @@ endif
 	@echo "Checking license compliance"
 	license_finder --decisions-file=$(DEPENDENCY_DECISION_FILE)
 
-docker-build-only:
-	$(DOCKER) build . -t ${IMG}
 
 # Run unit tests
 TEST_UNIT_PKGS = $(shell go list ./... | grep -E 'github.com/3scale/apicast-operator/pkg/|github.com/3scale/apicast-operator/pkg/apis')
@@ -175,5 +207,35 @@ test-e2e: generate fmt vet manifests
 	test -f $(ENVTEST_ASSETS_DIR)/setup-envtest.sh || curl -sSLo $(ENVTEST_ASSETS_DIR)/setup-envtest.sh https://raw.githubusercontent.com/kubernetes-sigs/controller-runtime/v0.6.3/hack/setup-envtest.sh
 	source ${ENVTEST_ASSETS_DIR}/setup-envtest.sh; fetch_envtest_tools $(ENVTEST_ASSETS_DIR); setup_envtest_env $(ENVTEST_ASSETS_DIR); go test $(TEST_E2E_PKGS) -coverprofile cover.out -ginkgo.v -ginkgo.progress -v
 
+.PHONY: bundle-validate
 bundle-validate:
 	$(OPERATOR_SDK) bundle validate ./bundle
+
+.PHONY: bundle-validate-image
+bundle-validate-image:
+	$(OPERATOR_SDK) bundle validate $(BUNDLE_IMG)
+
+.PHONY: bundle-custom-updates
+bundle-custom-updates: BUNDLE_PREFIX=dev$(CURRENT_DATE)
+bundle-custom-updates: yq
+	@echo "Update metadata to avoid collision with existing APIcast Operator official public operators catalog entries"
+	@echo "using BUNDLE_PREFIX $(BUNDLE_PREFIX)"
+	$(YQ) w --inplace $(PROJECT_PATH)/bundle/manifests/apicast-operator.clusterserviceversion.yaml metadata.name $(BUNDLE_PREFIX)-apicast-operator.$(VERSION)
+	$(YQ) w --inplace $(PROJECT_PATH)/bundle/manifests/apicast-operator.clusterserviceversion.yaml spec.displayName "$(BUNDLE_PREFIX) apicast operator"
+	$(YQ) w --inplace $(PROJECT_PATH)/bundle/manifests/apicast-operator.clusterserviceversion.yaml spec.provider.name $(BUNDLE_PREFIX)
+	$(YQ) w --inplace $(PROJECT_PATH)/bundle/metadata/annotations.yaml 'annotations."operators.operatorframework.io.bundle.package.v1"' $(BUNDLE_PREFIX)-apicast-operator
+	sed -E -i 's/(operators\.operatorframework\.io\.bundle\.package\.v1=).+/\1$(BUNDLE_PREFIX)-apicast-operator/' $(PROJECT_PATH)/bundle.Dockerfile
+	@echo "Update operator image reference URL"
+	$(YQ) w --inplace $(PROJECT_PATH)/bundle/manifests/apicast-operator.clusterserviceversion.yaml metadata.annotations.containerImage $(IMG)
+	$(YQ) w --inplace $(PROJECT_PATH)/bundle/manifests/apicast-operator.clusterserviceversion.yaml spec.install.spec.deployments[0].spec.template.spec.containers[1].image $(IMG)
+
+.PHONY: bundle-restore
+bundle-restore:
+	git checkout bundle/manifests/apicast-operator.clusterserviceversion.yaml bundle/metadata/annotations.yaml bundle.Dockerfile
+
+.PHONY: bundle-custom-build
+bundle-custom-build: | bundle-custom-updates bundle-build bundle-restore
+
+.PHONY: bundle-run
+bundle-run:
+	$(OPERATOR_SDK) run bundle --namespace $(NAMESPACE) $(BUNDLE_IMG)

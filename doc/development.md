@@ -32,20 +32,15 @@
 ## Clone repository
 
 ```sh
-mkdir -p $GOPATH/src/github.com/3scale
-cd $GOPATH/src/github.com/3scale
 git clone https://github.com/3scale/apicast-operator
 cd apicast-operator
-git checkout master
 ```
 ## Building APIcast operator image
-
-[Clone the repo](#Clone-repository)
 
 Build operator image
 
 ```sh
-make docker-build IMG=quay.io/myorg/apicast-operator:myversiontag
+make docker-build-only IMG=quay.io/myorg/apicast-operator:myversiontag
 ```
 
 ## Run APIcast Operator
@@ -56,13 +51,11 @@ Run the operator locally with the default Kubernetes config file present at $HOM
 
 Run operator from command line, it will not be deployed as pod.
 
-* [Clone the repo](#Clone-repository)
-
 * Register the APIcast operator CRD in the Kubernetes API Server
 
 ```sh
 // As a cluster admin
-for i in `ls bundle/manifests/**apps.3scale.net_*.yaml`; do kubectl create -f $i ; done
+make install
 ```
 
 * Create a new Kubernetes namespace (optional)
@@ -90,64 +83,26 @@ make run
 
 ### Deploy custom APIcast Operator using OLM
 
-To install this operator on an OpenShift 4.5+ cluster using OLM for
-end-to-end testing:
+* Build and upload custom operator image
+```
+make docker-build-only IMG=quay.io/myorg/apicast-operator:myversiontag
+make operator-image-push IMG=quay.io/myorg/apicast-operator:myversiontag
+```
 
-* Perform naming changes to avoid collision with existing APIcast Operator
-  official public operators catalog entries:
-  * Edit the `bundle/manifests/apicast-operator.clusterserviceversion.yaml` file
-    and perform the following changes:
-      * Change the current value of `.metadata.name` to a different name
-        than `apicast-operator.v*`. For example to `myorg-apicast-operator.v0.0.1`
-      * Change the current value of `.spec.displayName` to a value that helps you
-        identify the catalog entry name from other operators and the official
-        APIcast operator entries. For example to `"MyOrg apicast operator"`
-      * Change the current value of `.spec.provider.Name` to a value that helps
-        you identify the catalog entry name from other operators and the official
-        APIcast operator entries. For example, to `MyOrg`
-  * Edit the `bundle.Dockerfile` file and change the value of
-    the Dockerfile label `LABEL operators.operatorframework.io.bundle.package.v1`
-    to a different value than `apicast-operator`. For example to
-    `myorg-apicast-operator`
-  * Edit the `bundle/metadata/annotations.yaml` file and change the value of
-    `.annotations.operators.operatorframework.io.bundle.package.v1` to a
-    different value than `apicast-operator`. For example to
-    `myorg-apicast-operator`. The new value should match the
-    Dockerfile label `LABEL operators.operatorframework.io.bundle.package.v1`
-    in the `bundle.Dockerfile` as explained in the point above
+* Build and upload custom operator bundle image. Changes to avoid conflicts will be made by the makefile.
+```
+make bundle-custom-build IMG=quay.io/myorg/apicast-operator:myversiontag BUNDLE_IMG=quay.io/myorg/apicast-operator-bundles:myversiontag
+make bundle-image-push BUNDLE_IMG=quay.io/myorg/apicast-operator-bundles:myversiontag
+```
 
-  It is really important that all the previously shown fields are changed
-  to avoid overwriting the APIcast operator official public operator
-  catalog entry in your cluster and to avoid confusion having two equal entries
-  on it.
-
-* [Create an operator bundle image](#generate-an-operator-bundle-image) using the
-  changed contents above
-
-* [Push the operator bundle into an external container repository](#push-an-operator-bundle-into-an-external-container-repository).
-
-* Run the following command to deploy the operator in your currently configured
-  and active cluster in $HOME/.kube/config:
-  ```sh
-  operator-sdk run bundle --namespace <mynamespace> <BUNDLE_IMAGE_URL>
-  ```
-
-  Additionally, a specific kubeconfig file with a desired Kubernetes
-  configuration can be provided too:
-  ```sh
-  operator-sdk run bundle --namespace <mynamespace> --kubeconfig <path> <BUNDLE_IMAGE_URL>
-  ```
+* Deploy the operator in your currently configured and active cluster in $HOME/.kube/config:
+```
+make bundle-run BUNDLE_IMG=quay.io/myorg/apicast-operator-bundles:myversiontag
+```
 
 It will take a few minutes for the operator to become visible under
 the _OperatorHub_ section of the OpenShift console _Catalog_. It can be
 easily found by filtering the provider type to _Custom_.
-
-[git_tool]:https://git-scm.com/downloads
-[operator-sdk]:https://github.com/operator-framework/operator-sdk
-[docker]:https://docs.docker.com/install/
-[go]:https://golang.org/
-[kubernetes]:https://kubernetes.io/
-[kubectl]:https://kubernetes.io/docs/tasks/tools/install-kubectl/
 
 ### Run tests
 
@@ -174,21 +129,21 @@ make test-e2e
 ### Generate an operator bundle image
 
 ```sh
-make bundle
-```
-
-The generated output will be saved in the `bundle` directory
-
-### Validate an operator bundle image
-
-```sh
-make bundle-validate
+make bundle-build BUNDLE_IMG=quay.io/myorg/myrepo:myversiontag
 ```
 
 ### Push an operator bundle into an external container repository
 
 ```sh
-make docker-push IMG=quay.io/myorg/apicast-operator:myversiontag
+make bundle-image-push BUNDLE_IMG=quay.io/myorg/myrepo:myversiontag
+```
+
+### Validate an operator bundle image
+
+NOTE: if validating an image, the image must exist in a remote registry, not just locally.
+
+```sh
+make bundle-validate-image BUNDLE_IMG=quay.io/myorg/myrepo:myversiontag
 ```
 
 ## Licenses management
@@ -238,3 +193,10 @@ For instance
 ```sh
 license_finder approval add github.com/golang/glog --decisions-file=doc/dependency_decisions.yml --why "Apache 2.0 License https://github.com/golang/glog/blob/master/LICENSE"
 ```
+
+[git_tool]:https://git-scm.com/downloads
+[operator-sdk]:https://github.com/operator-framework/operator-sdk
+[docker]:https://docs.docker.com/install/
+[go]:https://golang.org/
+[kubernetes]:https://kubernetes.io/
+[kubectl]:https://kubernetes.io/docs/tasks/tools/install-kubectl/
