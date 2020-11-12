@@ -23,6 +23,10 @@ patchesStrategicMerge:
 - patches/configuration_source_openapi_validation_in_apicasts.yaml
 # +kubebuilder:scaffold:crdkustomizeapicastconfigurationsourceopenapivalidationpatch
 
+# [APIcast CRD additional app label]. This patch adds the 'app' label for the APCIcast CRD
+- patches/additional_app_label_in_crd.yaml
+# +kubebuilder:scaffold:crdkustomizeadditionalapplabelincrdpatch
+
 # the following config is for teaching kustomize how to do kustomization for CRDs.
 configurations:
 - kustomizeconfig.yaml
