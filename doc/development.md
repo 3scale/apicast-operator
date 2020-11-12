@@ -129,10 +129,6 @@ make test-e2e
 ### Generate an operator bundle image
 
 ```sh
-make bundle-build
-```
-
-```sh
 make bundle-build BUNDLE_IMG=quay.io/myorg/myrepo:myversiontag
 ```
 
