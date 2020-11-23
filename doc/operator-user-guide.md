@@ -102,7 +102,9 @@ installation.
 
 **Enabling TLS terminator in the ingress object**
 
-TLS for the exposedHost section can also be configured optionally. Steps are:
+TLS for the exposedHost section can also be configured optionally.
+
+Steps are:
 
 1.- Optionally generate self signed certificates for your DOMAIN
 ```
@@ -132,6 +134,21 @@ spec:
     - hosts:
       - example.com
       secretName: mycertsecret
+```
+
+**[For Openshift users]** Starting with OCP 4.6, you can use the default cluster ingress certificate. The APIcast CR to be used would be:
+
+```
+apiVersion: apps.3scale.net/v1alpha1
+kind: APIcast
+metadata:
+  name: apicast1
+spec:
+  ...
+  exposedHost:
+    host: example.com
+    tls:
+    - {}
 ```
 
 Details about the available fields in the `exposedHost` section can be found [here](apicast-crd-reference.md#APIcastExposedHost)
