@@ -15,19 +15,27 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+type testCRInfo struct {
+	crPrefix   string
+	apiVersion string
+}
+
 func TestSampleCustomResources(t *testing.T) {
 	schemaRoot := "../../bundle/manifests"
 	samplesRoot := "../../config/samples"
-	crdCrMap := map[string]string{
-		"apps.3scale.net_apicasts.yaml": "apps_v1alpha1_apicast",
+	crdCrMap := map[string]testCRInfo{
+		"apps.3scale.net_apicasts.yaml": testCRInfo{
+			crPrefix:   "apps_v1alpha1_apicast",
+			apiVersion: v1alpha1.GroupVersion.Version,
+		},
 	}
-	for crd, prefix := range crdCrMap {
-		validateCustomResources(t, schemaRoot, samplesRoot, crd, prefix)
+	for crd, elem := range crdCrMap {
+		validateCustomResources(t, schemaRoot, samplesRoot, crd, elem.crPrefix, elem.apiVersion)
 	}
 }
 
-func validateCustomResources(t *testing.T, schemaRoot, samplesRoot, crd, prefix string) {
-	schema := getSchema(t, fmt.Sprintf("%s/%s", schemaRoot, crd))
+func validateCustomResources(t *testing.T, schemaRoot, samplesRoot, crd, prefix string, version string) {
+	schema := getSchemaVersioned(t, fmt.Sprintf("%s/%s", schemaRoot, crd), version)
 	assert.NotNil(t, schema)
 	walkFunc := func(path string, info os.FileInfo, err error) error {
 		if strings.HasPrefix(info.Name(), prefix) {
@@ -43,14 +51,23 @@ func validateCustomResources(t *testing.T, schemaRoot, samplesRoot, crd, prefix 
 	assert.NoError(t, err, "Error reading CR yaml files from ", samplesRoot)
 }
 
+type testCRDInfo struct {
+	obj        interface{}
+	apiVersion string
+}
+
 func TestCompleteCRD(t *testing.T) {
 	root := "../../bundle/manifests"
-	crdStructMap := map[string]interface{}{
-		"apps.3scale.net_apicasts.yaml": &v1alpha1.APIcast{},
+
+	crdStructMap := map[string]testCRDInfo{
+		"apps.3scale.net_apicasts.yaml": testCRDInfo{
+			obj:        &v1alpha1.APIcast{},
+			apiVersion: v1alpha1.GroupVersion.Version,
+		},
 	}
-	for crd, obj := range crdStructMap {
-		schema := getSchema(t, fmt.Sprintf("%s/%s", root, crd))
-		missingEntries := schema.GetMissingEntries(obj)
+	for crd, elem := range crdStructMap {
+		schema := getSchemaVersioned(t, fmt.Sprintf("%s/%s", root, crd), elem.apiVersion)
+		missingEntries := schema.GetMissingEntries(elem.obj)
 		for _, missing := range missingEntries {
 			assert.Fail(t, "Discrepancy between CRD and Struct", "CRD: %s: Missing or incorrect schema validation at %s, expected type %s", crd, missing.Path, missing.Type)
 		}
@@ -61,6 +78,14 @@ func getSchema(t *testing.T, crd string) validation.Schema {
 	bytes, err := ioutil.ReadFile(crd)
 	assert.NoError(t, err, "Error reading CRD yaml from %v", crd)
 	schema, err := validation.New(bytes)
+	assert.NoError(t, err)
+	return schema
+}
+
+func getSchemaVersioned(t *testing.T, crd string, version string) validation.Schema {
+	bytes, err := ioutil.ReadFile(crd)
+	assert.NoError(t, err, "Error reading CRD yaml from %v", crd)
+	schema, err := validation.NewVersioned(bytes, version)
 	assert.NoError(t, err)
 	return schema
 }
