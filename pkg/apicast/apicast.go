@@ -223,6 +223,10 @@ func (a *APIcast) deploymentEnv() []v1.EnvVar {
 			a.envVarFromValue("APICAST_HTTPS_CERTIFICATE_KEY", fmt.Sprintf("%s/%s", HTTPSCertificatesMountPath, v1.TLSPrivateKeyKey)))
 	}
 
+	if a.options.Workers != nil {
+		env = append(env, a.envVarFromValue("APICAST_WORKERS", strconv.Itoa(int(*a.options.Workers))))
+	}
+
 	return env
 }
 

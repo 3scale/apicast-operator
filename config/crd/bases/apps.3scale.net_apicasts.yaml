@@ -236,6 +236,10 @@ spec:
                 - non_idempotent
                 - "off"
                 type: string
+              workers:
+                format: int32
+                minimum: 1
+                type: integer
             type: object
           status:
             description: APIcastStatus defines the observed state of APIcast
