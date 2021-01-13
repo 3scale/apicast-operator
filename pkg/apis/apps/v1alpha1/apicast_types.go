@@ -54,6 +54,9 @@ type APIcastSpec struct {
 	OpenSSLPeerVerificationEnabled *bool `json:"openSSLPeerVerificationEnabled,omitempty"` // OPENSSL_VERIFY
 	// +optional
 	Resources *v1.ResourceRequirements `json:"resources,omitempty"`
+	// +optional
+	// +kubebuilder:validation:Minimum=1
+	Workers *int32 `json:"workers,omitempty"`
 }
 
 type DeploymentEnvironmentType string
