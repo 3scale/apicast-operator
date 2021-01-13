@@ -154,6 +154,10 @@ func (a *APIcast) deploymentEnv() []v1.EnvVar {
 		})
 	}
 
+	if a.options.Workers != nil {
+		env = append(env, a.envVarFromValue("APICAST_WORKERS", strconv.Itoa(int(*a.options.Workers))))
+	}
+
 	return env
 }
 

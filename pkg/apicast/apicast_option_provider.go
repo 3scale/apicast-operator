@@ -95,6 +95,8 @@ func (a *APIcastOptionsProvider) GetApicastOptions() (*APIcastOptions, error) {
 	}
 	a.APIcastOptions.ResourceRequirements = resourceRequirements
 
+	a.APIcastOptions.Workers = a.APIcastCR.Spec.Workers
+
 	return a.APIcastOptions, a.APIcastOptions.Validate()
 }
 
