@@ -37,6 +37,7 @@
 | `httpsVerifyDepth` | int | No | N/A | Defines the maximum length of the client certificate chain. (see [docs](https://github.com/3scale/APIcast/blob/master/doc/parameters.md#apicast_https_verify_depth)) |
 | `httpsCertificateSecretRef` | LocalObjectReference | No | APIcast has a default certificate used when `httpsPort` is provided | References secret containing the X.509 certificate in the PEM format and the X.509 certificate secret key |
 | `workers` | integer | No | Automatically computed. Check [apicast doc](https://github.com/3scale/APIcast/blob/master/doc/parameters.md#apicast_workers) for further info. | Defines the number of worker processes |
+| `timezone` | string | No | N/A | The local timezone of the APIcast deployment pods. Its value must be a compatible value with the tz database | Defines the number of worker processes |
 
 #### APIcastStatus
 

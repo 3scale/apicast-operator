@@ -106,6 +106,9 @@ type APIcastSpec struct {
 	// +optional
 	// +kubebuilder:validation:Minimum=1
 	Workers *int32 `json:"workers,omitempty"`
+	// Timezone specifies the local timezone of the APIcast deployment pods. A timezone value available in the TZ database must be set // TZ
+	// +optional
+	Timezone *string `json:"timezone,omitempty"`
 }
 
 type DeploymentEnvironmentType string

@@ -186,6 +186,9 @@ spec:
               servicesFilterByURL:
                 description: ServicesFilterByURL is used to filter the service configured in the 3scale API Manager, the filter matches with the public base URL (Staging or production).
                 type: string
+              timezone:
+                description: Timezone specifies the local timezone of the APIcast deployment pods. A timezone value available in the TZ database must be set // TZ
+                type: string
               upstreamRetryCases:
                 description: UpstreamRetryCases Used only when the retry policy is configured. Specified in which cases a request to the upstream API should be retried.
                 enum:
