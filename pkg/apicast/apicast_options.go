@@ -49,6 +49,7 @@ type APIcastOptions struct {
 	HTTPSVerifyDepth                    *int64
 	HTTPSCertificateSecret              *v1.Secret
 	Workers                             *int32
+	Timezone                            *string
 }
 
 func NewAPIcastOptions() *APIcastOptions {

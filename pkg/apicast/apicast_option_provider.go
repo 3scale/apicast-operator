@@ -120,6 +120,7 @@ func (a *APIcastOptionsProvider) GetApicastOptions() (*APIcastOptions, error) {
 	a.APIcastOptions.ResourceRequirements = resourceRequirements
 
 	a.APIcastOptions.Workers = a.APIcastCR.Spec.Workers
+	a.APIcastOptions.Timezone = a.APIcastCR.Spec.Timezone
 
 	return a.APIcastOptions, a.APIcastOptions.Validate()
 }
