@@ -49,3 +49,6 @@ replace github.com/openshift/api => github.com/openshift/api v0.0.0-201909241025
 
 // security release to address CVE-2020-15257
 replace github.com/containerd/containerd => github.com/containerd/containerd v1.3.9
+
+// security release to address CVE-2020-14040
+replace golang.org/x/text => golang.org/x/text v0.3.3
