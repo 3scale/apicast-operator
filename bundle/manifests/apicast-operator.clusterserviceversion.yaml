@@ -63,7 +63,7 @@ spec:
   apiservicedefinitions: {}
   customresourcedefinitions:
     owned:
-    - description: APIcast is the Schema for the apicasts API
+    - description: APIcast is the Schema for the apicasts API.
       displayName: APIcast
       kind: APIcast
       name: apicasts.apps.3scale.net

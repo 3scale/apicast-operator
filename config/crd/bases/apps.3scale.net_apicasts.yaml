@@ -19,7 +19,7 @@ spec:
   - name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: APIcast is the Schema for the apicasts API
+        description: APIcast is the Schema for the apicasts API.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -34,11 +34,12 @@ spec:
           metadata:
             type: object
           spec:
-            description: APIcastSpec defines the desired state of APIcast
+            description: APIcastSpec defines the desired state of APIcast.
             properties:
               adminPortalCredentialsRef:
-                description: LocalObjectReference contains enough information to let
-                  you locate the referenced object inside the same namespace.
+                description: Secret reference to a Kubernetes Secret containing the
+                  admin portal endpoint URL. The Secret must be located in the same
+                  namespace.
                 properties:
                   name:
                     description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
@@ -46,6 +47,8 @@ spec:
                     type: string
                 type: object
               cacheConfigurationSeconds:
+                description: The period (in seconds) that the APIcast configuration
+                  will be stored in APIcast's cache.
                 format: int64
                 type: integer
               cacheMaxTime:
@@ -58,17 +61,26 @@ spec:
                   response content will be cached.
                 type: string
               configurationLoadMode:
+                description: ConfigurationLoadMode can be used to set APIcast's configuration
+                  load mode.
                 enum:
                 - boot
                 - lazy
                 type: string
               deploymentEnvironment:
+                description: DeploymentEnvironment is the environment for which the
+                  configuration will be downloaded from 3scale (Staging or Production),
+                  when using APIcast. The value will also be used in the header X-3scale-User-Agent
+                  in the authorize/report requests made to 3scale Service Management
+                  API. It is used by 3scale for statistics.
                 type: string
               dnsResolverAddress:
+                description: DNSResolverAddress can be used to specify a custom DNS
+                  resolver address to be used by OpenResty.
                 type: string
               embeddedConfigurationSecretRef:
-                description: LocalObjectReference contains enough information to let
-                  you locate the referenced object inside the same namespace.
+                description: Secret reference to a Kubernetes secret containing the
+                  gateway configuration. The Secret must be located in the same namespace.
                 properties:
                   name:
                     description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
@@ -76,10 +88,14 @@ spec:
                     type: string
                 type: object
               enabledServices:
+                description: EnabledServices can be used to specify a list of service
+                  IDs used to filter the configured services.
                 items:
                   type: string
                 type: array
               exposedHost:
+                description: ExposedHost is the domain name used for external access.
+                  By default no external access is configured.
                 properties:
                   host:
                     type: string
@@ -133,6 +149,9 @@ spec:
                 minimum: 0
                 type: integer
               image:
+                description: Image allows overriding the default APIcast gateway container
+                  image. This setting should only be used for dev/testing purposes.
+                  Setting this disables automated upgrades of the image.
                 type: string
               loadServicesWhenNeeded:
                 description: LoadServicesWhenNeeded makes the configurations to be
@@ -140,6 +159,8 @@ spec:
                   host specified in the host header of the request.
                 type: boolean
               logLevel:
+                description: LogLevel controls the log level of APIcast's OpenResty
+                  logs.
                 enum:
                 - debug
                 - info
@@ -151,6 +172,9 @@ spec:
                 - emerg
                 type: string
               managementAPIScope:
+                description: ManagementAPIScope controls APIcast Management API scope.
+                  The Management API is powerful and can control the APIcast configuration.
+                  debug level should only be enabled for debugging purposes.
                 enum:
                 - disabled
                 - status
@@ -171,14 +195,20 @@ spec:
                 - emerg
                 type: string
               openSSLPeerVerificationEnabled:
+                description: OpenSSLPeerVerificationEnabled controls OpenSSL peer
+                  verification.
                 type: boolean
               pathRoutingEnabled:
+                description: PathRoutingEnabled can be used to enable APIcast's path-based
+                  routing in addition to to the default host-based routing.
                 type: boolean
               replicas:
+                description: Number of replicas of the APIcast Deployment.
                 format: int64
                 type: integer
               resources:
-                description: ResourceRequirements describes the compute resource requirements.
+                description: Resources can be used to set custom compute Kubernetes
+                  Resource Requirements for the APIcast deployment.
                 properties:
                   limits:
                     additionalProperties:
@@ -204,8 +234,13 @@ spec:
                     type: object
                 type: object
               responseCodesIncluded:
+                description: ResponseCodesIncluded can be set to log the response
+                  codes of the responses in Apisonator, so they can then be visualized
+                  in the 3scale admin portal.
                 type: boolean
               serviceAccount:
+                description: Kubernetes Service Account name to be used for the APIcast
+                  Deployment. The Service Account must exist beforehand.
                 type: string
               serviceConfigurationVersionOverride:
                 additionalProperties:
@@ -221,7 +256,7 @@ spec:
               timezone:
                 description: Timezone specifies the local timezone of the APIcast
                   deployment pods. A timezone value available in the TZ database must
-                  be set // TZ
+                  be set.
                 type: string
               upstreamRetryCases:
                 description: UpstreamRetryCases Used only when the retry policy is
@@ -242,12 +277,14 @@ spec:
                 - "off"
                 type: string
               workers:
+                description: Workers defines the number of APIcast's worker processes
+                  per pod.
                 format: int32
                 minimum: 1
                 type: integer
             type: object
           status:
-            description: APIcastStatus defines the observed state of APIcast
+            description: APIcastStatus defines the observed state of APIcast.
             properties:
               conditions:
                 description: Represents the latest available observations of a replica
@@ -266,7 +303,7 @@ spec:
                   type: object
                 type: array
               image:
-                description: The image being used in the APIcast deployment
+                description: The image being used in the APIcast deployment.
                 type: string
             type: object
         type: object
