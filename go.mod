@@ -46,3 +46,12 @@ replace (
 replace github.com/docker/docker => github.com/moby/moby v0.7.3-0.20190826074503-38ab9da00309 // Required by Helm
 
 replace github.com/openshift/api => github.com/openshift/api v0.0.0-20190924102528-32369d4db2ad // Required until https://github.com/operator-framework/operator-lifecycle-manager/pull/1241 is resolved
+
+// security release to address CVE-2020-15257
+replace github.com/containerd/containerd => github.com/containerd/containerd v1.3.9
+
+// security release to address CVE-2020-14040
+replace golang.org/x/text => golang.org/x/text v0.3.3
+
+// security release to address CVE-2020-9283
+replace golang.org/x/crypto => golang.org/x/crypto v0.0.0-20200220183623-bac4c82f6975
