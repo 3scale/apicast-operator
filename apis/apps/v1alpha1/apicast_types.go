@@ -28,46 +28,81 @@ import (
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-// APIcastSpec defines the desired state of APIcast
+// APIcastSpec defines the desired state of APIcast.
 type APIcastSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
+	// Number of replicas of the APIcast Deployment.
 	// +optional
 	Replicas *int64 `json:"replicas,omitempty"`
+	// Secret reference to a Kubernetes Secret containing the admin portal
+	// endpoint URL. The Secret must be located in the same namespace.
 	// +optional
 	AdminPortalCredentialsRef *v1.LocalObjectReference `json:"adminPortalCredentialsRef,omitempty"`
+	// Secret reference to a Kubernetes secret containing the gateway
+	// configuration. The Secret must be located in the same namespace.
 	// +optional
 	EmbeddedConfigurationSecretRef *v1.LocalObjectReference `json:"embeddedConfigurationSecretRef,omitempty"`
+	// Kubernetes Service Account name to be used for the APIcast Deployment. The
+	// Service Account must exist beforehand.
 	// +optional
 	ServiceAccount *string `json:"serviceAccount,omitempty"`
+	// Image allows overriding the default APIcast gateway container image.
+	// This setting should only be used for dev/testing purposes. Setting
+	// this disables automated upgrades of the image.
 	// +optional
 	Image *string `json:"image,omitempty"`
+	// ExposedHost is the domain name used for external access. By default no
+	// external access is configured.
 	// +optional
 	ExposedHost *APIcastExposedHost `json:"exposedHost,omitempty"`
+	// DeploymentEnvironment is the environment for which the configuration will
+	// be downloaded from 3scale (Staging or Production), when using APIcast.
+	// The value will also be used in the header X-3scale-User-Agent in the
+	// authorize/report requests made to 3scale Service Management API. It is
+	// used by 3scale for statistics.
 	// +optional
 	DeploymentEnvironment *DeploymentEnvironmentType `json:"deploymentEnvironment,omitempty"` // THREESCALE_DEPLOYMENT_ENV
+	// DNSResolverAddress can be used to specify a custom DNS resolver address
+	// to be used by OpenResty.
 	// +optional
 	DNSResolverAddress *string `json:"dnsResolverAddress,omitempty"` // RESOLVER
+	// EnabledServices can be used to specify a list of service IDs used to
+	// filter the configured services.
 	// +optional
 	EnabledServices []string `json:"enabledServices,omitempty"` // APICAST_SERVICES_LIST
+	// ConfigurationLoadMode can be used to set APIcast's configuration load mode.
 	// +optional
 	// +kubebuilder:validation:Enum=boot;lazy
 	ConfigurationLoadMode *string `json:"configurationLoadMode,omitempty"` // APICAST_CONFIGURATION_LOADER
+	// LogLevel controls the log level of APIcast's OpenResty logs.
 	// +optional
 	// +kubebuilder:validation:Enum=debug;info;notice;warn;error;crit;alert;emerg
 	LogLevel *string `json:"logLevel,omitempty"` // APICAST_LOG_LEVEL
+	// PathRoutingEnabled can be used to enable APIcast's path-based routing
+	// in addition to to the default host-based routing.
 	// +optional
 	PathRoutingEnabled *bool `json:"pathRoutingEnabled,omitempty"` // APICAST_PATH_ROUTING
+	// ResponseCodesIncluded can be set to log the response codes of the responses
+	// in Apisonator, so they can then be visualized in the 3scale admin portal.
 	// +optional
 	ResponseCodesIncluded *bool `json:"responseCodesIncluded,omitempty"` // APICAST_RESPONSE_CODES
+	// The period (in seconds) that the APIcast configuration will be stored in
+	// APIcast's cache.
 	// +optional
 	CacheConfigurationSeconds *int64 `json:"cacheConfigurationSeconds,omitempty"` // APICAST_CONFIGURATION_CACHE
+	// ManagementAPIScope controls APIcast Management API scope. The Management
+	// API is powerful and can control the APIcast configuration. debug level
+	// should only be enabled for debugging purposes.
 	// +optional
 	// +kubebuilder:validation:Enum=disabled;status;policies;debug
 	ManagementAPIScope *string `json:"managementAPIScope,omitempty"` // APICAST_MANAGEMENT_API
+	// OpenSSLPeerVerificationEnabled controls OpenSSL peer verification.
 	// +optional
 	OpenSSLPeerVerificationEnabled *bool `json:"openSSLPeerVerificationEnabled,omitempty"` // OPENSSL_VERIFY
+	// Resources can be used to set custom compute Kubernetes Resource
+	// Requirements for the APIcast deployment.
 	// +optional
 	Resources *v1.ResourceRequirements `json:"resources,omitempty"`
 	// UpstreamRetryCases Used only when the retry policy is configured. Specified in which cases a request to the upstream API should be retried.
@@ -103,12 +138,13 @@ type APIcastSpec struct {
 	// HTTPSCertificateSecretRef references secret containing the X.509 certificate in the PEM format and the X.509 certificate secret key.
 	// +optional
 	HTTPSCertificateSecretRef *v1.LocalObjectReference `json:"httpsCertificateSecretRef,omitempty"`
+	// Workers defines the number of APIcast's worker processes per pod.
 	// +optional
 	// +kubebuilder:validation:Minimum=1
-	Workers *int32 `json:"workers,omitempty"`
-	// Timezone specifies the local timezone of the APIcast deployment pods. A timezone value available in the TZ database must be set // TZ
+	Workers *int32 `json:"workers,omitempty"` // APICAST_WORKERS
+	// Timezone specifies the local timezone of the APIcast deployment pods. A timezone value available in the TZ database must be set.
 	// +optional
-	Timezone *string `json:"timezone,omitempty"`
+	Timezone *string `json:"timezone,omitempty"` // TZ
 }
 
 type DeploymentEnvironmentType string
@@ -129,7 +165,7 @@ type APIcastExposedHost struct {
 	TLS []extensions.IngressTLS `json:"tls,omitempty"`
 }
 
-// APIcastStatus defines the observed state of APIcast
+// APIcastStatus defines the observed state of APIcast.
 type APIcastStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
@@ -140,7 +176,7 @@ type APIcastStatus struct {
 	// +patchStrategy=merge
 	Conditions []APIcastCondition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type"`
 
-	// The image being used in the APIcast deployment
+	// The image being used in the APIcast deployment.
 	// +optional
 	Image string `json:"image,omitempty"`
 }
@@ -155,7 +191,7 @@ type APIcastCondition struct {
 
 	// The Reason, Message, LastHeartbeatTime and LastTransitionTime fields are
 	// optional. Unless we really use them they should directly not be used even
-	// if they are optional
+	// if they are optional.
 	// The last time the condition transitioned from one status to another.
 	// +optional
 	//LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty"`
@@ -170,7 +206,7 @@ type APIcastCondition struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 
-// APIcast is the Schema for the apicasts API
+// APIcast is the Schema for the apicasts API.
 // +kubebuilder:resource:path=apicasts,scope=Namespaced
 // +operator-sdk:csv:customresourcedefinitions:displayName="APIcast"
 type APIcast struct {
@@ -183,7 +219,7 @@ type APIcast struct {
 
 // +kubebuilder:object:root=true
 
-// APIcastList contains a list of APIcast
+// APIcastList contains a list of APIcasts.
 type APIcastList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
