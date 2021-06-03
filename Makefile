@@ -1,4 +1,7 @@
 SHELL := /bin/bash
+
+include utils.mk
+
 # Current Operator version
 VERSION ?= 0.0.1
 # Default bundle image tag
@@ -17,19 +20,14 @@ IMG ?= quay.io/3scale/apicast-operator:master
 
 CRD_OPTIONS ?= "crd:crdVersions=v1"
 
-# Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
-ifeq (,$(shell go env GOBIN))
-GOBIN=$(shell go env GOPATH)/bin
-else
-GOBIN=$(shell go env GOBIN)
-endif
-
-OPERATOR_SDK ?= operator-sdk
 DOCKER ?= docker
 KUBECTL ?= kubectl
 
 MKFILE_PATH := $(abspath $(lastword $(MAKEFILE_LIST)))
 PROJECT_PATH := $(patsubst %/,%,$(dir $(MKFILE_PATH)))
+
+OS := $(shell uname | awk '{print tolower($$0)}' | sed -e s/linux/linux-gnu/ )
+ARCH := $(shell uname -m)
 
 LICENSEFINDERBINARY := $(shell command -v license_finder 2> /dev/null)
 DEPENDENCY_DECISION_FILE = $(PROJECT_PATH)/doc/dependency_decisions.yml
@@ -39,6 +37,41 @@ NAMESPACE ?= $(shell $(KUBECTL) config view --minify -o jsonpath='{.contexts[0].
 CURRENT_DATE=$(shell date +%s)
 
 all: manager
+
+# find or download controller-gen
+# download controller-gen if necessary
+CONTROLLER_GEN=$(PROJECT_PATH)/bin/controller-gen
+$(CONTROLLER_GEN):
+	$(call go-get-tool,$(CONTROLLER_GEN),sigs.k8s.io/controller-tools/cmd/controller-gen@v0.3.0)
+
+.PHONY: controller-gen
+controller-gen: $(CONTROLLER_GEN)
+
+KUSTOMIZE=$(PROJECT_PATH)/bin/kustomize
+$(KUSTOMIZE):
+	$(call go-get-tool,$(KUSTOMIZE),sigs.k8s.io/kustomize/kustomize/v3@v3.5.4)
+
+.PHONY: kustomize
+kustomize: $(KUSTOMIZE)
+
+OPERATOR_SDK = $(PROJECT_PATH)/bin/operator-sdk
+# Note: release file patterns changed after v1.2.0
+# More info https://sdk.operatorframework.io/docs/installation/
+OPERATOR_SDK_VERSION=v1.2.0
+$(OPERATOR_SDK):
+	curl -sSL https://github.com/operator-framework/operator-sdk/releases/download/$(OPERATOR_SDK_VERSION)/operator-sdk-${OPERATOR_SDK_VERSION}-$(ARCH)-${OS} -o $(OPERATOR_SDK)
+	chmod +x $(OPERATOR_SDK)
+
+.PHONY: operator-sdk
+operator-sdk: $(OPERATOR_SDK)
+
+# find or download yq
+YQ=$(PROJECT_PATH)/bin/yq
+$(YQ):
+	$(call go-get-tool,$(YQ),github.com/mikefarah/yq/v3)
+
+.PHONY: yq
+yq: $(YQ)
 
 # Run all tests
 test: test-unit test-crds test-e2e
@@ -53,20 +86,20 @@ run: generate fmt vet manifests
 	go run ./main.go --zap-devel
 
 # Install CRDs into a cluster
-install: manifests kustomize
+install: manifests $(KUSTOMIZE)
 	$(KUSTOMIZE) build config/crd | $(KUBECTL) apply -f -
 
 # Uninstall CRDs from a cluster
-uninstall: manifests kustomize
+uninstall: manifests $(KUSTOMIZE)
 	$(KUSTOMIZE) build config/crd | $(KUBECTL) delete -f -
 
 # Deploy controller in the configured Kubernetes cluster in ~/.kube/config
-deploy: manifests kustomize
+deploy: manifests $(KUSTOMIZE)
 	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
 	$(KUSTOMIZE) build config/default | $(KUBECTL) apply -f -
 
 # Generate manifests e.g. CRD, RBAC etc.
-manifests: controller-gen
+manifests: $(CONTROLLER_GEN)
 	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
 
 # Run go fmt against code
@@ -78,7 +111,7 @@ vet:
 	go vet ./...
 
 # Generate code
-generate: controller-gen
+generate: $(CONTROLLER_GEN)
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
 
 # Build the docker image
@@ -99,58 +132,9 @@ operator-image-push:
 bundle-image-push:
 	$(DOCKER) push ${BUNDLE_IMG}
 
-# find or download controller-gen
-# download controller-gen if necessary
-controller-gen:
-ifeq (, $(shell which controller-gen))
-	@{ \
-	set -e ;\
-	CONTROLLER_GEN_TMP_DIR=$$(mktemp -d) ;\
-	cd $$CONTROLLER_GEN_TMP_DIR ;\
-	go mod init tmp ;\
-	go get sigs.k8s.io/controller-tools/cmd/controller-gen@v0.3.0 ;\
-	rm -rf $$CONTROLLER_GEN_TMP_DIR ;\
-	}
-CONTROLLER_GEN=$(GOBIN)/controller-gen
-else
-CONTROLLER_GEN=$(shell which controller-gen)
-endif
-
-kustomize:
-ifeq (, $(shell which kustomize))
-	@{ \
-	set -e ;\
-	KUSTOMIZE_GEN_TMP_DIR=$$(mktemp -d) ;\
-	cd $$KUSTOMIZE_GEN_TMP_DIR ;\
-	go mod init tmp ;\
-	go get sigs.k8s.io/kustomize/kustomize/v3@v3.5.4 ;\
-	rm -rf $$KUSTOMIZE_GEN_TMP_DIR ;\
-	}
-KUSTOMIZE=$(GOBIN)/kustomize
-else
-KUSTOMIZE=$(shell which kustomize)
-endif
-
-# find or download yq
-# download yq if necessary
-yq:
-ifeq (, $(shell command -v yq 2> /dev/null))
-	@{ \
-	set -e ;\
-	YQ_TMP_DIR=$$(mktemp -d) ;\
-	cd $$YQ_TMP_DIR ;\
-	go mod init tmp ;\
-	go get github.com/mikefarah/yq/v3 ;\
-	rm -rf $$YQ_TMP_DIR ;\
-	}
-YQ=$(GOBIN)/yq
-else
-YQ=$(shell command -v yq 2> /dev/null)
-endif
-
 # Generate bundle manifests and metadata, then validate generated files.
 .PHONY: bundle
-bundle: manifests kustomize
+bundle: manifests $(KUSTOMIZE) $(OPERATOR_SDK)
 	$(OPERATOR_SDK) generate kustomize manifests -q
 	cd config/manager && $(KUSTOMIZE) edit set image controller=$(IMG)
 	$(KUSTOMIZE) build config/manifests | $(OPERATOR_SDK) generate bundle -q --overwrite --version $(VERSION) $(BUNDLE_METADATA_OPTS)
@@ -208,16 +192,16 @@ test-e2e: generate fmt vet manifests
 	source ${ENVTEST_ASSETS_DIR}/setup-envtest.sh; fetch_envtest_tools $(ENVTEST_ASSETS_DIR); setup_envtest_env $(ENVTEST_ASSETS_DIR); go test $(TEST_E2E_PKGS) -coverprofile cover.out -ginkgo.v -ginkgo.progress -v
 
 .PHONY: bundle-validate
-bundle-validate:
+bundle-validate: $(OPERATOR_SDK)
 	$(OPERATOR_SDK) bundle validate ./bundle
 
 .PHONY: bundle-validate-image
-bundle-validate-image:
+bundle-validate-image: $(OPERATOR_SDK)
 	$(OPERATOR_SDK) bundle validate $(BUNDLE_IMG)
 
 .PHONY: bundle-custom-updates
 bundle-custom-updates: BUNDLE_PREFIX=dev$(CURRENT_DATE)
-bundle-custom-updates: yq
+bundle-custom-updates: $(YQ)
 	@echo "Update metadata to avoid collision with existing APIcast Operator official public operators catalog entries"
 	@echo "using BUNDLE_PREFIX $(BUNDLE_PREFIX)"
 	$(YQ) w --inplace $(PROJECT_PATH)/bundle/manifests/apicast-operator.clusterserviceversion.yaml metadata.name $(BUNDLE_PREFIX)-apicast-operator.$(VERSION)
@@ -237,5 +221,5 @@ bundle-restore:
 bundle-custom-build: | bundle-custom-updates bundle-build bundle-restore
 
 .PHONY: bundle-run
-bundle-run:
+bundle-run: $(OPERATOR_SDK)
 	$(OPERATOR_SDK) run bundle --namespace $(NAMESPACE) $(BUNDLE_IMG)
