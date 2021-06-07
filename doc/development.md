@@ -28,6 +28,13 @@
 * [kubectl] version v1.11.3+
 * Access to a Kubernetes v1.11.0+ cluster.
 * A user with administrative privileges in the Kubernetes cluster.
+* Make sure that the `DOCKER_ORG` and `DOCKER_REGISTRY` environment variables are set to the same value as
+  your username on the container registry, and the container registry you are using.
+
+```sh
+export DOCKER_ORG=docker_hub_username
+export DOCKER_REGISTRY=quay.io
+```
 
 ## Clone repository
 
@@ -40,7 +47,7 @@ cd apicast-operator
 Build operator image
 
 ```sh
-make docker-build-only IMG=quay.io/myorg/apicast-operator:myversiontag
+make docker-build-only IMG=$DOCKER_REGISTRY/$DOCKER_ORG/apicast-operator:myversiontag
 ```
 
 ## Run APIcast Operator
@@ -85,19 +92,19 @@ make run
 
 * Build and upload custom operator image
 ```
-make docker-build-only IMG=quay.io/myorg/apicast-operator:myversiontag
-make operator-image-push IMG=quay.io/myorg/apicast-operator:myversiontag
+make docker-build-only IMG=$DOCKER_REGISTRY/$DOCKER_ORG/apicast-operator:myversiontag
+make operator-image-push IMG=$DOCKER_REGISTRY/$DOCKER_ORG/apicast-operator:myversiontag
 ```
 
 * Build and upload custom operator bundle image. Changes to avoid conflicts will be made by the makefile.
 ```
-make bundle-custom-build IMG=quay.io/myorg/apicast-operator:myversiontag BUNDLE_IMG=quay.io/myorg/apicast-operator-bundles:myversiontag
-make bundle-image-push BUNDLE_IMG=quay.io/myorg/apicast-operator-bundles:myversiontag
+make bundle-custom-build IMG=$DOCKER_REGISTRY/$DOCKER_ORG/apicast-operator:myversiontag BUNDLE_IMG=$DOCKER_REGISTRY/$DOCKER_ORG/apicast-operator-bundles:myversiontag
+make bundle-image-push BUNDLE_IMG=$DOCKER_REGISTRY/$DOCKER_ORG/apicast-operator-bundles:myversiontag
 ```
 
 * Deploy the operator in your currently configured and active cluster in $HOME/.kube/config:
 ```
-make bundle-run BUNDLE_IMG=quay.io/myorg/apicast-operator-bundles:myversiontag
+make bundle-run BUNDLE_IMG=$DOCKER_REGISTRY/$DOCKER_ORG/apicast-operator-bundles:myversiontag
 ```
 
 It will take a few minutes for the operator to become visible under
@@ -129,13 +136,13 @@ make test-e2e
 ### Generate an operator bundle image
 
 ```sh
-make bundle-build BUNDLE_IMG=quay.io/myorg/myrepo:myversiontag
+make bundle-build BUNDLE_IMG=$DOCKER_REGISTRY/$DOCKER_ORG/myrepo:myversiontag
 ```
 
 ### Push an operator bundle into an external container repository
 
 ```sh
-make bundle-image-push BUNDLE_IMG=quay.io/myorg/myrepo:myversiontag
+make bundle-image-push BUNDLE_IMG=$DOCKER_REGISTRY/$DOCKER_ORG/myrepo:myversiontag
 ```
 
 ### Validate an operator bundle image
@@ -143,7 +150,7 @@ make bundle-image-push BUNDLE_IMG=quay.io/myorg/myrepo:myversiontag
 NOTE: if validating an image, the image must exist in a remote registry, not just locally.
 
 ```sh
-make bundle-validate-image BUNDLE_IMG=quay.io/myorg/myrepo:myversiontag
+make bundle-validate-image BUNDLE_IMG=$DOCKER_REGISTRY/$DOCKER_ORG/myrepo:myversiontag
 ```
 
 ## Licenses management
