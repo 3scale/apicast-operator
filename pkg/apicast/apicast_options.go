@@ -6,6 +6,8 @@ import (
 	extensions "k8s.io/api/extensions/v1beta1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	appsv1alpha1 "github.com/3scale/apicast-operator/apis/apps/v1alpha1"
 )
 
 type ExposedHost struct {
@@ -50,6 +52,7 @@ type APIcastOptions struct {
 	HTTPSCertificateSecret              *v1.Secret
 	Workers                             *int32
 	Timezone                            *string
+	CustomPolicies                      []appsv1alpha1.CustomPolicySpec
 }
 
 func NewAPIcastOptions() *APIcastOptions {

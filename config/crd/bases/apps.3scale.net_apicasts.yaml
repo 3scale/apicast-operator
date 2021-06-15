@@ -67,6 +67,29 @@ spec:
                 - boot
                 - lazy
                 type: string
+              customPolicies:
+                description: CustomPolicies specifies an array of defined custome
+                  policies to be loaded
+                items:
+                  description: CustomPolicySpec contains or has reference to an APIcast
+                    custom policy
+                  properties:
+                    name:
+                      description: Name specifies the name of the custom policy
+                      type: string
+                    secretName:
+                      description: SecretName specifies the secret name holding the
+                        custom policy metadata and lua code
+                      type: string
+                    version:
+                      description: Version specifies the name of the custom policy
+                      type: string
+                  required:
+                  - name
+                  - secretName
+                  - version
+                  type: object
+                type: array
               deploymentEnvironment:
                 description: DeploymentEnvironment is the environment for which the
                   configuration will be downloaded from 3scale (Staging or Production),
