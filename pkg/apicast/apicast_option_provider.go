@@ -122,6 +122,8 @@ func (a *APIcastOptionsProvider) GetApicastOptions() (*APIcastOptions, error) {
 	a.APIcastOptions.Workers = a.APIcastCR.Spec.Workers
 	a.APIcastOptions.Timezone = a.APIcastCR.Spec.Timezone
 
+	a.APIcastOptions.CustomPolicies = a.APIcastCR.Spec.CustomPolicies
+
 	return a.APIcastOptions, a.APIcastOptions.Validate()
 }
 

@@ -17,6 +17,8 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"fmt"
+
 	appscommon "github.com/3scale/apicast-operator/apis/apps"
 
 	v1 "k8s.io/api/core/v1"
@@ -27,6 +29,21 @@ import (
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
+
+// CustomPolicySpec contains or has reference to an APIcast custom policy
+type CustomPolicySpec struct {
+	// Name specifies the name of the custom policy
+	Name string `json:"name"`
+	// Version specifies the name of the custom policy
+	Version string `json:"version"`
+
+	// SecretName specifies the secret name holding the custom policy metadata and lua code
+	SecretName string `json:"secretName"`
+}
+
+func (c *CustomPolicySpec) VersionName() string {
+	return fmt.Sprintf("%s%s", c.Name, c.Version)
+}
 
 // APIcastSpec defines the desired state of APIcast.
 type APIcastSpec struct {
@@ -145,6 +162,10 @@ type APIcastSpec struct {
 	// Timezone specifies the local timezone of the APIcast deployment pods. A timezone value available in the TZ database must be set.
 	// +optional
 	Timezone *string `json:"timezone,omitempty"` // TZ
+
+	// CustomPolicies specifies an array of defined custome policies to be loaded
+	// +optional
+	CustomPolicies []CustomPolicySpec `json:"customPolicies,omitempty"`
 }
 
 type DeploymentEnvironmentType string
@@ -248,6 +269,18 @@ func (a *APIcast) Validate() field.ErrorList {
 
 	if a.Spec.HTTPSPort != nil && *a.Spec.HTTPSPort == DefaultHTTPPort {
 		errors = append(errors, field.Invalid(httpsPortFldPath, a.Spec.HTTPSPort, "HTTPS port conflicts with HTTP port"))
+	}
+
+	// check duplicated custom policy secret version name
+	duplicateMap := make(map[string]int)
+	customPoliciesFldPath := specFldPath.Child("customPolicies")
+	for idx, customPolicySpec := range a.Spec.CustomPolicies {
+		if _, ok := duplicateMap[customPolicySpec.VersionName()]; ok {
+			customPoliciesIdxFldPath := customPoliciesFldPath.Index(idx)
+			errors = append(errors, field.Invalid(customPoliciesIdxFldPath, customPolicySpec, "custom policy secret name version tuple is duplicated"))
+			break
+		}
+		duplicateMap[customPolicySpec.VersionName()] = 0
 	}
 
 	return errors
