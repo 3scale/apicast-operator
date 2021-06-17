@@ -37,8 +37,8 @@ type CustomPolicySpec struct {
 	// Version specifies the name of the custom policy
 	Version string `json:"version"`
 
-	// SecretName specifies the secret name holding the custom policy metadata and lua code
-	SecretName string `json:"secretName"`
+	// SecretRef specifies the secret holding the custom policy metadata and lua code
+	SecretRef *v1.LocalObjectReference `json:"secretRef"`
 }
 
 func (c *CustomPolicySpec) VersionName() string {
@@ -271,9 +271,17 @@ func (a *APIcast) Validate() field.ErrorList {
 		errors = append(errors, field.Invalid(httpsPortFldPath, a.Spec.HTTPSPort, "HTTPS port conflicts with HTTP port"))
 	}
 
-	// check duplicated custom policy secret version name
-	duplicateMap := make(map[string]int)
 	customPoliciesFldPath := specFldPath.Child("customPolicies")
+	// check custom policy secret is set
+	for idx, customPolicySpec := range a.Spec.CustomPolicies {
+		if customPolicySpec.SecretRef == nil {
+			customPoliciesIdxFldPath := customPoliciesFldPath.Index(idx)
+			errors = append(errors, field.Invalid(customPoliciesIdxFldPath, customPolicySpec, "custom policy secret is mandatory"))
+		}
+	}
+
+	// check duplicated custom policy version name
+	duplicateMap := make(map[string]int)
 	for idx, customPolicySpec := range a.Spec.CustomPolicies {
 		if _, ok := duplicateMap[customPolicySpec.VersionName()]; ok {
 			customPoliciesIdxFldPath := customPoliciesFldPath.Index(idx)

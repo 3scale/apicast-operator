@@ -71,10 +71,10 @@ func (a *APIcast) deploymentVolumeMounts() []v1.VolumeMount {
 		})
 	}
 
-	for _, customPolicySpec := range a.options.CustomPolicies {
+	for _, customPolicy := range a.options.CustomPolicies {
 		volumeMounts = append(volumeMounts, v1.VolumeMount{
-			Name:      policyVolumeName(customPolicySpec),
-			MountPath: path.Join(CustomPoliciesMountBasePath, customPolicySpec.Name, customPolicySpec.Version),
+			Name:      policyVolumeName(customPolicy),
+			MountPath: path.Join(CustomPoliciesMountBasePath, customPolicy.Name, customPolicy.Version),
 			ReadOnly:  true,
 		})
 	}
@@ -82,8 +82,8 @@ func (a *APIcast) deploymentVolumeMounts() []v1.VolumeMount {
 	return volumeMounts
 }
 
-func policyVolumeName(spec appsv1alpha1.CustomPolicySpec) string {
-	return fmt.Sprintf("%s-%s", "policy", helper.DNS1123Name(spec.VersionName()))
+func policyVolumeName(cp CustomPolicy) string {
+	return fmt.Sprintf("%s-%s-%s", "policy", helper.DNS1123Name(cp.Version), helper.DNS1123Name(cp.Name))
 }
 
 func (a *APIcast) deploymentVolumes() []v1.Volume {
@@ -116,12 +116,12 @@ func (a *APIcast) deploymentVolumes() []v1.Volume {
 		})
 	}
 
-	for _, customPolicySpec := range a.options.CustomPolicies {
+	for _, customPolicy := range a.options.CustomPolicies {
 		volumes = append(volumes, v1.Volume{
-			Name: policyVolumeName(customPolicySpec),
+			Name: policyVolumeName(customPolicy),
 			VolumeSource: v1.VolumeSource{
 				Secret: &v1.SecretVolumeSource{
-					SecretName: customPolicySpec.SecretName,
+					SecretName: customPolicy.SecretRef.Name,
 				},
 			},
 		})
