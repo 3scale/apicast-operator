@@ -122,7 +122,14 @@ func (a *APIcastOptionsProvider) GetApicastOptions() (*APIcastOptions, error) {
 	a.APIcastOptions.Workers = a.APIcastCR.Spec.Workers
 	a.APIcastOptions.Timezone = a.APIcastCR.Spec.Timezone
 
-	a.APIcastOptions.CustomPolicies = a.APIcastCR.Spec.CustomPolicies
+	for _, customPolicySpec := range a.APIcastCR.Spec.CustomPolicies {
+		a.APIcastOptions.CustomPolicies = append(a.APIcastOptions.CustomPolicies, CustomPolicy{
+			Name:    customPolicySpec.Name,
+			Version: customPolicySpec.Version,
+			// CR Validation ensures not nil
+			SecretRef: *customPolicySpec.SecretRef,
+		})
+	}
 
 	return a.APIcastOptions, a.APIcastOptions.Validate()
 }

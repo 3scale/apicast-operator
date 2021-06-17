@@ -68,15 +68,19 @@ spec:
                     name:
                       description: Name specifies the name of the custom policy
                       type: string
-                    secretName:
-                      description: SecretName specifies the secret name holding the custom policy metadata and lua code
-                      type: string
+                    secretRef:
+                      description: SecretRef specifies the secret holding the custom policy metadata and lua code
+                      properties:
+                        name:
+                          description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names TODO: Add other useful fields. apiVersion, kind, uid?'
+                          type: string
+                      type: object
                     version:
                       description: Version specifies the name of the custom policy
                       type: string
                   required:
                   - name
-                  - secretName
+                  - secretRef
                   - version
                   type: object
                 type: array
