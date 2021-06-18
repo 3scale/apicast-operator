@@ -277,6 +277,9 @@ func (a *APIcast) Validate() field.ErrorList {
 		if customPolicySpec.SecretRef == nil {
 			customPoliciesIdxFldPath := customPoliciesFldPath.Index(idx)
 			errors = append(errors, field.Invalid(customPoliciesIdxFldPath, customPolicySpec, "custom policy secret is mandatory"))
+		} else if customPolicySpec.SecretRef.Name == "" {
+			customPoliciesIdxFldPath := customPoliciesFldPath.Index(idx)
+			errors = append(errors, field.Invalid(customPoliciesIdxFldPath, customPolicySpec, "custom policy secret name is empty"))
 		}
 	}
 
