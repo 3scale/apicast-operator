@@ -122,11 +122,22 @@ func (a *APIcastOptionsProvider) GetApicastOptions() (*APIcastOptions, error) {
 	a.APIcastOptions.Workers = a.APIcastCR.Spec.Workers
 	a.APIcastOptions.Timezone = a.APIcastCR.Spec.Timezone
 
-	for _, customPolicySpec := range a.APIcastCR.Spec.CustomPolicies {
+	for idx, customPolicySpec := range a.APIcastCR.Spec.CustomPolicies {
+		namespacedName := types.NamespacedName{
+			Name:      customPolicySpec.SecretRef.Name, // CR Validation ensures not nil
+			Namespace: a.APIcastCR.Namespace,
+		}
+		err := a.validateCustomPolicySecret(namespacedName)
+		if err != nil {
+			errors := field.ErrorList{}
+			customPoliciesIdxFldPath := field.NewPath("spec").Child("customPolicies").Index(idx)
+			errors = append(errors, field.Invalid(customPoliciesIdxFldPath, customPolicySpec, err.Error()))
+			return nil, errors.ToAggregate()
+		}
+
 		a.APIcastOptions.CustomPolicies = append(a.APIcastOptions.CustomPolicies, CustomPolicy{
-			Name:    customPolicySpec.Name,
-			Version: customPolicySpec.Version,
-			// CR Validation ensures not nil
+			Name:      customPolicySpec.Name,
+			Version:   customPolicySpec.Version,
 			SecretRef: *customPolicySpec.SecretRef,
 		})
 	}
@@ -269,4 +280,24 @@ func (a *APIcastOptionsProvider) getHTTPSCertificateSecret() (*v1.Secret, error)
 	}
 
 	return secret, err
+}
+
+func (a *APIcastOptionsProvider) validateCustomPolicySecret(nn types.NamespacedName) error {
+	secret := &v1.Secret{}
+	err := a.Client.Get(context.TODO(), nn, secret)
+
+	if err != nil {
+		// NotFoundError is also an error, it is required to exist
+		return err
+	}
+
+	if _, ok := secret.Data["init.lua"]; !ok {
+		return fmt.Errorf("Required secret key, %s not found", "init.lua")
+	}
+
+	if _, ok := secret.Data["apicast-policy.json"]; !ok {
+		return fmt.Errorf("Required secret key, %s not found", "apicast-policy.json")
+	}
+
+	return nil
 }

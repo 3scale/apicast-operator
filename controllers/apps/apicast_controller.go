@@ -130,7 +130,6 @@ func (r *APIcastReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			return ctrl.Result{Requeue: true}, nil
 		}
 
-		log.Error(err, "Main reconciler")
 		return result, err
 	}
 	if result.Requeue {
