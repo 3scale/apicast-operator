@@ -38,6 +38,7 @@
 | `httpsCertificateSecretRef` | LocalObjectReference | No | APIcast has a default certificate used when `httpsPort` is provided | References secret containing the X.509 certificate in the PEM format and the X.509 certificate secret key |
 | `workers` | integer | No | Automatically computed. Check [apicast doc](https://github.com/3scale/APIcast/blob/master/doc/parameters.md#apicast_workers) for further info. | Defines the number of worker processes |
 | `timezone` | string | No | N/A | The local timezone of the APIcast deployment pods. Its value must be a compatible value with the tz database | Defines the number of worker processes |
+| `customPolicies` | [][CustomPolicySpec](#CustomPolicySpec) | No | N/A | List of custom policies |
 
 #### APIcastStatus
 
@@ -79,3 +80,22 @@ spec:
     2555417833738: 5
     2555417836536: 7
 ```
+
+#### CustomPolicySpec
+
+| **json/yaml field** | **Type** | **Required** | **Default value** | **Description** |
+| --- | --- | --- | --- | --- |
+| `name` | string | Yes | N/A | Name |
+| `version` | string | Yes | N/A | Version |
+| `SecretRef` | LocalObjectReference | Yes | N/A | Secret reference with the policy content. See [CustomPolicySecret](#CustomPolicySecret) for more information.
+
+#### CustomPolicySecret
+
+Contains custom policy specific content. Two files,  `init.lua` and `apicast-policy.json`, aare required, but more can be added optionally.
+
+Some examples are available [here](/doc/adding-custom-policies.md) 
+
+| **Field** | **Description** |
+| --- | --- |
+| `init.lua` | Custom policy lua code entry point |
+| `apicast-policy.json` | Custom policy metadata |
