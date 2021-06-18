@@ -13,6 +13,7 @@
 * [Reconciliation](#reconciliation)
 * [Upgrading APIcast](#upgrading-APIcast)
 * [APIcast CRD reference](apicast-crd-reference.md)
+  * CR samples [\[1\]](../config/samples/apps_v1alpha1_apicast_admin_portal_url_cr.yaml) [\[2\]](cr_samples/)
 
 ## Installing APIcast self-managed gateway
 
