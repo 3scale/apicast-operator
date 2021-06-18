@@ -22,7 +22,10 @@ type testCRInfo struct {
 
 func TestSampleCustomResources(t *testing.T) {
 	schemaRoot := "../../bundle/manifests"
-	samplesRoot := "../../config/samples"
+	samplesRootList := []string{
+		"../../config/samples",
+		"../../doc/cr_samples",
+	}
 	crdCrMap := map[string]testCRInfo{
 		"apps.3scale.net_apicasts.yaml": testCRInfo{
 			crPrefix:   "apps_v1alpha1_apicast",
@@ -30,7 +33,9 @@ func TestSampleCustomResources(t *testing.T) {
 		},
 	}
 	for crd, elem := range crdCrMap {
-		validateCustomResources(t, schemaRoot, samplesRoot, crd, elem.crPrefix, elem.apiVersion)
+		for _, samplesRoot := range samplesRootList {
+			validateCustomResources(t, schemaRoot, samplesRoot, crd, elem.crPrefix, elem.apiVersion)
+		}
 	}
 }
 
