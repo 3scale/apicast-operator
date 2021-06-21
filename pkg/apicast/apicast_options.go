@@ -13,6 +13,12 @@ type ExposedHost struct {
 	TLS  []extensions.IngressTLS
 }
 
+type CustomPolicy struct {
+	Name      string
+	Version   string
+	SecretRef v1.LocalObjectReference
+}
+
 type APIcastOptions struct {
 	Namespace                    string                 `validate:"required"`
 	DeploymentName               string                 `validate:"required"`
@@ -50,6 +56,7 @@ type APIcastOptions struct {
 	HTTPSCertificateSecret              *v1.Secret
 	Workers                             *int32
 	Timezone                            *string
+	CustomPolicies                      []CustomPolicy
 }
 
 func NewAPIcastOptions() *APIcastOptions {

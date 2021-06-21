@@ -14,3 +14,24 @@ func FindEnvVar(a []v1.EnvVar, x string) int {
 	}
 	return -1
 }
+
+func EnvVarFromSecretKey(name string, secretName string, secretKey string) v1.EnvVar {
+	return v1.EnvVar{
+		Name: name,
+		ValueFrom: &v1.EnvVarSource{
+			SecretKeyRef: &v1.SecretKeySelector{
+				LocalObjectReference: v1.LocalObjectReference{
+					Name: secretName,
+				},
+				Key: secretKey,
+			},
+		},
+	}
+}
+
+func EnvVarFromValue(name string, value string) v1.EnvVar {
+	return v1.EnvVar{
+		Name:  name,
+		Value: value,
+	}
+}

@@ -2,10 +2,13 @@ package apicast
 
 import (
 	"fmt"
+	"path"
 	"strconv"
 	"strings"
 
 	appsv1alpha1 "github.com/3scale/apicast-operator/apis/apps/v1alpha1"
+	"github.com/3scale/apicast-operator/pkg/helper"
+	"github.com/3scale/apicast-operator/pkg/k8sutils"
 
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
@@ -30,6 +33,7 @@ const (
 const (
 	HTTPSCertificatesMountPath  = "/var/run/secrets/apicast"
 	HTTPSCertificatesVolumeName = "https-certificates"
+	CustomPoliciesMountBasePath = "/opt/app-root/src/policies"
 )
 
 type APIcast struct {
@@ -67,7 +71,19 @@ func (a *APIcast) deploymentVolumeMounts() []v1.VolumeMount {
 		})
 	}
 
+	for _, customPolicy := range a.options.CustomPolicies {
+		volumeMounts = append(volumeMounts, v1.VolumeMount{
+			Name:      policyVolumeName(customPolicy),
+			MountPath: path.Join(CustomPoliciesMountBasePath, customPolicy.Name, customPolicy.Version),
+			ReadOnly:  true,
+		})
+	}
+
 	return volumeMounts
+}
+
+func policyVolumeName(cp CustomPolicy) string {
+	return fmt.Sprintf("%s-%s-%s", "policy", helper.DNS1123Name(cp.Version), helper.DNS1123Name(cp.Name))
 }
 
 func (a *APIcast) deploymentVolumes() []v1.Volume {
@@ -100,78 +116,68 @@ func (a *APIcast) deploymentVolumes() []v1.Volume {
 		})
 	}
 
-	return volumes
-}
-
-func (a *APIcast) envVarFromValue(name string, value string) v1.EnvVar {
-	return v1.EnvVar{
-		Name:  name,
-		Value: value,
-	}
-}
-
-func (a *APIcast) envVarFromSecretKey(name string, secretName string, secretKey string) v1.EnvVar {
-	return v1.EnvVar{
-		Name: name,
-		ValueFrom: &v1.EnvVarSource{
-			SecretKeyRef: &v1.SecretKeySelector{
-				LocalObjectReference: v1.LocalObjectReference{
-					Name: secretName,
+	for _, customPolicy := range a.options.CustomPolicies {
+		volumes = append(volumes, v1.Volume{
+			Name: policyVolumeName(customPolicy),
+			VolumeSource: v1.VolumeSource{
+				Secret: &v1.SecretVolumeSource{
+					SecretName: customPolicy.SecretRef.Name,
 				},
-				Key: secretKey,
 			},
-		},
+		})
 	}
+
+	return volumes
 }
 
 func (a *APIcast) deploymentEnv() []v1.EnvVar {
 	var env []v1.EnvVar
 
 	if a.options.AdminPortalCredentialsSecret != nil {
-		env = append(env, a.envVarFromSecretKey("THREESCALE_PORTAL_ENDPOINT", a.options.AdminPortalCredentialsSecret.Name, AdminPortalURLAttributeName))
+		env = append(env, k8sutils.EnvVarFromSecretKey("THREESCALE_PORTAL_ENDPOINT", a.options.AdminPortalCredentialsSecret.Name, AdminPortalURLAttributeName))
 	}
 
 	if a.options.DeploymentEnvironment != nil {
-		env = append(env, a.envVarFromValue("THREESCALE_DEPLOYMENT_ENV", *a.options.DeploymentEnvironment))
+		env = append(env, k8sutils.EnvVarFromValue("THREESCALE_DEPLOYMENT_ENV", *a.options.DeploymentEnvironment))
 	}
 
 	if a.options.DNSResolverAddress != nil {
-		env = append(env, a.envVarFromValue("RESOLVER", *a.options.DNSResolverAddress))
+		env = append(env, k8sutils.EnvVarFromValue("RESOLVER", *a.options.DNSResolverAddress))
 	}
 
 	if a.options.EnabledServices != nil {
 		joinedStr := strings.Join(a.options.EnabledServices, ",")
 		if joinedStr != "" {
-			env = append(env, a.envVarFromValue("APICAST_SERVICES_LIST", joinedStr))
+			env = append(env, k8sutils.EnvVarFromValue("APICAST_SERVICES_LIST", joinedStr))
 		}
 	}
 
 	if a.options.ConfigurationLoadMode != nil {
-		env = append(env, a.envVarFromValue("APICAST_CONFIGURATION_LOADER", *a.options.ConfigurationLoadMode))
+		env = append(env, k8sutils.EnvVarFromValue("APICAST_CONFIGURATION_LOADER", *a.options.ConfigurationLoadMode))
 	}
 
 	if a.options.LogLevel != nil {
-		env = append(env, a.envVarFromValue("APICAST_LOG_LEVEL", *a.options.LogLevel))
+		env = append(env, k8sutils.EnvVarFromValue("APICAST_LOG_LEVEL", *a.options.LogLevel))
 	}
 
 	if a.options.PathRoutingEnabled != nil {
-		env = append(env, a.envVarFromValue("APICAST_PATH_ROUTING", strconv.FormatBool(*a.options.PathRoutingEnabled)))
+		env = append(env, k8sutils.EnvVarFromValue("APICAST_PATH_ROUTING", strconv.FormatBool(*a.options.PathRoutingEnabled)))
 	}
 
 	if a.options.ResponseCodesIncluded != nil {
-		env = append(env, a.envVarFromValue("APICAST_RESPONSE_CODES", strconv.FormatBool(*a.options.ResponseCodesIncluded)))
+		env = append(env, k8sutils.EnvVarFromValue("APICAST_RESPONSE_CODES", strconv.FormatBool(*a.options.ResponseCodesIncluded)))
 	}
 
 	if a.options.CacheConfigurationSeconds != nil {
-		env = append(env, a.envVarFromValue("APICAST_CONFIGURATION_CACHE", strconv.FormatInt(*a.options.CacheConfigurationSeconds, 10)))
+		env = append(env, k8sutils.EnvVarFromValue("APICAST_CONFIGURATION_CACHE", strconv.FormatInt(*a.options.CacheConfigurationSeconds, 10)))
 	}
 
 	if a.options.ManagementAPIScope != nil {
-		env = append(env, a.envVarFromValue("APICAST_MANAGEMENT_API", *a.options.ManagementAPIScope))
+		env = append(env, k8sutils.EnvVarFromValue("APICAST_MANAGEMENT_API", *a.options.ManagementAPIScope))
 	}
 
 	if a.options.OpenSSLPeerVerificationEnabled != nil {
-		env = append(env, a.envVarFromValue("OPENSSL_VERIFY", strconv.FormatBool(*a.options.OpenSSLPeerVerificationEnabled)))
+		env = append(env, k8sutils.EnvVarFromValue("OPENSSL_VERIFY", strconv.FormatBool(*a.options.OpenSSLPeerVerificationEnabled)))
 	}
 
 	if a.options.GatewayConfigurationSecret != nil {
@@ -182,53 +188,53 @@ func (a *APIcast) deploymentEnv() []v1.EnvVar {
 	}
 
 	if a.options.UpstreamRetryCases != nil {
-		env = append(env, a.envVarFromValue("APICAST_UPSTREAM_RETRY_CASES", *a.options.UpstreamRetryCases))
+		env = append(env, k8sutils.EnvVarFromValue("APICAST_UPSTREAM_RETRY_CASES", *a.options.UpstreamRetryCases))
 	}
 
 	if a.options.CacheMaxTime != nil {
-		env = append(env, a.envVarFromValue("APICAST_CACHE_MAX_TIME", *a.options.CacheMaxTime))
+		env = append(env, k8sutils.EnvVarFromValue("APICAST_CACHE_MAX_TIME", *a.options.CacheMaxTime))
 	}
 
 	if a.options.CacheStatusCodes != nil {
-		env = append(env, a.envVarFromValue("APICAST_CACHE_STATUS_CODES", *a.options.CacheStatusCodes))
+		env = append(env, k8sutils.EnvVarFromValue("APICAST_CACHE_STATUS_CODES", *a.options.CacheStatusCodes))
 	}
 
 	if a.options.OidcLogLevel != nil {
-		env = append(env, a.envVarFromValue("APICAST_OIDC_LOG_LEVEL", *a.options.OidcLogLevel))
+		env = append(env, k8sutils.EnvVarFromValue("APICAST_OIDC_LOG_LEVEL", *a.options.OidcLogLevel))
 	}
 
 	if a.options.LoadServicesWhenNeeded != nil {
-		env = append(env, a.envVarFromValue("APICAST_LOAD_SERVICES_WHEN_NEEDED", strconv.FormatBool(*a.options.LoadServicesWhenNeeded)))
+		env = append(env, k8sutils.EnvVarFromValue("APICAST_LOAD_SERVICES_WHEN_NEEDED", strconv.FormatBool(*a.options.LoadServicesWhenNeeded)))
 	}
 
 	if a.options.ServicesFilterByURL != nil {
-		env = append(env, a.envVarFromValue("APICAST_SERVICES_FILTER_BY_URL", *a.options.ServicesFilterByURL))
+		env = append(env, k8sutils.EnvVarFromValue("APICAST_SERVICES_FILTER_BY_URL", *a.options.ServicesFilterByURL))
 	}
 
 	for serviceID, serviceVersion := range a.options.ServiceConfigurationVersionOverride {
-		env = append(env, a.envVarFromValue(fmt.Sprintf("APICAST_SERVICE_%s_CONFIGURATION_VERSION", serviceID), serviceVersion))
+		env = append(env, k8sutils.EnvVarFromValue(fmt.Sprintf("APICAST_SERVICE_%s_CONFIGURATION_VERSION", serviceID), serviceVersion))
 	}
 
 	if a.options.HTTPSPort != nil {
-		env = append(env, a.envVarFromValue("APICAST_HTTPS_PORT", strconv.FormatInt(int64(*a.options.HTTPSPort), 10)))
+		env = append(env, k8sutils.EnvVarFromValue("APICAST_HTTPS_PORT", strconv.FormatInt(int64(*a.options.HTTPSPort), 10)))
 	}
 
 	if a.options.HTTPSVerifyDepth != nil {
-		env = append(env, a.envVarFromValue("APICAST_HTTPS_VERIFY_DEPTH", strconv.FormatInt(*a.options.HTTPSVerifyDepth, 10)))
+		env = append(env, k8sutils.EnvVarFromValue("APICAST_HTTPS_VERIFY_DEPTH", strconv.FormatInt(*a.options.HTTPSVerifyDepth, 10)))
 	}
 
 	if a.options.HTTPSCertificateSecret != nil {
 		env = append(env,
-			a.envVarFromValue("APICAST_HTTPS_CERTIFICATE", fmt.Sprintf("%s/%s", HTTPSCertificatesMountPath, v1.TLSCertKey)),
-			a.envVarFromValue("APICAST_HTTPS_CERTIFICATE_KEY", fmt.Sprintf("%s/%s", HTTPSCertificatesMountPath, v1.TLSPrivateKeyKey)))
+			k8sutils.EnvVarFromValue("APICAST_HTTPS_CERTIFICATE", fmt.Sprintf("%s/%s", HTTPSCertificatesMountPath, v1.TLSCertKey)),
+			k8sutils.EnvVarFromValue("APICAST_HTTPS_CERTIFICATE_KEY", fmt.Sprintf("%s/%s", HTTPSCertificatesMountPath, v1.TLSPrivateKeyKey)))
 	}
 
 	if a.options.Workers != nil {
-		env = append(env, a.envVarFromValue("APICAST_WORKERS", strconv.Itoa(int(*a.options.Workers))))
+		env = append(env, k8sutils.EnvVarFromValue("APICAST_WORKERS", strconv.Itoa(int(*a.options.Workers))))
 	}
 
 	if a.options.Timezone != nil {
-		env = append(env, a.envVarFromValue("TZ", *a.options.Timezone))
+		env = append(env, k8sutils.EnvVarFromValue("TZ", *a.options.Timezone))
 	}
 
 	return env
