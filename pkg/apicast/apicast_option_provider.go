@@ -2,15 +2,17 @@ package apicast
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/url"
 
-	appsv1alpha1 "github.com/3scale/apicast-operator/apis/apps/v1alpha1"
-	"github.com/3scale/apicast-operator/pkg/k8sutils"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	appsv1alpha1 "github.com/3scale/apicast-operator/apis/apps/v1alpha1"
+	"github.com/3scale/apicast-operator/pkg/k8sutils"
 )
 
 const (
@@ -143,6 +145,23 @@ func (a *APIcastOptionsProvider) GetApicastOptions() (*APIcastOptions, error) {
 	}
 
 	a.APIcastOptions.ExtendedMetrics = a.APIcastCR.Spec.ExtendedMetrics
+
+	for idx, customEnvSpec := range a.APIcastCR.Spec.CustomEnvironments {
+		namespacedName := types.NamespacedName{
+			Name:      customEnvSpec.SecretRef.Name, // CR Validation ensures not nil
+			Namespace: a.APIcastCR.Namespace,
+		}
+
+		secret, err := a.customEnvSecret(namespacedName)
+		if err != nil {
+			errors := field.ErrorList{}
+			customEnvsIdxFldPath := field.NewPath("spec").Child("customEnvironments").Index(idx)
+			errors = append(errors, field.Invalid(customEnvsIdxFldPath, customEnvSpec, err.Error()))
+			return nil, errors.ToAggregate()
+		}
+
+		a.APIcastOptions.CustomEnvironments = append(a.APIcastOptions.CustomEnvironments, secret)
+	}
 
 	return a.APIcastOptions, a.APIcastOptions.Validate()
 }
@@ -302,4 +321,20 @@ func (a *APIcastOptionsProvider) validateCustomPolicySecret(nn types.NamespacedN
 	}
 
 	return nil
+}
+
+func (a *APIcastOptionsProvider) customEnvSecret(nn types.NamespacedName) (*v1.Secret, error) {
+	secret := &v1.Secret{}
+	err := a.Client.Get(context.TODO(), nn, secret)
+
+	if err != nil {
+		// NotFoundError is also an error, it is required to exist
+		return nil, err
+	}
+
+	if len(secret.Data) == 0 {
+		return nil, errors.New("empty secret")
+	}
+
+	return secret, nil
 }
