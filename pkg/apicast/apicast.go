@@ -34,6 +34,7 @@ const (
 	HTTPSCertificatesMountPath  = "/var/run/secrets/apicast"
 	HTTPSCertificatesVolumeName = "https-certificates"
 	CustomPoliciesMountBasePath = "/opt/app-root/src/policies"
+	CustomEnvsMountBasePath     = "/opt/app-root/src/custom-environments"
 )
 
 type APIcast struct {
@@ -79,11 +80,23 @@ func (a *APIcast) deploymentVolumeMounts() []v1.VolumeMount {
 		})
 	}
 
+	for _, customEnvSecret := range a.options.CustomEnvironments {
+		volumeMounts = append(volumeMounts, v1.VolumeMount{
+			Name:      customEnvVolumeName(customEnvSecret),
+			MountPath: path.Join(CustomEnvsMountBasePath, customEnvSecret.GetName()),
+			ReadOnly:  true,
+		})
+	}
+
 	return volumeMounts
 }
 
 func policyVolumeName(cp CustomPolicy) string {
-	return fmt.Sprintf("%s-%s-%s", "policy", helper.DNS1123Name(cp.Version), helper.DNS1123Name(cp.Name))
+	return fmt.Sprintf("policy-%s-%s", helper.DNS1123Name(cp.Version), helper.DNS1123Name(cp.Name))
+}
+
+func customEnvVolumeName(secret *v1.Secret) string {
+	return fmt.Sprintf("custom-env-%s", secret.GetName())
 }
 
 func (a *APIcast) deploymentVolumes() []v1.Volume {
@@ -122,6 +135,17 @@ func (a *APIcast) deploymentVolumes() []v1.Volume {
 			VolumeSource: v1.VolumeSource{
 				Secret: &v1.SecretVolumeSource{
 					SecretName: customPolicy.SecretRef.Name,
+				},
+			},
+		})
+	}
+
+	for _, customEnvSecret := range a.options.CustomEnvironments {
+		volumes = append(volumes, v1.Volume{
+			Name: customEnvVolumeName(customEnvSecret),
+			VolumeSource: v1.VolumeSource{
+				Secret: &v1.SecretVolumeSource{
+					SecretName: customEnvSecret.GetName(),
 				},
 			},
 		})
@@ -239,6 +263,17 @@ func (a *APIcast) deploymentEnv() []v1.EnvVar {
 
 	if a.options.ExtendedMetrics != nil {
 		env = append(env, k8sutils.EnvVarFromValue("APICAST_EXTENDED_METRICS", strconv.FormatBool(*a.options.ExtendedMetrics)))
+	}
+
+	var customEnvPaths []string
+	for _, customEnvSecret := range a.options.CustomEnvironments {
+		for fileKey := range customEnvSecret.Data {
+			customEnvPaths = append(customEnvPaths, path.Join(CustomEnvsMountBasePath, customEnvSecret.GetName(), fileKey))
+		}
+	}
+
+	if len(customEnvPaths) > 0 {
+		env = append(env, k8sutils.EnvVarFromValue("APICAST_ENVIRONMENT", strings.Join(customEnvPaths, ":")))
 	}
 
 	return env
