@@ -237,6 +237,10 @@ func (a *APIcast) deploymentEnv() []v1.EnvVar {
 		env = append(env, k8sutils.EnvVarFromValue("TZ", *a.options.Timezone))
 	}
 
+	if a.options.ExtendedMetrics != nil {
+		env = append(env, k8sutils.EnvVarFromValue("APICAST_EXTENDED_METRICS", strconv.FormatBool(*a.options.ExtendedMetrics)))
+	}
+
 	return env
 }
 

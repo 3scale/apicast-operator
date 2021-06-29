@@ -57,6 +57,7 @@ type APIcastOptions struct {
 	Workers                             *int32
 	Timezone                            *string
 	CustomPolicies                      []CustomPolicy
+	ExtendedMetrics                     *bool
 }
 
 func NewAPIcastOptions() *APIcastOptions {
