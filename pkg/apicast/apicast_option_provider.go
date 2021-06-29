@@ -142,6 +142,8 @@ func (a *APIcastOptionsProvider) GetApicastOptions() (*APIcastOptions, error) {
 		})
 	}
 
+	a.APIcastOptions.ExtendedMetrics = a.APIcastCR.Spec.ExtendedMetrics
+
 	return a.APIcastOptions, a.APIcastOptions.Validate()
 }
 

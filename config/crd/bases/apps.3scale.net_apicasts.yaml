@@ -154,6 +154,11 @@ spec:
                 required:
                 - host
                 type: object
+              extendedMetrics:
+                description: ExtendedMetrics enables additional information on Prometheus
+                  metrics; some labels will be used with specific information that
+                  will provide more in-depth details about APIcast.
+                type: boolean
               httpsCertificateSecretRef:
                 description: HTTPSCertificateSecretRef references secret containing
                   the X.509 certificate in the PEM format and the X.509 certificate
