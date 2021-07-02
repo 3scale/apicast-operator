@@ -166,6 +166,11 @@ type APIcastSpec struct {
 	// CustomPolicies specifies an array of defined custome policies to be loaded
 	// +optional
 	CustomPolicies []CustomPolicySpec `json:"customPolicies,omitempty"`
+
+	// ExtendedMetrics enables additional information on Prometheus metrics; some labels will be used with specific information that will provide more in-depth details about APIcast.
+	// +optional
+	ExtendedMetrics *bool `json:"extendedMetrics,omitempty"` // APICAST_EXTENDED_METRICS
+
 }
 
 type DeploymentEnvironmentType string
