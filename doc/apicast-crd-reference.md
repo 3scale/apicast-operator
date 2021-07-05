@@ -39,6 +39,7 @@
 | `workers` | integer | No | Automatically computed. Check [apicast doc](https://github.com/3scale/APIcast/blob/master/doc/parameters.md#apicast_workers) for further info. | Defines the number of worker processes |
 | `timezone` | string | No | N/A | The local timezone of the APIcast deployment pods. Its value must be a compatible value with the tz database | Defines the number of worker processes |
 | `customPolicies` | [][CustomPolicySpec](#CustomPolicySpec) | No | N/A | List of custom policies |
+| `extendedMetrics` | bool | No | false | Enables additional information on Prometheus metrics (see [docs](https://github.com/3scale/APIcast/blob/master/doc/parameters.md#apicast_extended_metrics)) |
 
 #### APIcastStatus
 
