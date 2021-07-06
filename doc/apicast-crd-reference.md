@@ -40,6 +40,7 @@
 | `timezone` | string | No | N/A | The local timezone of the APIcast deployment pods. Its value must be a compatible value with the tz database | Defines the number of worker processes |
 | `customPolicies` | [][CustomPolicySpec](#CustomPolicySpec) | No | N/A | List of custom policies |
 | `extendedMetrics` | bool | No | false | Enables additional information on Prometheus metrics (see [docs](https://github.com/3scale/APIcast/blob/master/doc/parameters.md#apicast_extended_metrics)) |
+| `customEnvironments` | [][CustomEnvironmentSpec](#CustomEnvironmentSpec) | No | N/A | List of custom environments |
 
 #### APIcastStatus
 
@@ -88,15 +89,33 @@ spec:
 | --- | --- | --- | --- | --- |
 | `name` | string | Yes | N/A | Name |
 | `version` | string | Yes | N/A | Version |
-| `SecretRef` | LocalObjectReference | Yes | N/A | Secret reference with the policy content. See [CustomPolicySecret](#CustomPolicySecret) for more information.
+| `secretRef` | LocalObjectReference | Yes | N/A | Secret reference with the policy content. See [CustomPolicySecret](#CustomPolicySecret) for more information.
 
 #### CustomPolicySecret
 
-Contains custom policy specific content. Two files,  `init.lua` and `apicast-policy.json`, aare required, but more can be added optionally.
+Contains custom policy specific content. Two files, `init.lua` and `apicast-policy.json`, are required, but more can be added optionally.
 
-Some examples are available [here](/doc/adding-custom-policies.md) 
+Some examples are available [here](/doc/adding-custom-policies.md)
 
 | **Field** | **Description** |
 | --- | --- |
 | `init.lua` | Custom policy lua code entry point |
 | `apicast-policy.json` | Custom policy metadata |
+
+
+#### CustomEnvironmentSpec
+
+| **json/yaml field** | **Type** | **Required** | **Default value** | **Description** |
+| --- | --- | --- | --- | --- |
+| `secretRef` | LocalObjectReference | Yes | N/A | Secret reference with the custom environment content. See [CustomEnvironmentSecret](#CustomEnvironmentSecret) for more information.
+
+#### CustomEnvironmentSecret
+
+Generic (`opaque`) type secret holding one or more custom environments.
+The operator will load in the APIcast container all the files (keys) found in the secret.
+
+Some examples are available [here](/doc/adding-custom-environments.md)
+
+| **Field** | **Description** |
+| --- | --- |
+| *filename* | Custom environment lua code |
