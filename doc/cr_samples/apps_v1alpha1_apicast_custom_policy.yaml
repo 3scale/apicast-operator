@@ -1,0 +1,12 @@
+apiVersion: apps.3scale.net/v1alpha1
+kind: APIcast
+metadata:
+  name: example-apicast-custom-policy
+spec:
+  customPolicies:
+    - name: Example
+      version: "0.1"
+      secretRef:
+        name: cp-1
+  adminPortalCredentialsRef:
+    name: my-admin-portal-secret-name
