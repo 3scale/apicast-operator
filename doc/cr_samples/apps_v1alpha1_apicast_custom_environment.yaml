@@ -1,0 +1,12 @@
+apiVersion: apps.3scale.net/v1alpha1
+kind: APIcast
+metadata:
+  name: example-apicast-custom-environment
+spec:
+  customEnvironments:
+    - secretRef:
+        name: env1
+    - secretRef:
+        name: env2
+  adminPortalCredentialsRef:
+    name: my-admin-portal-secret-name

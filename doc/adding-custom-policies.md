@@ -116,7 +116,7 @@ spec:
 oc apply -f apicast.yaml
 ```
 
-The APIcast custom resource allows adding multiple custom policies. 
+The APIcast custom resource allows adding multiple custom policies.
 
 **NOTE**: The tuple (`name`, `version`) has to be unique in the `spec.customPolicies` array.
 
@@ -128,10 +128,10 @@ However, apicast has the policy already loaded and it does not change the behavi
 
 If the policy content needs to be changed, there are two options:
 
-* [recommended way] Create another secret with a different name and update the APIcast custom resource field `spec.customPolicies[]-secretRef.name`. The operator will trigger a rolling update loading the new policy content.
+* [recommended way] Create another secret with a different name and update the APIcast custom resource field `spec.customPolicies[].secretRef.name`. The operator will trigger a rolling update loading the new policy content.
 * Update the existing secret content and redeploy apicast turning `spec.replicas` to 0 and then back to the previous value.
 
-#### Add the custom policy metadata to 3scale policy registry 
+#### Add the custom policy metadata to 3scale policy registry
 
 The 3scale policy registry will be missing any custom policies loaded on self-managed gateways,
 and therefore those policies won't be available in the Admin Portal when configuring the Integration settings for a Product.
@@ -168,7 +168,7 @@ $ curl -v -X POST -u ":{ACCESS_TOKEN}" -H "Content-Type: application/json" \
 * Onprem based 3scale managed by [3scale operator](https://github.com/3scale/3scale-operator)
 
 [CustomPolicyDefinition Custom Resource](https://github.com/3scale/3scale-operator/blob/master/doc/operator-application-capabilities.md#custompolicydefinition-custom-resource)
-can be used. Just, deploy the `CustomPolicyDefinition` resource and the 3scale operator will do the actual registration process. 
+can be used. Just, deploy the `CustomPolicyDefinition` resource and the 3scale operator will do the actual registration process.
 
 ```yaml
 apiVersion: capabilities.3scale.net/v1beta1

@@ -30,6 +30,11 @@ import (
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
+// CustomEnvironmentSpec contains or has reference to an APIcast custom environment
+type CustomEnvironmentSpec struct {
+	SecretRef *v1.LocalObjectReference `json:"secretRef"`
+}
+
 // CustomPolicySpec contains or has reference to an APIcast custom policy
 type CustomPolicySpec struct {
 	// Name specifies the name of the custom policy
@@ -171,14 +176,13 @@ type APIcastSpec struct {
 	// +optional
 	ExtendedMetrics *bool `json:"extendedMetrics,omitempty"` // APICAST_EXTENDED_METRICS
 
+	// CustomEnvironments specifies an array of defined custome environments to be loaded
+	// +optional
+	CustomEnvironments []CustomEnvironmentSpec `json:"customEnvironments,omitempty"` // APICAST_ENVIRONMENT
+
 }
 
 type DeploymentEnvironmentType string
-
-const (
-	DeploymentEnvironmentProduction = "production"
-	DeploymentEnvironmentStaging    = "staging"
-)
 
 const (
 	DefaultHTTPPort  int32 = 8080
@@ -297,6 +301,18 @@ func (a *APIcast) Validate() field.ErrorList {
 			break
 		}
 		duplicateMap[customPolicySpec.VersionName()] = 0
+	}
+
+	customEnvsFldPath := specFldPath.Child("customEnvironments")
+	// check custom environment secret is set
+	for idx, customEnvSpec := range a.Spec.CustomEnvironments {
+		if customEnvSpec.SecretRef == nil {
+			customEnvsIdxFldPath := customEnvsFldPath.Index(idx)
+			errors = append(errors, field.Invalid(customEnvsIdxFldPath, customEnvSpec, "custom environment secret is mandatory"))
+		} else if customEnvSpec.SecretRef.Name == "" {
+			customEnvsIdxFldPath := customEnvsFldPath.Index(idx)
+			errors = append(errors, field.Invalid(customEnvsIdxFldPath, customEnvSpec, "custom environment secret name is empty"))
+		}
 	}
 
 	return errors
