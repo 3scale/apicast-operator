@@ -11,6 +11,7 @@
     * [Setting custom resource requirements](#setting-custom-resource-requirements)
     * [Enabling TLS at pod level](#enabling-tls-at-pod-level)
     * [Adding custom policies](adding-custom-policies.md)
+    * [Adding custom environments](adding-custom-environments.md)
 * [Reconciliation](#reconciliation)
 * [Upgrading APIcast](#upgrading-APIcast)
 * [APIcast CRD reference](apicast-crd-reference.md)
