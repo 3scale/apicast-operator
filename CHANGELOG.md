@@ -4,6 +4,13 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [0.4.0] - 2021-05-05
+
+### Added
+- APIcast v3.10 [#120](https://github.com/3scale/apicast-operator/pull/120)
+- Apicast workers [#119](https://github.com/3scale/apicast-operator/pull/119)
+- Resource requirements [#79](https://github.com/3scale/apicast-operator/pull/79)
+
 ## [0.3.0] - 2020-11-02
 
 ### Added
@@ -30,7 +37,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Added
 - APIcast v3.7
 
-[Unreleased]: https://github.com/3scale/apicast-operator/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/3scale/apicast-operator/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/3scale/apicast-operator/releases/tag/v0.4.0
 [0.3.0]: https://github.com/3scale/apicast-operator/releases/tag/v0.3.0
 [0.2.0]: https://github.com/3scale/apicast-operator/releases/tag/v0.2.0
 [0.1.0]: https://github.com/3scale/apicast-operator/releases/tag/v0.1.0
