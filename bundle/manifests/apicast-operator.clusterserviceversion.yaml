@@ -127,7 +127,7 @@ spec:
                   valueFrom:
                     fieldRef:
                       fieldPath: metadata.annotations['olm.targetNamespaces']
-                - name: APICAST_IMAGE
+                - name: RELATED_IMAGE_APICAST
                   value: quay.io/3scale/apicast:nightly
                 image: quay.io/3scale/apicast-operator:master
                 name: manager
