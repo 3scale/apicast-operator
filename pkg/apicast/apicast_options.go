@@ -19,6 +19,12 @@ type CustomPolicy struct {
 	SecretRef v1.LocalObjectReference
 }
 
+type TracingConfig struct {
+	Enabled                 bool
+	TracingLibrary          string `validate:"required"`
+	TracingConfigSecretName *string
+}
+
 type APIcastOptions struct {
 	Namespace                    string                 `validate:"required"`
 	DeploymentName               string                 `validate:"required"`
@@ -59,6 +65,7 @@ type APIcastOptions struct {
 	CustomPolicies                      []CustomPolicy
 	ExtendedMetrics                     *bool
 	CustomEnvironments                  []*v1.Secret
+	TracingConfig                       *TracingConfig `validate:"required"`
 }
 
 func NewAPIcastOptions() *APIcastOptions {

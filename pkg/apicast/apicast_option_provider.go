@@ -163,7 +163,50 @@ func (a *APIcastOptionsProvider) GetApicastOptions() (*APIcastOptions, error) {
 		a.APIcastOptions.CustomEnvironments = append(a.APIcastOptions.CustomEnvironments, secret)
 	}
 
+	tracingOptions, err := a.getTracingConfigOptions()
+	if err != nil {
+		return nil, err
+	}
+	a.APIcastOptions.TracingConfig = tracingOptions
+
 	return a.APIcastOptions, a.APIcastOptions.Validate()
+}
+
+func (a *APIcastOptionsProvider) getTracingConfigOptions() (*TracingConfig, error) {
+	tracingIsEnabled := a.APIcastCR.OpenTracingIsEnabled()
+	res := &TracingConfig{
+		Enabled:        tracingIsEnabled,
+		TracingLibrary: DefaultTracingLibrary,
+	}
+	if tracingIsEnabled {
+		openTracingConfigSpec := a.APIcastCR.Spec.OpenTracing
+		if openTracingConfigSpec.TracingLibrary != nil {
+			// For now only "jaeger" is accepted" as the tracing library
+			if *openTracingConfigSpec.TracingLibrary != DefaultTracingLibrary {
+				tracingLibraryFldPath := field.NewPath("spec").Child("openTracing").Child("tracingLibrary")
+				errors := field.ErrorList{}
+				errors = append(errors, field.Invalid(tracingLibraryFldPath, openTracingConfigSpec, "invalid tracing library specified"))
+				return nil, errors.ToAggregate()
+			}
+			res.TracingLibrary = *a.APIcastCR.Spec.OpenTracing.TracingLibrary
+		}
+		if openTracingConfigSpec.TracingConfigSecretRef != nil {
+			namespacedName := types.NamespacedName{
+				Name:      openTracingConfigSpec.TracingConfigSecretRef.Name, // CR Validation ensures not nil
+				Namespace: a.APIcastCR.Namespace,
+			}
+			err := a.validateTracingConfigSecret(namespacedName)
+			if err != nil {
+				errors := field.ErrorList{}
+				tracingConfigFldPath := field.NewPath("spec").Child("openTracing").Child("tracingConfigSecretRef")
+				errors = append(errors, field.Invalid(tracingConfigFldPath, openTracingConfigSpec, err.Error()))
+				return nil, errors.ToAggregate()
+			}
+			res.TracingConfigSecretName = &openTracingConfigSpec.TracingConfigSecretRef.Name
+		}
+	}
+
+	return res, nil
 }
 
 func (a *APIcastOptionsProvider) additionalAnnotations() map[string]string {
@@ -337,4 +380,20 @@ func (a *APIcastOptionsProvider) customEnvSecret(nn types.NamespacedName) (*v1.S
 	}
 
 	return secret, nil
+}
+
+func (a *APIcastOptionsProvider) validateTracingConfigSecret(nn types.NamespacedName) error {
+	secret := &v1.Secret{}
+	err := a.Client.Get(context.TODO(), nn, secret)
+
+	if err != nil {
+		// NotFoundError is also an error, it is required to exist
+		return err
+	}
+
+	if _, ok := secret.Data[TracingConfigSecretKey]; !ok {
+		return fmt.Errorf("Required secret key, %s not found", TracingConfigSecretKey)
+	}
+
+	return nil
 }
