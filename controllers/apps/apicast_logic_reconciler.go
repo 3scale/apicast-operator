@@ -84,7 +84,7 @@ func (r *APIcastLogicReconciler) Reconcile() (reconcile.Result, error) {
 	// Gateway service
 	//
 	service := apicastFactory.Service()
-	err = r.ReconcileResource(&v1.Service{}, service, reconcilers.CreateOnlyMutator)
+	err = r.ReconcileResource(&v1.Service{}, service, reconcilers.ServicePortMutator)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
