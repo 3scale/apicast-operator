@@ -180,6 +180,14 @@ type APIcastSpec struct {
 	// +optional
 	CustomEnvironments []CustomEnvironmentSpec `json:"customEnvironments,omitempty"` // APICAST_ENVIRONMENT
 
+	// OpenTracingSpec contains the OpenTracing integration configuration
+	// with APIcast.
+	// +optional
+	OpenTracing *OpenTracingSpec `json:"openTracing,omitempty"`
+}
+
+func (a *APIcast) OpenTracingIsEnabled() bool {
+	return a.Spec.OpenTracing != nil && a.Spec.OpenTracing.Enabled != nil && *a.Spec.OpenTracing.Enabled
 }
 
 type DeploymentEnvironmentType string
@@ -193,6 +201,22 @@ type APIcastExposedHost struct {
 	Host string `json:"host"`
 	// +optional
 	TLS []extensions.IngressTLS `json:"tls,omitempty"`
+}
+
+type OpenTracingSpec struct {
+	// Enabled controls whether OpenTracing integration with APIcast is enabled.
+	// By default it is not enabled.
+	// +optional
+	Enabled *bool `json:"enabled,omitempty"`
+	// TracingLibrary controls which OpenTracing library is loaded. At the moment
+	// the only supported tracer is `jaeger`. If not set, `jaeger` will be used.
+	// +optional
+	TracingLibrary *string `json:"tracingLibrary,omitempty"`
+	// TracingConfig contains a secret reference the OpenTracing configuration.
+	// Each supported tracing library provides a default configuration file
+	// that is used if TracingConfig is not specified.
+	// +optional
+	TracingConfigSecretRef *v1.LocalObjectReference `json:"tracingConfigRef,omitempty"`
 }
 
 // APIcastStatus defines the observed state of APIcast.
@@ -312,6 +336,18 @@ func (a *APIcast) Validate() field.ErrorList {
 		} else if customEnvSpec.SecretRef.Name == "" {
 			customEnvsIdxFldPath := customEnvsFldPath.Index(idx)
 			errors = append(errors, field.Invalid(customEnvsIdxFldPath, customEnvSpec, "custom environment secret name is empty"))
+		}
+	}
+
+	// check tracing config secret has a name specified when tracing config is
+	// enabled and a custom configuration secret reference has been set
+	if a.OpenTracingIsEnabled() {
+		if a.Spec.OpenTracing.TracingConfigSecretRef != nil {
+			if a.Spec.OpenTracing.TracingConfigSecretRef.Name == "" {
+				openTracingFldPath := specFldPath.Child("openTracing")
+				customTracingConfigFldPath := openTracingFldPath.Child("tracingConfigSecretRef")
+				errors = append(errors, field.Invalid(customTracingConfigFldPath, a.Spec.OpenTracing, "custom tracing library secret name is empty"))
+			}
 		}
 	}
 

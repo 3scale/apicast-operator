@@ -22,6 +22,8 @@ const (
 	AdminPortalURLAttributeName       = "AdminPortalURL"
 	DefaultManagementPort       int32 = 8090
 	DefaultMetricsPort          int32 = 9421
+	DefaultTracingLibrary             = "jaeger"
+	TracingConfigSecretKey            = "config"
 )
 
 const (
@@ -35,6 +37,7 @@ const (
 	HTTPSCertificatesVolumeName = "https-certificates"
 	CustomPoliciesMountBasePath = "/opt/app-root/src/policies"
 	CustomEnvsMountBasePath     = "/opt/app-root/src/custom-environments"
+	TracingConfigMountBasePath  = "/opt/app-root/src/tracing-configs"
 )
 
 type APIcast struct {
@@ -88,6 +91,13 @@ func (a *APIcast) deploymentVolumeMounts() []v1.VolumeMount {
 		})
 	}
 
+	if a.options.TracingConfig.Enabled && a.options.TracingConfig.TracingConfigSecretName != nil {
+		volumeMounts = append(volumeMounts, v1.VolumeMount{
+			Name:      tracingConfigVolumeName(a.options.TracingConfig.TracingLibrary, *a.options.TracingConfig.TracingConfigSecretName),
+			MountPath: TracingConfigMountBasePath,
+		})
+	}
+
 	return volumeMounts
 }
 
@@ -97,6 +107,10 @@ func policyVolumeName(cp CustomPolicy) string {
 
 func customEnvVolumeName(secret *v1.Secret) string {
 	return fmt.Sprintf("custom-env-%s", secret.GetName())
+}
+
+func tracingConfigVolumeName(tracingLibrary, secretName string) string {
+	return fmt.Sprintf("tracing-config-%s-%s", tracingLibrary, secretName)
 }
 
 func (a *APIcast) deploymentVolumes() []v1.Volume {
@@ -146,6 +160,23 @@ func (a *APIcast) deploymentVolumes() []v1.Volume {
 			VolumeSource: v1.VolumeSource{
 				Secret: &v1.SecretVolumeSource{
 					SecretName: customEnvSecret.GetName(),
+				},
+			},
+		})
+	}
+
+	if a.options.TracingConfig.Enabled && a.options.TracingConfig.TracingConfigSecretName != nil {
+		volumes = append(volumes, v1.Volume{
+			Name: tracingConfigVolumeName(a.options.TracingConfig.TracingLibrary, *a.options.TracingConfig.TracingConfigSecretName),
+			VolumeSource: v1.VolumeSource{
+				Secret: &v1.SecretVolumeSource{
+					SecretName: *a.options.TracingConfig.TracingConfigSecretName,
+					Items: []v1.KeyToPath{
+						v1.KeyToPath{
+							Key:  TracingConfigSecretKey,
+							Path: tracingConfigVolumeName(a.options.TracingConfig.TracingLibrary, *a.options.TracingConfig.TracingConfigSecretName),
+						},
+					},
 				},
 			},
 		})
@@ -274,6 +305,14 @@ func (a *APIcast) deploymentEnv() []v1.EnvVar {
 
 	if len(customEnvPaths) > 0 {
 		env = append(env, k8sutils.EnvVarFromValue("APICAST_ENVIRONMENT", strings.Join(customEnvPaths, ":")))
+	}
+
+	if a.options.TracingConfig.Enabled {
+		env = append(env, k8sutils.EnvVarFromValue("OPENTRACING_TRACER", a.options.TracingConfig.TracingLibrary))
+
+		if a.options.TracingConfig.TracingConfigSecretName != nil {
+			env = append(env, k8sutils.EnvVarFromValue("OPENTRACING_CONFIG", strings.Join([]string{TracingConfigMountBasePath, tracingConfigVolumeName(a.options.TracingConfig.TracingLibrary, *a.options.TracingConfig.TracingConfigSecretName)}, "/")))
+		}
 	}
 
 	return env

@@ -41,6 +41,7 @@
 | `customPolicies` | [][CustomPolicySpec](#CustomPolicySpec) | No | N/A | List of custom policies |
 | `extendedMetrics` | bool | No | false | Enables additional information on Prometheus metrics (see [docs](https://github.com/3scale/APIcast/blob/master/doc/parameters.md#apicast_extended_metrics)) |
 | `customEnvironments` | [][CustomEnvironmentSpec](#CustomEnvironmentSpec) | No | N/A | List of custom environments |
+| `openTracing` | [OpenTracingSpec](#OpenTracingSpec) | No | N/A | contains the OpenTracing integration configuration |
 
 #### APIcastStatus
 
@@ -119,3 +120,25 @@ Some examples are available [here](/doc/adding-custom-environments.md)
 | **Field** | **Description** |
 | --- | --- |
 | *filename* | Custom environment lua code |
+
+### OpenTracingSpec
+| **json/yaml field** | **Type** | **Required** | **Default value** | **Description** |
+| --- | --- | --- | --- | --- |
+| `enabled` | bool | No | `false` | Controls whether OpenTracing integration with APIcast is enabled. By default it is not enabled |
+| `tracingLibrary` | string | No | `jaeger` | Controls which OpenTracing library is loaded. At the moment the supported values are: `jaeger`. If not set, `jaeger` will be used |
+| `tracingConfigRef` | LocalObjectReference | No | tracing library-specific default | Secret reference with the tracing library-specific configuration. Each supported tracing library provides a default configuration file which is used if `tracingConfigRef` is not specified. See [TracingConfigSecret](#TracingConfigSecret) for more information. |
+
+### TracingConfigSecret
+
+| **Field** | **Description** |
+| --- | --- |
+| `config` | Tracing library-specific configuration |
+
+*NOTE*: Once apicast has been deployed, the content of the secret should not be updated externally.
+If the content of the secret is updated externally, after apicast has been deployed, the container can automatically see the changes.
+However, apicast has the environment already loaded and it does not change the behavior.
+
+If the custom environment content needs to be changed, there are two options:
+
+* [**recommended way**] Create another secret with a different name and update the APIcast custom resource field `spec.openTracing.tracingConfigRef.name`. The operator will trigger a rolling update loading the new custom environment content.
+* Update the existing secret content and redeploy apicast turning `spec.replicas` to 0 and then back to the previous value.
