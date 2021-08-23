@@ -74,14 +74,15 @@ Used by the Operator/Kubernetes to control the state of the Apicast custom resou
 
 | **Field** | **Value** |
 | --- | --- |
-| Service `ID` | The configuration version you can see in the configuration history on the Admin Portal |
+| Service `ID` (string type) | The configuration version you can see in the configuration history on the Admin Portal (string type)|
 
-For example, fix service `2555417833738` to version `5` and service `2555417836536` to version `7`:
+For example, fix service `"2555417833738"` to version `"5"` and service `"2555417836536"` to version `"7"`:
+
 ```yaml
 spec:
   serviceConfigurationVersionOverride:
-    2555417833738: 5
-    2555417836536: 7
+    "2555417833738": "5"
+    "2555417836536": "7"
 ```
 
 #### CustomPolicySpec
