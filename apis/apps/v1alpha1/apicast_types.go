@@ -22,7 +22,7 @@ import (
 	appscommon "github.com/3scale/apicast-operator/apis/apps"
 
 	v1 "k8s.io/api/core/v1"
-	extensions "k8s.io/api/extensions/v1beta1"
+	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 )
@@ -200,7 +200,7 @@ const (
 type APIcastExposedHost struct {
 	Host string `json:"host"`
 	// +optional
-	TLS []extensions.IngressTLS `json:"tls,omitempty"`
+	TLS []networkingv1.IngressTLS `json:"tls,omitempty"`
 }
 
 type OpenTracingSpec struct {

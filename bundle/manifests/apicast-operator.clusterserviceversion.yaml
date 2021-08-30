@@ -244,7 +244,14 @@ spec:
           - update
           - watch
         - apiGroups:
-          - extensions
+          - monitoring.coreos.com
+          resources:
+          - servicemonitors
+          verbs:
+          - create
+          - get
+        - apiGroups:
+          - networking.k8s.io
           resources:
           - ingresses
           verbs:
@@ -255,13 +262,6 @@ spec:
           - patch
           - update
           - watch
-        - apiGroups:
-          - monitoring.coreos.com
-          resources:
-          - servicemonitors
-          verbs:
-          - create
-          - get
         - apiGroups:
           - route.openshift.io
           resources:
