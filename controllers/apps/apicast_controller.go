@@ -62,7 +62,7 @@ const (
 // +kubebuilder:rbac:groups=extensions,namespace=placeholder,resources=ingresses,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=route.openshift.io,namespace=placeholder,resources=routes/custom-host,verbs=get;list;watch;create;update;patch;delete
 
-func (r *APIcastReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+func (r *APIcastReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	_ = context.Background()
 	log := r.Log.WithValues("apicast", req.NamespacedName)
 
