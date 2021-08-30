@@ -55,8 +55,7 @@ func TestAPIs(t *testing.T) {
 
 var _ = BeforeSuite(func(done Done) {
 	// Set controller-runtime output to GinkgoWriter
-	logf.SetLogger(zap.LoggerTo(GinkgoWriter, true))
-
+	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
 	By("bootstrapping test environment")
 	testEnv = &envtest.Environment{
 		CRDDirectoryPaths: []string{filepath.Join("..", "..", "config", "crd", "bases")},
@@ -83,7 +82,7 @@ var _ = BeforeSuite(func(done Done) {
 	Expect(err).ToNot(HaveOccurred())
 	err = (&APIcastReconciler{
 		BaseControllerReconciler: reconcilers.NewBaseControllerReconciler(mgr.GetClient(), mgr.GetAPIReader(), mgr.GetScheme()),
-		Log:                      zap.LoggerTo(ioutil.Discard, true),
+		Log:                      zap.New(zap.WriteTo(ioutil.Discard), zap.UseDevMode(true)),
 	}).SetupWithManager(mgr)
 	Expect(err).ToNot(HaveOccurred())
 
