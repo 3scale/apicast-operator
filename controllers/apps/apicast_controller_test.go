@@ -10,7 +10,7 @@ import (
 	. "github.com/onsi/gomega"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
-	extensionsv1beta1 "k8s.io/api/extensions/v1beta1"
+	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -181,7 +181,7 @@ var _ = Describe("APIcast controller", func() {
 			// Check that the correspondig IU K8s Ingress has been created
 			apicastIngressName := "apicast-" + apicastName
 			apicastIngressLookupKey := types.NamespacedName{Name: apicastIngressName, Namespace: testNamespace}
-			createdIngress := &extensionsv1beta1.Ingress{}
+			createdIngress := &networkingv1.Ingress{}
 			Eventually(func() bool {
 				err := testK8sClient.Get(context.Background(), apicastIngressLookupKey, createdIngress)
 				if err != nil {
