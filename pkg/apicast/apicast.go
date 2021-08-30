@@ -498,7 +498,7 @@ func (a *APIcast) Ingress() *networkingv1.Ingress {
 									PathType: &ingressPathType,
 									Backend: networkingv1.IngressBackend{
 										Service: &networkingv1.IngressServiceBackend{
-											Name: a.options.DeploymentName,
+											Name: a.options.ServiceName,
 											Port: networkingv1.ServiceBackendPort{
 												Name: "proxy",
 											},
