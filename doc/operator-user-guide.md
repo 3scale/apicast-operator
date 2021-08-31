@@ -28,7 +28,7 @@ and will deploy an APIcast self-managed gateway solution from it.
 
 ### Prerequisites
 
-* OpenShift Container Platform 4.1 or newer, or a Kubernetes 1.11 native installation
+* OpenShift Container Platform 4.6 or newer, or a Kubernetes 1.19 native installation
   or newer
 * Deploying an APIcast self-managed solution using the operator first requires
   that you follow the steps in [quickstart guide](quickstart-guide.md) about
