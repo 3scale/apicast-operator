@@ -303,7 +303,7 @@ spec:
   - email: eastizle+apicastoperator@redhat.com
     name: Eguzki Astiz
   maturity: stable
-  minKubeVersion: 1.11.0
+  minKubeVersion: 1.19.0
   provider:
     name: Red Hat
   version: 0.0.1
