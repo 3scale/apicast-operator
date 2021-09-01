@@ -30,10 +30,10 @@ func NewAPIcastLogicReconciler(b reconcilers.BaseReconciler, cr *appsv1alpha1.AP
 	}
 }
 
-func (r *APIcastLogicReconciler) Reconcile() (reconcile.Result, error) {
+func (r *APIcastLogicReconciler) Reconcile(ctx context.Context) (reconcile.Result, error) {
 	r.Logger().WithValues("Name", r.APIcastCR.Name, "Namespace", r.APIcastCR.Namespace)
 
-	appliedInitialization, err := r.initialize()
+	appliedInitialization, err := r.initialize(ctx)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
@@ -48,7 +48,7 @@ func (r *APIcastLogicReconciler) Reconcile() (reconcile.Result, error) {
 		return reconcile.Result{}, err
 	}
 
-	apicastFactory, err := apicast.Factory(r.APIcastCR, r.Client())
+	apicastFactory, err := apicast.Factory(ctx, r.APIcastCR, r.Client())
 	if err != nil {
 		return reconcile.Result{}, err
 	}
@@ -57,7 +57,7 @@ func (r *APIcastLogicReconciler) Reconcile() (reconcile.Result, error) {
 	// Admin Portal Credentials secret
 	//
 	adminPortalSecret := apicastFactory.AdminPortalCredentialsSecret()
-	err = r.reconcileApicastSecret(adminPortalSecret)
+	err = r.reconcileApicastSecret(ctx, adminPortalSecret)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
@@ -66,7 +66,7 @@ func (r *APIcastLogicReconciler) Reconcile() (reconcile.Result, error) {
 	// Gateway configuration secret
 	//
 	confSecret := apicastFactory.GatewayConfigurationSecret()
-	err = r.reconcileApicastSecret(confSecret)
+	err = r.reconcileApicastSecret(ctx, confSecret)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
@@ -75,7 +75,7 @@ func (r *APIcastLogicReconciler) Reconcile() (reconcile.Result, error) {
 	// Gateway deployment
 	//
 	deployment := apicastFactory.Deployment()
-	err = r.ReconcileResource(&appsv1.Deployment{}, deployment, DeploymentMutator)
+	err = r.ReconcileResource(ctx, &appsv1.Deployment{}, deployment, DeploymentMutator)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
@@ -84,7 +84,7 @@ func (r *APIcastLogicReconciler) Reconcile() (reconcile.Result, error) {
 	// Gateway service
 	//
 	service := apicastFactory.Service()
-	err = r.ReconcileResource(&v1.Service{}, service, reconcilers.ServicePortMutator)
+	err = r.ReconcileResource(ctx, &v1.Service{}, service, reconcilers.ServicePortMutator)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
@@ -93,7 +93,7 @@ func (r *APIcastLogicReconciler) Reconcile() (reconcile.Result, error) {
 	// Gateway ingress
 	//
 	ingress := apicastFactory.Ingress()
-	err = r.reconcileIngress(ingress)
+	err = r.reconcileIngress(ctx, ingress)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
@@ -101,18 +101,18 @@ func (r *APIcastLogicReconciler) Reconcile() (reconcile.Result, error) {
 	return reconcile.Result{}, nil
 }
 
-func (r *APIcastLogicReconciler) reconcileApicastSecret(secret *v1.Secret) error {
+func (r *APIcastLogicReconciler) reconcileApicastSecret(ctx context.Context, secret *v1.Secret) error {
 	if secret == nil {
 		return nil
 	}
 
-	return r.ReconcileResource(&v1.Secret{}, secret, r.ensureOwnerReferenceMutator)
+	return r.ReconcileResource(ctx, &v1.Secret{}, secret, r.ensureOwnerReferenceMutator)
 }
 
-func (r *APIcastLogicReconciler) initialize() (bool, error) {
+func (r *APIcastLogicReconciler) initialize(ctx context.Context) (bool, error) {
 	if appliedSomeInitialization := r.applyInitialization(); appliedSomeInitialization {
 		r.Logger().Info(fmt.Sprintf("Updating %s", k8sutils.ObjectInfo(r.APIcastCR)))
-		err := r.Client().Update(context.TODO(), r.APIcastCR)
+		err := r.Client().Update(ctx, r.APIcastCR)
 		if err != nil {
 			return false, err
 		}
@@ -134,12 +134,12 @@ func (r *APIcastLogicReconciler) applyInitialization() bool {
 	return appliedInitialization
 }
 
-func (r *APIcastLogicReconciler) reconcileIngress(desired *networkingv1.Ingress) error {
+func (r *APIcastLogicReconciler) reconcileIngress(ctx context.Context, desired *networkingv1.Ingress) error {
 	if r.APIcastCR.Spec.ExposedHost == nil {
 		k8sutils.TagObjectToDelete(desired)
 	}
 
-	return r.ReconcileResource(&networkingv1.Ingress{}, desired, IngressMutator)
+	return r.ReconcileResource(ctx, &networkingv1.Ingress{}, desired, IngressMutator)
 }
 
 func (r *APIcastLogicReconciler) ensureOwnerReferenceMutator(existing, desired k8sutils.KubernetesObject) (bool, error) {

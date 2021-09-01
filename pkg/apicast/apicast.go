@@ -1,6 +1,7 @@
 package apicast
 
 import (
+	"context"
 	"fmt"
 	"path"
 	"strconv"
@@ -49,9 +50,9 @@ func NewAPIcast(opts *APIcastOptions) *APIcast {
 	return &APIcast{options: opts}
 }
 
-func Factory(cr *appsv1alpha1.APIcast, cl client.Client) (*APIcast, error) {
+func Factory(ctx context.Context, cr *appsv1alpha1.APIcast, cl client.Client) (*APIcast, error) {
 	optsProvider := NewApicastOptionsProvider(cr, cl)
-	opts, err := optsProvider.GetApicastOptions()
+	opts, err := optsProvider.GetApicastOptions(ctx)
 	if err != nil {
 		return nil, err
 	}
