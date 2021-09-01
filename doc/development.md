@@ -24,9 +24,9 @@
 * [docker] version 17.03+
 * [git][git_tool]
 * [go] version 1.13+
-* [kubernetes] version v1.11.3+
-* [kubectl] version v1.11.3+
-* Access to a Kubernetes v1.11.0+ cluster.
+* [kubernetes] version v1.19.0+
+* [kubectl] version v1.19.0+
+* Access to a Kubernetes v1.19.0+ cluster.
 * A user with administrative privileges in the Kubernetes cluster.
 * Make sure that the `DOCKER_ORG` and `DOCKER_REGISTRY` environment variables are set to the same value as
   your username on the container registry, and the container registry you are using.

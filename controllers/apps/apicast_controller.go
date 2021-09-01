@@ -23,7 +23,8 @@ import (
 	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	extensionsv1beta1 "k8s.io/api/extensions/v1beta1"
+	networkingv1 "k8s.io/api/networking/v1"
+
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 
@@ -59,10 +60,10 @@ const (
 // to the 'apicast-operator' resource name. It seems it is not possible anymore
 // with kubebuilder markers???
 // +kubebuilder:rbac:groups=apps,namespace=placeholder,resources=deployments/finalizers,verbs=update
-// +kubebuilder:rbac:groups=extensions,namespace=placeholder,resources=ingresses,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=networking.k8s.io,namespace=placeholder,resources=ingresses,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=route.openshift.io,namespace=placeholder,resources=routes/custom-host,verbs=get;list;watch;create;update;patch;delete
 
-func (r *APIcastReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+func (r *APIcastReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	_ = context.Background()
 	log := r.Log.WithValues("apicast", req.NamespacedName)
 
@@ -163,7 +164,7 @@ func (r *APIcastReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&corev1.Secret{}).
 		Owns(&appsv1.Deployment{}).
 		Owns(&corev1.Service{}).
-		Owns(&extensionsv1beta1.Ingress{}).
+		Owns(&networkingv1.Ingress{}).
 		Complete(r)
 }
 

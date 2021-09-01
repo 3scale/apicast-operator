@@ -3,14 +3,14 @@ package apicast
 import (
 	validator "github.com/go-playground/validator/v10"
 	v1 "k8s.io/api/core/v1"
-	extensions "k8s.io/api/extensions/v1beta1"
+	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 type ExposedHost struct {
 	Host string
-	TLS  []extensions.IngressTLS
+	TLS  []networkingv1.IngressTLS
 }
 
 type CustomPolicy struct {

@@ -31,7 +31,7 @@ Procedure
 
 ### In a Kubernetes native environment using OperatorHub.io
 
-You will need access to a Kubernetes 1.11 cluster or newer to use this
+You will need access to a Kubernetes 1.19 cluster or newer to use this
 installation method.
 
 Procedure
