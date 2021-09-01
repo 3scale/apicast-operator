@@ -17,7 +17,6 @@ limitations under the License.
 package controllers
 
 import (
-	"io/ioutil"
 	"path/filepath"
 	"testing"
 
@@ -82,7 +81,7 @@ var _ = BeforeSuite(func(done Done) {
 	Expect(err).ToNot(HaveOccurred())
 	err = (&APIcastReconciler{
 		BaseControllerReconciler: reconcilers.NewBaseControllerReconciler(mgr.GetClient(), mgr.GetAPIReader(), mgr.GetScheme()),
-		Log:                      zap.New(zap.WriteTo(ioutil.Discard), zap.UseDevMode(true)),
+		Log:                      ctrl.Log.WithName("controllers").WithName("APIcast"),
 	}).SetupWithManager(mgr)
 	Expect(err).ToNot(HaveOccurred())
 
