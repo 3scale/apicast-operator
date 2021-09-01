@@ -144,8 +144,10 @@ spec:
       - rules:
         - apiGroups:
           - ""
+          - coordination.k8s.io
           resources:
           - configmaps
+          - leases
           verbs:
           - get
           - list
@@ -242,7 +244,14 @@ spec:
           - update
           - watch
         - apiGroups:
-          - extensions
+          - monitoring.coreos.com
+          resources:
+          - servicemonitors
+          verbs:
+          - create
+          - get
+        - apiGroups:
+          - networking.k8s.io
           resources:
           - ingresses
           verbs:
@@ -253,13 +262,6 @@ spec:
           - patch
           - update
           - watch
-        - apiGroups:
-          - monitoring.coreos.com
-          resources:
-          - servicemonitors
-          verbs:
-          - create
-          - get
         - apiGroups:
           - route.openshift.io
           resources:
@@ -301,7 +303,7 @@ spec:
   - email: eastizle+apicastoperator@redhat.com
     name: Eguzki Astiz
   maturity: stable
-  minKubeVersion: 1.11.0
+  minKubeVersion: 1.19.0
   provider:
     name: Red Hat
   version: 0.0.1

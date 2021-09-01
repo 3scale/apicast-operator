@@ -22,7 +22,7 @@ package v1alpha1
 
 import (
 	"k8s.io/api/core/v1"
-	"k8s.io/api/extensions/v1beta1"
+	networkingv1 "k8s.io/api/networking/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -73,7 +73,7 @@ func (in *APIcastExposedHost) DeepCopyInto(out *APIcastExposedHost) {
 	*out = *in
 	if in.TLS != nil {
 		in, out := &in.TLS, &out.TLS
-		*out = make([]v1beta1.IngressTLS, len(*in))
+		*out = make([]networkingv1.IngressTLS, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}

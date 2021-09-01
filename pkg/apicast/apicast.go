@@ -12,7 +12,8 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
-	extensions "k8s.io/api/extensions/v1beta1"
+	networkingv1 "k8s.io/api/networking/v1"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -473,10 +474,11 @@ func (a *APIcast) readinessProbe() *v1.Probe {
 	}
 }
 
-func (a *APIcast) Ingress() *extensions.Ingress {
-	ingress := &extensions.Ingress{
+func (a *APIcast) Ingress() *networkingv1.Ingress {
+	ingressPathType := networkingv1.PathTypeImplementationSpecific
+	ingress := &networkingv1.Ingress{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: "networking.k8s.io/v1beta1",
+			APIVersion: "networking.k8s.io/v1",
 			Kind:       "Ingress",
 		},
 		ObjectMeta: metav1.ObjectMeta{
@@ -484,18 +486,23 @@ func (a *APIcast) Ingress() *extensions.Ingress {
 			Namespace: a.options.Namespace,
 			Labels:    a.commonLabels(),
 		},
-		Spec: extensions.IngressSpec{
+		Spec: networkingv1.IngressSpec{
 			TLS: a.options.ExposedHost.TLS,
-			Rules: []extensions.IngressRule{
+			Rules: []networkingv1.IngressRule{
 				{
 					Host: a.options.ExposedHost.Host,
-					IngressRuleValue: extensions.IngressRuleValue{
-						HTTP: &extensions.HTTPIngressRuleValue{
-							Paths: []extensions.HTTPIngressPath{
+					IngressRuleValue: networkingv1.IngressRuleValue{
+						HTTP: &networkingv1.HTTPIngressRuleValue{
+							Paths: []networkingv1.HTTPIngressPath{
 								{
-									Backend: extensions.IngressBackend{
-										ServiceName: a.options.DeploymentName,
-										ServicePort: intstr.FromString("proxy"),
+									PathType: &ingressPathType,
+									Backend: networkingv1.IngressBackend{
+										Service: &networkingv1.IngressServiceBackend{
+											Name: a.options.ServiceName,
+											Port: networkingv1.ServiceBackendPort{
+												Name: "proxy",
+											},
+										},
 									},
 								},
 							},

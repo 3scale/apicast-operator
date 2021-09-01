@@ -1,6 +1,8 @@
 package reconcilers
 
 import (
+	"context"
+
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -28,7 +30,7 @@ func NewBaseControllerReconciler(client client.Client, apiClientReader client.Re
 // blank assignment to verify that BaseReconciler implements reconcile.Reconciler
 var _ reconcile.Reconciler = &BaseControllerReconciler{}
 
-func (r *BaseControllerReconciler) Reconcile(reconcile.Request) (reconcile.Result, error) {
+func (r *BaseControllerReconciler) Reconcile(context.Context, reconcile.Request) (reconcile.Result, error) {
 	return reconcile.Result{}, nil
 }
 

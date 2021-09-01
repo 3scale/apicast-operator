@@ -66,12 +66,9 @@ func (b *BaseReconciler) Logger() logr.Logger {
 //
 // It returns an error.
 func (b *BaseReconciler) ReconcileResource(obj, desired k8sutils.KubernetesObject, mutateFn MutateFn) error {
-	key, err := client.ObjectKeyFromObject(desired)
-	if err != nil {
-		return err
-	}
+	key := client.ObjectKeyFromObject(desired)
 
-	if err = b.Client().Get(context.TODO(), key, obj); err != nil {
+	if err := b.Client().Get(context.TODO(), key, obj); err != nil {
 		if !errors.IsNotFound(err) {
 			return err
 		}

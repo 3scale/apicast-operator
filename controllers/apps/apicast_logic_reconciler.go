@@ -12,7 +12,7 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
-	extensions "k8s.io/api/extensions/v1beta1"
+	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -134,12 +134,12 @@ func (r *APIcastLogicReconciler) applyInitialization() bool {
 	return appliedInitialization
 }
 
-func (r *APIcastLogicReconciler) reconcileIngress(desired *extensions.Ingress) error {
+func (r *APIcastLogicReconciler) reconcileIngress(desired *networkingv1.Ingress) error {
 	if r.APIcastCR.Spec.ExposedHost == nil {
 		k8sutils.TagObjectToDelete(desired)
 	}
 
-	return r.ReconcileResource(&extensions.Ingress{}, desired, IngressMutator)
+	return r.ReconcileResource(&networkingv1.Ingress{}, desired, IngressMutator)
 }
 
 func (r *APIcastLogicReconciler) ensureOwnerReferenceMutator(existing, desired k8sutils.KubernetesObject) (bool, error) {
@@ -254,13 +254,13 @@ func DeploymentMutator(existingObj, desiredObj k8sutils.KubernetesObject) (bool,
 }
 
 func IngressMutator(existingObj, desiredObj k8sutils.KubernetesObject) (bool, error) {
-	existing, ok := existingObj.(*extensions.Ingress)
+	existing, ok := existingObj.(*networkingv1.Ingress)
 	if !ok {
-		return false, fmt.Errorf("%T is not a *extensions.Ingress", existingObj)
+		return false, fmt.Errorf("%T is not a *networkingv1.Ingress", existingObj)
 	}
-	desired, ok := desiredObj.(*extensions.Ingress)
+	desired, ok := desiredObj.(*networkingv1.Ingress)
 	if !ok {
-		return false, fmt.Errorf("%T is not a *extensions.Ingress", desiredObj)
+		return false, fmt.Errorf("%T is not a *networkingv1.Ingress", desiredObj)
 	}
 
 	exposedHostIdx := -1

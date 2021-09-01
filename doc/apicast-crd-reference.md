@@ -56,7 +56,7 @@ Used by the Operator/Kubernetes to control the state of the Apicast custom resou
 | **json/yaml field** | **Type** | **Required** | **Default value** | **Description** |
 | --- | --- | --- | --- | --- |
 | `host` | string | Yes | N/A | Domain name being routed to the gateway |
-| `tls` | []extensions.IngressTLS | No | N/A | Array of ingress TLS objects (see [doc](https://kubernetes.io/docs/concepts/services-networking/ingress/#tls)) |
+| `tls` | []networkv1.IngressTLS | No | N/A | Array of ingress TLS objects (see [doc](https://kubernetes.io/docs/concepts/services-networking/ingress/#tls)) |
 
 #### AdminPortalSecret
 
