@@ -65,17 +65,17 @@ func (b *BaseReconciler) Logger() logr.Logger {
 // desired: Object representing the desired state
 //
 // It returns an error.
-func (b *BaseReconciler) ReconcileResource(obj, desired k8sutils.KubernetesObject, mutateFn MutateFn) error {
+func (b *BaseReconciler) ReconcileResource(ctx context.Context, obj, desired k8sutils.KubernetesObject, mutateFn MutateFn) error {
 	key := client.ObjectKeyFromObject(desired)
 
-	if err := b.Client().Get(context.TODO(), key, obj); err != nil {
+	if err := b.Client().Get(ctx, key, obj); err != nil {
 		if !errors.IsNotFound(err) {
 			return err
 		}
 
 		// Not found
 		if !k8sutils.IsObjectTaggedToDelete(desired) {
-			return b.createResource(desired)
+			return b.createResource(ctx, desired)
 		}
 
 		// Marked for deletion and not found. Nothing to do.
@@ -84,7 +84,7 @@ func (b *BaseReconciler) ReconcileResource(obj, desired k8sutils.KubernetesObjec
 
 	// item found successfully
 	if k8sutils.IsObjectTaggedToDelete(desired) {
-		return b.deleteResource(desired)
+		return b.deleteResource(ctx, desired)
 	}
 
 	update, err := mutateFn(obj, desired)
@@ -93,23 +93,23 @@ func (b *BaseReconciler) ReconcileResource(obj, desired k8sutils.KubernetesObjec
 	}
 
 	if update {
-		return b.updateResource(obj)
+		return b.updateResource(ctx, obj)
 	}
 
 	return nil
 }
 
-func (b *BaseReconciler) createResource(obj k8sutils.KubernetesObject) error {
+func (b *BaseReconciler) createResource(ctx context.Context, obj k8sutils.KubernetesObject) error {
 	b.Logger().Info(fmt.Sprintf("Created object %s", k8sutils.ObjectInfo(obj)))
-	return b.Client().Create(context.TODO(), obj)
+	return b.Client().Create(ctx, obj)
 }
 
-func (b *BaseReconciler) updateResource(obj k8sutils.KubernetesObject) error {
+func (b *BaseReconciler) updateResource(ctx context.Context, obj k8sutils.KubernetesObject) error {
 	b.Logger().Info(fmt.Sprintf("Updated object %s", k8sutils.ObjectInfo(obj)))
-	return b.Client().Update(context.TODO(), obj)
+	return b.Client().Update(ctx, obj)
 }
 
-func (b *BaseReconciler) deleteResource(obj k8sutils.KubernetesObject) error {
+func (b *BaseReconciler) deleteResource(ctx context.Context, obj k8sutils.KubernetesObject) error {
 	b.Logger().Info(fmt.Sprintf("Delete object %s", k8sutils.ObjectInfo(obj)))
-	return b.Client().Delete(context.TODO(), obj)
+	return b.Client().Delete(ctx, obj)
 }
