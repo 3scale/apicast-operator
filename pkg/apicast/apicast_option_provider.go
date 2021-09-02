@@ -35,7 +35,7 @@ func NewApicastOptionsProvider(cr *appsv1alpha1.APIcast, cl client.Client) *APIc
 	}
 }
 
-func (a *APIcastOptionsProvider) GetApicastOptions() (*APIcastOptions, error) {
+func (a *APIcastOptionsProvider) GetApicastOptions(ctx context.Context) (*APIcastOptions, error) {
 	a.APIcastOptions.Namespace = a.APIcastCR.Namespace
 	a.APIcastOptions.Owner = a.APIcastCR.GetOwnerRefence()
 
@@ -61,13 +61,13 @@ func (a *APIcastOptionsProvider) GetApicastOptions() (*APIcastOptions, error) {
 		a.APIcastOptions.ExposedHost.TLS = a.APIcastCR.Spec.ExposedHost.TLS
 	}
 
-	adminPortalCredentialsSecret, err := a.getAdminPortalCredentialsSecret()
+	adminPortalCredentialsSecret, err := a.getAdminPortalCredentialsSecret(ctx)
 	if err != nil {
 		return nil, err
 	}
 	a.APIcastOptions.AdminPortalCredentialsSecret = adminPortalCredentialsSecret
 
-	gatewayConfigurationSecret, err := a.getGatewayEmbeddedConfigSecret()
+	gatewayConfigurationSecret, err := a.getGatewayEmbeddedConfigSecret(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -105,7 +105,7 @@ func (a *APIcastOptionsProvider) GetApicastOptions() (*APIcastOptions, error) {
 	// when HTTPS port is provided and HTTPS Certificate secret is not provided,
 	// Apicast will use some default certificate
 	// Should the operator raise a warning?
-	httpsCertificateSecret, err := a.getHTTPSCertificateSecret()
+	httpsCertificateSecret, err := a.getHTTPSCertificateSecret(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -129,7 +129,7 @@ func (a *APIcastOptionsProvider) GetApicastOptions() (*APIcastOptions, error) {
 			Name:      customPolicySpec.SecretRef.Name, // CR Validation ensures not nil
 			Namespace: a.APIcastCR.Namespace,
 		}
-		err := a.validateCustomPolicySecret(namespacedName)
+		err := a.validateCustomPolicySecret(ctx, namespacedName)
 		if err != nil {
 			errors := field.ErrorList{}
 			customPoliciesIdxFldPath := field.NewPath("spec").Child("customPolicies").Index(idx)
@@ -152,7 +152,7 @@ func (a *APIcastOptionsProvider) GetApicastOptions() (*APIcastOptions, error) {
 			Namespace: a.APIcastCR.Namespace,
 		}
 
-		secret, err := a.customEnvSecret(namespacedName)
+		secret, err := a.customEnvSecret(ctx, namespacedName)
 		if err != nil {
 			errors := field.ErrorList{}
 			customEnvsIdxFldPath := field.NewPath("spec").Child("customEnvironments").Index(idx)
@@ -163,7 +163,7 @@ func (a *APIcastOptionsProvider) GetApicastOptions() (*APIcastOptions, error) {
 		a.APIcastOptions.CustomEnvironments = append(a.APIcastOptions.CustomEnvironments, secret)
 	}
 
-	tracingOptions, err := a.getTracingConfigOptions()
+	tracingOptions, err := a.getTracingConfigOptions(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -172,7 +172,7 @@ func (a *APIcastOptionsProvider) GetApicastOptions() (*APIcastOptions, error) {
 	return a.APIcastOptions, a.APIcastOptions.Validate()
 }
 
-func (a *APIcastOptionsProvider) getTracingConfigOptions() (*TracingConfig, error) {
+func (a *APIcastOptionsProvider) getTracingConfigOptions(ctx context.Context) (*TracingConfig, error) {
 	tracingIsEnabled := a.APIcastCR.OpenTracingIsEnabled()
 	res := &TracingConfig{
 		Enabled:        tracingIsEnabled,
@@ -195,7 +195,7 @@ func (a *APIcastOptionsProvider) getTracingConfigOptions() (*TracingConfig, erro
 				Name:      openTracingConfigSpec.TracingConfigSecretRef.Name, // CR Validation ensures not nil
 				Namespace: a.APIcastCR.Namespace,
 			}
-			err := a.validateTracingConfigSecret(namespacedName)
+			err := a.validateTracingConfigSecret(ctx, namespacedName)
 			if err != nil {
 				errors := field.ErrorList{}
 				tracingConfigFldPath := field.NewPath("spec").Child("openTracing").Child("tracingConfigSecretRef")
@@ -223,7 +223,7 @@ func (a *APIcastOptionsProvider) additionalAnnotations() map[string]string {
 	return annotations
 }
 
-func (a *APIcastOptionsProvider) getGatewayEmbeddedConfigSecret() (*v1.Secret, error) {
+func (a *APIcastOptionsProvider) getGatewayEmbeddedConfigSecret(ctx context.Context) (*v1.Secret, error) {
 	if a.APIcastCR.Spec.EmbeddedConfigurationSecretRef == nil {
 		return nil, nil
 	}
@@ -241,7 +241,7 @@ func (a *APIcastOptionsProvider) getGatewayEmbeddedConfigSecret() (*v1.Secret, e
 	}
 
 	gatewayConfigSecret := v1.Secret{}
-	err := a.Client.Get(context.TODO(), gatewayConfigSecretNamespacedName, &gatewayConfigSecret)
+	err := a.Client.Get(ctx, gatewayConfigSecretNamespacedName, &gatewayConfigSecret)
 
 	if err != nil {
 		return nil, err
@@ -255,7 +255,7 @@ func (a *APIcastOptionsProvider) getGatewayEmbeddedConfigSecret() (*v1.Secret, e
 	return &gatewayConfigSecret, err
 }
 
-func (a *APIcastOptionsProvider) getAdminPortalCredentialsSecret() (*v1.Secret, error) {
+func (a *APIcastOptionsProvider) getAdminPortalCredentialsSecret(ctx context.Context) (*v1.Secret, error) {
 	if a.APIcastCR.Spec.AdminPortalCredentialsRef == nil {
 		return nil, nil
 	}
@@ -273,7 +273,7 @@ func (a *APIcastOptionsProvider) getAdminPortalCredentialsSecret() (*v1.Secret, 
 	}
 
 	adminPortalCredentialsSecret := v1.Secret{}
-	err := a.Client.Get(context.TODO(), adminPortalCredentialsNamespacedName, &adminPortalCredentialsSecret)
+	err := a.Client.Get(ctx, adminPortalCredentialsNamespacedName, &adminPortalCredentialsSecret)
 
 	if err != nil {
 		return nil, err
@@ -298,7 +298,7 @@ func (a *APIcastOptionsProvider) getAdminPortalCredentialsSecret() (*v1.Secret, 
 	return &adminPortalCredentialsSecret, err
 }
 
-func (a *APIcastOptionsProvider) getHTTPSCertificateSecret() (*v1.Secret, error) {
+func (a *APIcastOptionsProvider) getHTTPSCertificateSecret(ctx context.Context) (*v1.Secret, error) {
 	if a.APIcastCR.Spec.HTTPSCertificateSecretRef == nil {
 		return nil, nil
 	}
@@ -321,7 +321,7 @@ func (a *APIcastOptionsProvider) getHTTPSCertificateSecret() (*v1.Secret, error)
 	}
 
 	secret := &v1.Secret{}
-	err := a.Client.Get(context.TODO(), namespacedName, secret)
+	err := a.Client.Get(ctx, namespacedName, secret)
 
 	if err != nil {
 		// NotFoundError is also an error, it is required to exist
@@ -346,9 +346,9 @@ func (a *APIcastOptionsProvider) getHTTPSCertificateSecret() (*v1.Secret, error)
 	return secret, err
 }
 
-func (a *APIcastOptionsProvider) validateCustomPolicySecret(nn types.NamespacedName) error {
+func (a *APIcastOptionsProvider) validateCustomPolicySecret(ctx context.Context, nn types.NamespacedName) error {
 	secret := &v1.Secret{}
-	err := a.Client.Get(context.TODO(), nn, secret)
+	err := a.Client.Get(ctx, nn, secret)
 
 	if err != nil {
 		// NotFoundError is also an error, it is required to exist
@@ -366,9 +366,9 @@ func (a *APIcastOptionsProvider) validateCustomPolicySecret(nn types.NamespacedN
 	return nil
 }
 
-func (a *APIcastOptionsProvider) customEnvSecret(nn types.NamespacedName) (*v1.Secret, error) {
+func (a *APIcastOptionsProvider) customEnvSecret(ctx context.Context, nn types.NamespacedName) (*v1.Secret, error) {
 	secret := &v1.Secret{}
-	err := a.Client.Get(context.TODO(), nn, secret)
+	err := a.Client.Get(ctx, nn, secret)
 
 	if err != nil {
 		// NotFoundError is also an error, it is required to exist
@@ -382,9 +382,9 @@ func (a *APIcastOptionsProvider) customEnvSecret(nn types.NamespacedName) (*v1.S
 	return secret, nil
 }
 
-func (a *APIcastOptionsProvider) validateTracingConfigSecret(nn types.NamespacedName) error {
+func (a *APIcastOptionsProvider) validateTracingConfigSecret(ctx context.Context, nn types.NamespacedName) error {
 	secret := &v1.Secret{}
-	err := a.Client.Get(context.TODO(), nn, secret)
+	err := a.Client.Get(ctx, nn, secret)
 
 	if err != nil {
 		// NotFoundError is also an error, it is required to exist

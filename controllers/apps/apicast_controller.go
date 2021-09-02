@@ -64,13 +64,12 @@ const (
 // +kubebuilder:rbac:groups=route.openshift.io,namespace=placeholder,resources=routes/custom-host,verbs=get;list;watch;create;update;patch;delete
 
 func (r *APIcastReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = context.Background()
 	log := r.Log.WithValues("apicast", req.NamespacedName)
 
 	// your logic here
 	log.Info("Reconciling APIcast")
 
-	instance, err := r.getAPIcast(req)
+	instance, err := r.getAPIcast(ctx, req)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			log.Info("APIcast not found")
@@ -93,7 +92,7 @@ func (r *APIcastReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		if instance.ObjectMeta.Annotations == nil {
 			instance.ObjectMeta.Annotations = map[string]string{}
 		}
-		err = r.updateAPIcastOperatorVersionInAnnotations(instance, log)
+		err = r.updateAPIcastOperatorVersionInAnnotations(ctx, instance, log)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
@@ -113,7 +112,7 @@ func (r *APIcastReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		}
 		log.Info("APIcast upgrade procedure applied")
 		log.Info("Setting APIcast operator version in annotations...")
-		err = r.updateAPIcastOperatorVersionInAnnotations(instance, log)
+		err = r.updateAPIcastOperatorVersionInAnnotations(ctx, instance, log)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
@@ -123,7 +122,7 @@ func (r *APIcastReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	baseReconciler := reconcilers.NewBaseReconciler(r.Client(), r.APIClientReader(), r.Scheme(), log)
 	logicReconciler := NewAPIcastLogicReconciler(baseReconciler, instance)
-	result, err := logicReconciler.Reconcile()
+	result, err := logicReconciler.Reconcile(ctx)
 	if err != nil {
 		// Ignore conflicts, resource might just be outdated.
 		if errors.IsConflict(err) {
@@ -139,7 +138,7 @@ func (r *APIcastReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 	log.Info("APIcast logic reconciled")
 
-	result, err = r.updateStatus(instance, &logicReconciler)
+	result, err = r.updateStatus(ctx, instance, &logicReconciler)
 	if err != nil {
 		// Ignore conflicts, resource might just be outdated.
 		if errors.IsConflict(err) {
@@ -168,15 +167,15 @@ func (r *APIcastReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-func (r *APIcastReconciler) updateStatus(instance *appsv1alpha1.APIcast, reconciler *APIcastLogicReconciler) (ctrl.Result, error) {
-	apicastFactory, err := apicast.Factory(instance, r.Client())
+func (r *APIcastReconciler) updateStatus(ctx context.Context, instance *appsv1alpha1.APIcast, reconciler *APIcastLogicReconciler) (ctrl.Result, error) {
+	apicastFactory, err := apicast.Factory(ctx, instance, r.Client())
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 
 	desiredDeployment := apicastFactory.Deployment()
 	apicastDeployment := &appsv1.Deployment{}
-	err = r.Client().Get(context.TODO(), types.NamespacedName{Name: desiredDeployment.Name, Namespace: desiredDeployment.Namespace}, apicastDeployment)
+	err = r.Client().Get(ctx, types.NamespacedName{Name: desiredDeployment.Name, Namespace: desiredDeployment.Namespace}, apicastDeployment)
 	if err != nil && !errors.IsNotFound(err) {
 		return ctrl.Result{}, err
 	}
@@ -188,7 +187,7 @@ func (r *APIcastReconciler) updateStatus(instance *appsv1alpha1.APIcast, reconci
 	deployedImage := apicastDeployment.Spec.Template.Spec.Containers[0].Image
 	if instance.Status.Image != deployedImage {
 		instance.Status.Image = deployedImage
-		err = r.Client().Status().Update(context.TODO(), instance)
+		err = r.Client().Status().Update(ctx, instance)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
@@ -201,15 +200,15 @@ func (r *APIcastReconciler) upgradeAPIcast() (ctrl.Result, error) {
 	return ctrl.Result{}, nil
 }
 
-func (r *APIcastReconciler) getAPIcast(request ctrl.Request) (*appsv1alpha1.APIcast, error) {
+func (r *APIcastReconciler) getAPIcast(ctx context.Context, request ctrl.Request) (*appsv1alpha1.APIcast, error) {
 	instance := appsv1alpha1.APIcast{}
-	err := r.Client().Get(context.TODO(), request.NamespacedName, &instance)
+	err := r.Client().Get(ctx, request.NamespacedName, &instance)
 	return &instance, err
 }
 
-func (r *APIcastReconciler) updateAPIcastOperatorVersionInAnnotations(instance *appsv1alpha1.APIcast, logger logr.Logger) error {
+func (r *APIcastReconciler) updateAPIcastOperatorVersionInAnnotations(ctx context.Context, instance *appsv1alpha1.APIcast, logger logr.Logger) error {
 	instance.Annotations[APIcastOperatorVersionAnnotation] = version.Version
-	err := r.Client().Update(context.TODO(), instance)
+	err := r.Client().Update(ctx, instance)
 	if err != nil {
 		logger.Error(err, "Error setting APIcast operator version in annotations")
 	}
