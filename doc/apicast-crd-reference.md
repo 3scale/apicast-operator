@@ -127,7 +127,7 @@ Some examples are available [here](/doc/adding-custom-environments.md)
 | --- | --- | --- | --- | --- |
 | `enabled` | bool | No | `false` | Controls whether OpenTracing integration with APIcast is enabled. By default it is not enabled |
 | `tracingLibrary` | string | No | `jaeger` | Controls which OpenTracing library is loaded. At the moment the supported values are: `jaeger`. If not set, `jaeger` will be used |
-| `tracingConfigRef` | LocalObjectReference | No | tracing library-specific default | Secret reference with the tracing library-specific configuration. Each supported tracing library provides a default configuration file which is used if `tracingConfigRef` is not specified. See [TracingConfigSecret](#TracingConfigSecret) for more information. |
+| `tracingConfigSecretRef` | LocalObjectReference | No | tracing library-specific default | Secret reference with the tracing library-specific configuration. Each supported tracing library provides a default configuration file which is used if `tracingConfigSecretRef` is not specified. See [TracingConfigSecret](#TracingConfigSecret) for more information. |
 
 ### TracingConfigSecret
 
@@ -141,5 +141,5 @@ However, apicast has the environment already loaded and it does not change the b
 
 If the custom environment content needs to be changed, there are two options:
 
-* [**recommended way**] Create another secret with a different name and update the APIcast custom resource field `spec.openTracing.tracingConfigRef.name`. The operator will trigger a rolling update loading the new custom environment content.
+* [**recommended way**] Create another secret with a different name and update the APIcast custom resource field `spec.openTracing.tracingConfigSecretRef.name`. The operator will trigger a rolling update loading the new custom environment content.
 * Update the existing secret content and redeploy apicast turning `spec.replicas` to 0 and then back to the previous value.
