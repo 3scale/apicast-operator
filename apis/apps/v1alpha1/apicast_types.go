@@ -212,11 +212,11 @@ type OpenTracingSpec struct {
 	// the only supported tracer is `jaeger`. If not set, `jaeger` will be used.
 	// +optional
 	TracingLibrary *string `json:"tracingLibrary,omitempty"`
-	// TracingConfig contains a secret reference the OpenTracing configuration.
+	// TracingConfigSecretRef contains a Secret reference the OpenTracing configuration.
 	// Each supported tracing library provides a default configuration file
 	// that is used if TracingConfig is not specified.
 	// +optional
-	TracingConfigSecretRef *v1.LocalObjectReference `json:"tracingConfigRef,omitempty"`
+	TracingConfigSecretRef *v1.LocalObjectReference `json:"tracingConfigSecretRef,omitempty"`
 }
 
 // APIcastStatus defines the observed state of APIcast.
