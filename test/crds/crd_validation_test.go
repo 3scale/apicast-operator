@@ -79,14 +79,6 @@ func TestCompleteCRD(t *testing.T) {
 	}
 }
 
-func getSchema(t *testing.T, crd string) validation.Schema {
-	bytes, err := ioutil.ReadFile(crd)
-	assert.NoError(t, err, "Error reading CRD yaml from %v", crd)
-	schema, err := validation.New(bytes)
-	assert.NoError(t, err)
-	return schema
-}
-
 func getSchemaVersioned(t *testing.T, crd string, version string) validation.Schema {
 	bytes, err := ioutil.ReadFile(crd)
 	assert.NoError(t, err, "Error reading CRD yaml from %v", crd)
