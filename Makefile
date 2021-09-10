@@ -59,6 +59,7 @@ OPERATOR_SDK = $(PROJECT_PATH)/bin/operator-sdk
 # More info https://sdk.operatorframework.io/docs/installation/
 OPERATOR_SDK_VERSION=v1.2.0
 $(OPERATOR_SDK):
+	mkdir -p $(PROJECT_PATH)/bin
 	curl -sSL https://github.com/operator-framework/operator-sdk/releases/download/$(OPERATOR_SDK_VERSION)/operator-sdk-${OPERATOR_SDK_VERSION}-$(ARCH)-${OS} -o $(OPERATOR_SDK)
 	chmod +x $(OPERATOR_SDK)
 
