@@ -43,10 +43,7 @@ var _ = Describe("APIcast controller", func() {
 		existingNamespace := &v1.Namespace{}
 		Eventually(func() bool {
 			err := testK8sClient.Get(context.Background(), types.NamespacedName{Name: generatedTestNamespace}, existingNamespace)
-			if err != nil {
-				return false
-			}
-			return true
+			return err == nil
 		}, 5*time.Minute, 5*time.Second).Should(BeTrue())
 
 		testNamespace = existingNamespace.Name
@@ -89,7 +86,6 @@ var _ = Describe("APIcast controller", func() {
 		It("Should create successfully", func() {
 			const (
 				retryInterval = time.Second * 5
-				timeout       = time.Second * 60
 			)
 
 			start := time.Now()
@@ -121,10 +117,7 @@ var _ = Describe("APIcast controller", func() {
 			createdDeployment := &appsv1.Deployment{}
 			Eventually(func() bool {
 				err := testK8sClient.Get(context.Background(), apicastDeploymentLookupKey, createdDeployment)
-				if err != nil {
-					return false
-				}
-				return true
+				return err == nil
 			}, 5*time.Minute, retryInterval).Should(BeTrue())
 
 			elapsed := time.Since(start)
@@ -138,7 +131,6 @@ var _ = Describe("APIcast controller", func() {
 		It("Should create successfully", func() {
 			const (
 				retryInterval = time.Second * 5
-				timeout       = time.Second * 60
 			)
 
 			start := time.Now()
@@ -172,10 +164,7 @@ var _ = Describe("APIcast controller", func() {
 			createdDeployment := &appsv1.Deployment{}
 			Eventually(func() bool {
 				err := testK8sClient.Get(context.Background(), apicastDeploymentLookupKey, createdDeployment)
-				if err != nil {
-					return false
-				}
-				return true
+				return err == nil
 			}, 5*time.Minute, retryInterval).Should(BeTrue())
 
 			// Check that the correspondig IU K8s Ingress has been created
@@ -184,10 +173,7 @@ var _ = Describe("APIcast controller", func() {
 			createdIngress := &networkingv1.Ingress{}
 			Eventually(func() bool {
 				err := testK8sClient.Get(context.Background(), apicastIngressLookupKey, createdIngress)
-				if err != nil {
-					return false
-				}
-				return true
+				return err == nil
 			}, 5*time.Minute, retryInterval).Should(BeTrue())
 
 			elapsed := time.Since(start)

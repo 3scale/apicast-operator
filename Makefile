@@ -59,6 +59,7 @@ OPERATOR_SDK = $(PROJECT_PATH)/bin/operator-sdk
 # More info https://sdk.operatorframework.io/docs/installation/
 OPERATOR_SDK_VERSION=v1.2.0
 $(OPERATOR_SDK):
+	mkdir -p $(PROJECT_PATH)/bin
 	curl -sSL https://github.com/operator-framework/operator-sdk/releases/download/$(OPERATOR_SDK_VERSION)/operator-sdk-${OPERATOR_SDK_VERSION}-$(ARCH)-${OS} -o $(OPERATOR_SDK)
 	chmod +x $(OPERATOR_SDK)
 
@@ -223,3 +224,15 @@ bundle-custom-build: | bundle-custom-updates bundle-build bundle-restore
 .PHONY: bundle-run
 bundle-run: $(OPERATOR_SDK)
 	$(OPERATOR_SDK) run bundle --namespace $(NAMESPACE) $(BUNDLE_IMG)
+
+GOLANGCI-LINT=$(PROJECT_PATH)/bin/golangci-lint
+$(GOLANGCI-LINT):
+	mkdir -p $(PROJECT_PATH)/bin
+	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(PROJECT_PATH)/bin v1.41.1
+
+.PHONY: golangci-lint
+golangci-lint: $(GOLANGCI-LINT)
+
+.PHONY: run-lint
+run-lint: $(GOLANGCI-LINT)
+	$(GOLANGCI-LINT) run

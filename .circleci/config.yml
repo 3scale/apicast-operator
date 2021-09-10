@@ -164,6 +164,17 @@ jobs:
             make test-e2e
           no_output_timeout: 30m
 
+  lint:
+    docker:
+      - image: circleci/golang:1.13.7
+    steps:
+      - checkout
+      - install-operator-dependencies
+      - run:
+          name: Go Lint
+          command: |
+            make run-lint
+
   test-crds:
     docker:
       - image: circleci/golang:1.13.7
@@ -189,6 +200,7 @@ workflows:
     jobs:
       - license-check
       - bundle-validate
+      - lint
       - test-crds
       - run-e2e-test
       - install-operator:

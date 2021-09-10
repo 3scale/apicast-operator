@@ -3,7 +3,6 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"reflect"
 
 	appsv1alpha1 "github.com/3scale/apicast-operator/apis/apps/v1alpha1"
 	apicast "github.com/3scale/apicast-operator/pkg/apicast"
@@ -74,8 +73,19 @@ func (r *APIcastLogicReconciler) Reconcile(ctx context.Context) (reconcile.Resul
 	//
 	// Gateway deployment
 	//
+	deploymentMutator := reconcilers.DeploymentMutator(
+		reconcilers.DeploymentReplicasMutator,
+		reconcilers.DeploymentImageMutator,
+		reconcilers.DeploymentServiceAccountNameMutator,
+		reconcilers.DeploymentEnvVarsMutator,
+		reconcilers.DeploymentResourceMutator,
+		reconcilers.DeploymentPodTemplateAnnotationsMutator,
+		reconcilers.DeploymentVolumesMutator,
+		reconcilers.DeploymentVolumeMountsMutator,
+		reconcilers.DeploymentPortsMutator,
+	)
 	deployment := apicastFactory.Deployment()
-	err = r.ReconcileResource(ctx, &appsv1.Deployment{}, deployment, DeploymentMutator)
+	err = r.ReconcileResource(ctx, &appsv1.Deployment{}, deployment, deploymentMutator)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
@@ -139,7 +149,7 @@ func (r *APIcastLogicReconciler) reconcileIngress(ctx context.Context, desired *
 		k8sutils.TagObjectToDelete(desired)
 	}
 
-	return r.ReconcileResource(ctx, &networkingv1.Ingress{}, desired, IngressMutator)
+	return r.ReconcileResource(ctx, &networkingv1.Ingress{}, desired, reconcilers.IngressMutator)
 }
 
 func (r *APIcastLogicReconciler) ensureOwnerReferenceMutator(existing, desired k8sutils.KubernetesObject) (bool, error) {
@@ -169,119 +179,4 @@ func (r *APIcastLogicReconciler) validateAPicastCR() error {
 	}
 
 	return errors.ToAggregate()
-}
-
-func DeploymentResourcesReconciler(desired, existing *appsv1.Deployment) bool {
-	desiredName := k8sutils.ObjectInfo(desired)
-	update := false
-
-	//
-	// Check container resource requirements
-	//
-	if len(desired.Spec.Template.Spec.Containers) != 1 {
-		panic(fmt.Sprintf("%s desired spec.template.spec.containers length changed to '%d', should be 1", desiredName, len(desired.Spec.Template.Spec.Containers)))
-	}
-
-	if len(existing.Spec.Template.Spec.Containers) != 1 {
-		existing.Spec.Template.Spec.Containers = desired.Spec.Template.Spec.Containers
-		update = true
-	}
-
-	if !k8sutils.CmpResources(&existing.Spec.Template.Spec.Containers[0].Resources, &desired.Spec.Template.Spec.Containers[0].Resources) {
-		existing.Spec.Template.Spec.Containers[0].Resources = desired.Spec.Template.Spec.Containers[0].Resources
-		update = true
-	}
-
-	return update
-}
-
-func DeploymentMutator(existingObj, desiredObj k8sutils.KubernetesObject) (bool, error) {
-	existing, ok := existingObj.(*appsv1.Deployment)
-	if !ok {
-		return false, fmt.Errorf("%T is not a *appsv1.Deployment", existingObj)
-	}
-	desired, ok := desiredObj.(*appsv1.Deployment)
-	if !ok {
-		return false, fmt.Errorf("%T is not a *appsv1.Deployment", desiredObj)
-	}
-
-	changed := false
-
-	if existing.Spec.Replicas != desired.Spec.Replicas {
-		existing.Spec.Replicas = desired.Spec.Replicas
-		changed = true
-	}
-	if existing.Spec.Template.Spec.Containers[0].Image != desired.Spec.Template.Spec.Containers[0].Image {
-		existing.Spec.Template.Spec.Containers[0].Image = desired.Spec.Template.Spec.Containers[0].Image
-		changed = true
-
-	}
-	if existing.Spec.Template.Spec.ServiceAccountName != desired.Spec.Template.Spec.ServiceAccountName {
-		changed = true
-		existing.Spec.Template.Spec.ServiceAccountName = desired.Spec.Template.Spec.ServiceAccountName
-	}
-
-	updatedTmp := reconcilers.ReconcileEnvVar(&existing.Spec.Template.Spec.Containers[0].Env, desired.Spec.Template.Spec.Containers[0].Env)
-	changed = changed || updatedTmp
-
-	updatedTmp = DeploymentResourcesReconciler(desired, existing)
-	changed = changed || updatedTmp
-
-	// They are annotations of the PodTemplate, part of the Spec, not part of the meta info of the Pod or Environment object itself
-	// It is not expected any controller to update them, so we use "set" approach, instead of merge.
-	// This way any removed annotation from desired (due to change in CR) will be removed in existing too.
-	if !reflect.DeepEqual(existing.Spec.Template.Annotations, desired.Spec.Template.Annotations) {
-		changed = true
-		existing.Spec.Template.Annotations = desired.Spec.Template.Annotations
-	}
-
-	if !reflect.DeepEqual(existing.Spec.Template.Spec.Volumes, desired.Spec.Template.Spec.Volumes) {
-		changed = true
-		existing.Spec.Template.Spec.Volumes = desired.Spec.Template.Spec.Volumes
-	}
-
-	if !reflect.DeepEqual(existing.Spec.Template.Spec.Containers[0].VolumeMounts, desired.Spec.Template.Spec.Containers[0].VolumeMounts) {
-		changed = true
-		existing.Spec.Template.Spec.Containers[0].VolumeMounts = desired.Spec.Template.Spec.Containers[0].VolumeMounts
-	}
-
-	if !reflect.DeepEqual(existing.Spec.Template.Spec.Containers[0].Ports, desired.Spec.Template.Spec.Containers[0].Ports) {
-		changed = true
-		existing.Spec.Template.Spec.Containers[0].Ports = desired.Spec.Template.Spec.Containers[0].Ports
-	}
-
-	return changed, nil
-}
-
-func IngressMutator(existingObj, desiredObj k8sutils.KubernetesObject) (bool, error) {
-	existing, ok := existingObj.(*networkingv1.Ingress)
-	if !ok {
-		return false, fmt.Errorf("%T is not a *networkingv1.Ingress", existingObj)
-	}
-	desired, ok := desiredObj.(*networkingv1.Ingress)
-	if !ok {
-		return false, fmt.Errorf("%T is not a *networkingv1.Ingress", desiredObj)
-	}
-
-	exposedHostIdx := -1
-	exposedHost := desired.Spec.Rules[0].Host
-	for idx, rule := range existing.Spec.Rules {
-		if rule.Host == exposedHost {
-			exposedHostIdx = idx
-		}
-	}
-
-	update := false
-
-	if exposedHostIdx == -1 {
-		existing.Spec.Rules = desired.Spec.Rules
-		update = true
-	}
-
-	if !reflect.DeepEqual(existing.Spec.TLS, desired.Spec.TLS) {
-		existing.Spec.TLS = desired.Spec.TLS
-		update = true
-	}
-
-	return update, nil
 }
