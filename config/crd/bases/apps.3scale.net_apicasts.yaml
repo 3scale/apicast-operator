@@ -46,6 +46,11 @@ spec:
                       TODO: Add other useful fields. apiVersion, kind, uid?'
                     type: string
                 type: object
+              allProxy:
+                description: AllProxy specifies a HTTP(S) proxy to be used for connecting
+                  to services if a protocol-specific proxy is not specified. Authentication
+                  is not supported. Format is <scheme>://<host>:<port>
+                type: string
               cacheConfigurationSeconds:
                 description: The period (in seconds) that the APIcast configuration
                   will be stored in APIcast's cache.
@@ -180,6 +185,10 @@ spec:
                   metrics; some labels will be used with specific information that
                   will provide more in-depth details about APIcast.
                 type: boolean
+              httpProxy:
+                description: HTTPProxy specifies a HTTP(S) Proxy to be used for connecting
+                  to HTTP services. Authentication is not supported. Format is <scheme>://<host>:<port>
+                type: string
               httpsCertificateSecretRef:
                 description: HTTPSCertificateSecretRef references secret containing
                   the X.509 certificate in the PEM format and the X.509 certificate
@@ -196,6 +205,10 @@ spec:
                   it will be used only for HTTPS.
                 format: int32
                 type: integer
+              httpsProxy:
+                description: HTTPSProxy specifies a HTTP(S) Proxy to be used for connecting
+                  to HTTPS services. Authentication is not supported. Format is <scheme>://<host>:<port>
+                type: string
               httpsVerifyDepth:
                 description: HTTPSVerifyDepth defines the maximum length of the client
                   certificate chain.
@@ -234,6 +247,12 @@ spec:
                 - status
                 - policies
                 - debug
+                type: string
+              noProxy:
+                description: NoProxy specifies a comma-separated list of hostnames
+                  and domain names for which the requests should not be proxied. Setting
+                  to a single * character, which matches all hosts, effectively disables
+                  the proxy.
                 type: string
               oidcLogLevel:
                 description: OidcLogLevel allows to set the log level for the logs
