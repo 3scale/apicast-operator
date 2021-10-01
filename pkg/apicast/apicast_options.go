@@ -66,6 +66,10 @@ type APIcastOptions struct {
 	ExtendedMetrics                     *bool
 	CustomEnvironments                  []*v1.Secret
 	TracingConfig                       *TracingConfig `validate:"required"`
+	AllProxy                            *string
+	HTTPProxy                           *string
+	HTTPSProxy                          *string
+	NoProxy                             *string
 }
 
 func NewAPIcastOptions() *APIcastOptions {

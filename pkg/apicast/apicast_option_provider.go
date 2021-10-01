@@ -124,6 +124,11 @@ func (a *APIcastOptionsProvider) GetApicastOptions(ctx context.Context) (*APIcas
 	a.APIcastOptions.Workers = a.APIcastCR.Spec.Workers
 	a.APIcastOptions.Timezone = a.APIcastCR.Spec.Timezone
 
+	a.APIcastOptions.AllProxy = a.APIcastCR.Spec.AllProxy
+	a.APIcastOptions.HTTPProxy = a.APIcastCR.Spec.HTTPProxy
+	a.APIcastOptions.HTTPSProxy = a.APIcastCR.Spec.HTTPSProxy
+	a.APIcastOptions.NoProxy = a.APIcastCR.Spec.NoProxy
+
 	for idx, customPolicySpec := range a.APIcastCR.Spec.CustomPolicies {
 		namespacedName := types.NamespacedName{
 			Name:      customPolicySpec.SecretRef.Name, // CR Validation ensures not nil
