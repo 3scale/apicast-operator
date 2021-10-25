@@ -317,6 +317,22 @@ func (a *APIcast) deploymentEnv() []v1.EnvVar {
 		}
 	}
 
+	if a.options.AllProxy != nil {
+		env = append(env, k8sutils.EnvVarFromValue("ALL_PROXY", *a.options.AllProxy))
+	}
+
+	if a.options.HTTPProxy != nil {
+		env = append(env, k8sutils.EnvVarFromValue("HTTP_PROXY", *a.options.HTTPProxy))
+	}
+
+	if a.options.HTTPSProxy != nil {
+		env = append(env, k8sutils.EnvVarFromValue("HTTPS_PROXY", *a.options.HTTPSProxy))
+	}
+
+	if a.options.NoProxy != nil {
+		env = append(env, k8sutils.EnvVarFromValue("NO_PROXY", *a.options.NoProxy))
+	}
+
 	return env
 }
 
