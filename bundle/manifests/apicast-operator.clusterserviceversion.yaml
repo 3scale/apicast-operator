@@ -98,11 +98,13 @@ spec:
           replicas: 1
           selector:
             matchLabels:
+              app: apicast
               control-plane: controller-manager
           strategy: {}
           template:
             metadata:
               labels:
+                app: apicast
                 control-plane: controller-manager
             spec:
               containers:

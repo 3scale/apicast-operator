@@ -16,10 +16,6 @@ patchesStrategicMerge:
 #- patches/cainjection_in_apicasts.yaml
 # +kubebuilder:scaffold:crdkustomizecainjectionpatch
 
-# [APIcast CRD additional app label]. This patch adds the 'app' label for the APCIcast CRD
-- patches/additional_app_label_in_crd.yaml
-# +kubebuilder:scaffold:crdkustomizeadditionalapplabelincrdpatch
-
 patchesJson6902:
 # [APIcast CRD additional app label]. This patch adds the 'app' label for the APCIcast CRD
 - target:
