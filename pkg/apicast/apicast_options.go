@@ -31,7 +31,6 @@ type APIcastOptions struct {
 	Owner                        *metav1.OwnerReference `validate:"required"`
 	ServiceName                  string                 `validate:"required"`
 	Replicas                     int32
-	AppLabel                     string                  `validate:"required"`
 	AdditionalAnnotations        map[string]string       `validate:"required"`
 	ServiceAccountName           string                  `validate:"required"`
 	Image                        string                  `validate:"required"`
@@ -70,6 +69,9 @@ type APIcastOptions struct {
 	HTTPProxy                           *string
 	HTTPSProxy                          *string
 	NoProxy                             *string
+
+	CommonLabels      map[string]string `validate:"required"`
+	PodTemplateLabels map[string]string `validate:"required"`
 }
 
 func NewAPIcastOptions() *APIcastOptions {
