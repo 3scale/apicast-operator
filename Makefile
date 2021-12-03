@@ -183,6 +183,10 @@ TEST_CRD_PKGS = $(shell go list ./... | grep 'github.com/3scale/apicast-operator
 test-crds: generate fmt vet manifests
 	go test -v $(TEST_CRD_PKGS)
 
+## test-manifests-version: Run manifest version checks
+test-manifests-version:
+	cd $(PROJECT_PATH)/test/manifests-version && go test -v
+
 # Run e2e tests
 
 TEST_E2E_PKGS = $(shell go list ./... | grep -E 'github.com/3scale/apicast-operator/controllers')

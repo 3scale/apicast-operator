@@ -12,6 +12,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	appsv1alpha1 "github.com/3scale/apicast-operator/apis/apps/v1alpha1"
+	"github.com/3scale/apicast-operator/pkg/helper"
 	"github.com/3scale/apicast-operator/pkg/k8sutils"
 )
 
@@ -43,7 +44,6 @@ func (a *APIcastOptionsProvider) GetApicastOptions(ctx context.Context) (*APIcas
 	a.APIcastOptions.DeploymentName = apicastFullName
 	a.APIcastOptions.ServiceName = apicastFullName
 	a.APIcastOptions.Replicas = int32(*a.APIcastCR.Spec.Replicas)
-	a.APIcastOptions.AppLabel = APPLABEL
 
 	a.APIcastOptions.ServiceAccountName = "default"
 	if a.APIcastCR.Spec.ServiceAccount != nil {
@@ -54,6 +54,9 @@ func (a *APIcastOptionsProvider) GetApicastOptions(ctx context.Context) (*APIcas
 	if a.APIcastCR.Spec.Image != nil {
 		a.APIcastOptions.Image = *a.APIcastCR.Spec.Image
 	}
+
+	a.APIcastOptions.CommonLabels = a.commonLabels()
+	a.APIcastOptions.PodTemplateLabels = a.podTemplateLabels(a.APIcastOptions.DeploymentName)
 
 	a.APIcastOptions.ExposedHost = ExposedHost{}
 	if a.APIcastCR.Spec.ExposedHost != nil {
@@ -401,4 +404,19 @@ func (a *APIcastOptionsProvider) validateTracingConfigSecret(ctx context.Context
 	}
 
 	return nil
+}
+
+func (a *APIcastOptionsProvider) commonLabels() map[string]string {
+	return map[string]string{
+		"app":                  APPLABEL,
+		"threescale_component": "apicast",
+	}
+}
+
+func (a *APIcastOptionsProvider) podTemplateLabels(deploymentName string) map[string]string {
+	labels := helper.MeteringLabels(helper.ApplicationType)
+
+	labels["deployment"] = deploymentName
+
+	return labels
 }

@@ -345,18 +345,18 @@ func (a *APIcast) Deployment() *appsv1.Deployment {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      a.options.DeploymentName,
 			Namespace: a.options.Namespace,
-			Labels:    a.commonLabels(),
+			Labels:    a.options.CommonLabels,
 		},
 		Spec: appsv1.DeploymentSpec{
 			Selector: &metav1.LabelSelector{
-				MatchLabels: a.deploymentLabelSelector(),
+				MatchLabels: a.options.PodTemplateLabels,
 			},
 			Strategy: appsv1.DeploymentStrategy{
 				Type: appsv1.RollingUpdateDeploymentStrategyType,
 			},
 			Template: v1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels:      a.deploymentLabelSelector(),
+					Labels:      a.options.PodTemplateLabels,
 					Annotations: a.podAnnotations(),
 				},
 				Spec: v1.PodSpec{
@@ -387,19 +387,6 @@ func (a *APIcast) Deployment() *appsv1.Deployment {
 	return deployment
 }
 
-func (a *APIcast) deploymentLabelSelector() map[string]string {
-	return map[string]string{
-		"deployment": a.options.DeploymentName,
-	}
-}
-
-func (a *APIcast) commonLabels() map[string]string {
-	return map[string]string{
-		"app":                  a.options.AppLabel,
-		"threescale_component": "apicast",
-	}
-}
-
 func (a *APIcast) podAnnotations() map[string]string {
 	annotations := map[string]string{
 		"prometheus.io/scrape": "true",
@@ -422,11 +409,11 @@ func (a *APIcast) Service() *v1.Service {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      a.options.ServiceName,
 			Namespace: a.options.Namespace,
-			Labels:    a.commonLabels(),
+			Labels:    a.options.CommonLabels,
 		},
 		Spec: v1.ServiceSpec{
 			Ports:    a.servicePorts(),
-			Selector: a.deploymentLabelSelector(),
+			Selector: a.options.PodTemplateLabels,
 		},
 	}
 
@@ -501,7 +488,7 @@ func (a *APIcast) Ingress() *networkingv1.Ingress {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      a.options.DeploymentName,
 			Namespace: a.options.Namespace,
-			Labels:    a.commonLabels(),
+			Labels:    a.options.CommonLabels,
 		},
 		Spec: networkingv1.IngressSpec{
 			TLS: a.options.ExposedHost.TLS,

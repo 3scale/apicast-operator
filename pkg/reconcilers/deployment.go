@@ -142,3 +142,11 @@ func DeploymentPortsMutator(desired, existing *appsv1.Deployment) bool {
 
 	return update
 }
+
+func DeploymentTemplateLabelsMutator(desired, existing *appsv1.Deployment) bool {
+	update := false
+
+	k8sutils.MergeMapStringString(&update, &existing.Spec.Template.Labels, desired.Spec.Template.Labels)
+
+	return update
+}

@@ -184,6 +184,14 @@ jobs:
       - install-operator-dependencies
       - run: make test-crds
 
+  test-manifests-version:
+    docker:
+      - image: circleci/golang:1.13.7
+    steps:
+      - checkout
+      - install-operator-dependencies
+      - run: make test-manifests-version
+
   bundle-validate:
     docker:
       - image: circleci/golang:1.13.7
@@ -202,6 +210,7 @@ workflows:
       - bundle-validate
       - lint
       - test-crds
+      - test-manifests-version
       - run-e2e-test
       - install-operator:
           filters: # required since `tag-operator-image-release` job has tag filters AND requires `install-operator`. Otherwise tag build will not be triggered on new tags
