@@ -78,7 +78,7 @@ spec:
   install:
     spec:
       deployments:
-      - name: apicast-operator-controller-manager
+      - name: apicast-operator-controller-manager-v2
         spec:
           replicas: 1
           selector:
