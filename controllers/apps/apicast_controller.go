@@ -23,13 +23,17 @@ import (
 	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
-
 	"k8s.io/apimachinery/pkg/api/errors"
+	apimachinerymetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	appsv1alpha1 "github.com/3scale/apicast-operator/apis/apps/v1alpha1"
 	"github.com/3scale/apicast-operator/pkg/apicast"
@@ -40,7 +44,9 @@ import (
 // APIcastReconciler reconciles a APIcast object
 type APIcastReconciler struct {
 	reconcilers.BaseControllerReconciler
-	Log logr.Logger
+	Log                 logr.Logger
+	SecretLabelSelector apimachinerymetav1.LabelSelector
+	WatchedNamespace    string
 }
 
 // blank assignment to verify that ReconcileAPIcast implements reconcile.Reconciler
@@ -158,9 +164,30 @@ func (r *APIcastReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 }
 
 func (r *APIcastReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	secretToApicastEventMapper := &SecretToApicastEventMapper{
+		K8sClient: r.Client(),
+		Logger:    r.Log.WithName("secretToApicastEventMapper"),
+		Namespace: r.WatchedNamespace,
+	}
+
+	// LabelSelectorPredicate only applies to the new object in update events
+	// Thus, if the kuadrant secret label is removed, reconciliation capability will be lost
+	// Thus, if the kuadrant secret label is updated (no longer matching), reconciliation capability will be lost
+	// If the controller would want to react when the label is removed or updated, a custom predicate
+	// would be needed. Like it is implemented in the service controller of the kuadrant controller
+	// https://github.com/Kuadrant/kuadrant-controller/blob/356fb4d7abce66ef2ad5d93bad6461ee6c254e02/controllers/service_controller.go#L349
+	labelSelectorPredicate, err := predicate.LabelSelectorPredicate(r.SecretLabelSelector)
+	if err != nil {
+		return nil
+	}
+
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&appsv1alpha1.APIcast{}).
-		Owns(&corev1.Secret{}).
+		Watches(
+			&source.Kind{Type: &v1.Secret{}},
+			handler.EnqueueRequestsFromMapFunc(secretToApicastEventMapper.Map),
+			builder.WithPredicates(labelSelectorPredicate),
+		).
 		Owns(&appsv1.Deployment{}).
 		Owns(&corev1.Service{}).
 		Owns(&networkingv1.Ingress{}).

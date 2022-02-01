@@ -19,6 +19,10 @@ import (
 const (
 	AdmPortalSecretResverAnnotation            = "apicast.apps.3scale.net/admin-portal-secret-resource-version"
 	GatewayConfigurationSecretResverAnnotation = "apicast.apps.3scale.net/gateway-configuration-secret-resource-version"
+	HttpsCertSecretResverAnnotation            = "apicast.apps.3scale.net/https-cert-secret-resource-version"
+	OpenTracingSecretResverAnnotation          = "apicast.apps.3scale.net/opentracing-secret-resource-version"
+	CustomEnvSecretResverAnnotationPrefix      = "apicast.apps.3scale.net/customenv-secret-resource-version/"
+	CustomPoliciesSecretResverAnnotationPrefix = "apicast.apps.3scale.net/custompolicy-secret-resource-version/"
 	APPLABEL                                   = "apicast"
 )
 
@@ -114,9 +118,6 @@ func (a *APIcastOptionsProvider) GetApicastOptions(ctx context.Context) (*APIcas
 	}
 	a.APIcastOptions.HTTPSCertificateSecret = httpsCertificateSecret
 
-	// Annotations from user secrets. Used to rollout apicast deployment if any secrets changes
-	a.APIcastOptions.AdditionalAnnotations = a.additionalAnnotations()
-
 	// Resource requirements
 	resourceRequirements := DefaultResourceRequirements()
 	if a.APIcastCR.Spec.Resources != nil {
@@ -137,7 +138,7 @@ func (a *APIcastOptionsProvider) GetApicastOptions(ctx context.Context) (*APIcas
 			Name:      customPolicySpec.SecretRef.Name, // CR Validation ensures not nil
 			Namespace: a.APIcastCR.Namespace,
 		}
-		err := a.validateCustomPolicySecret(ctx, namespacedName)
+		secret, err := a.validateCustomPolicySecret(ctx, namespacedName)
 		if err != nil {
 			errors := field.ErrorList{}
 			customPoliciesIdxFldPath := field.NewPath("spec").Child("customPolicies").Index(idx)
@@ -146,9 +147,9 @@ func (a *APIcastOptionsProvider) GetApicastOptions(ctx context.Context) (*APIcas
 		}
 
 		a.APIcastOptions.CustomPolicies = append(a.APIcastOptions.CustomPolicies, CustomPolicy{
-			Name:      customPolicySpec.Name,
-			Version:   customPolicySpec.Version,
-			SecretRef: *customPolicySpec.SecretRef,
+			Name:    customPolicySpec.Name,
+			Version: customPolicySpec.Version,
+			Secret:  secret,
 		})
 	}
 
@@ -177,12 +178,15 @@ func (a *APIcastOptionsProvider) GetApicastOptions(ctx context.Context) (*APIcas
 	}
 	a.APIcastOptions.TracingConfig = tracingOptions
 
+	// Annotations from user secrets. Used to rollout apicast deployment if any secrets changes
+	a.APIcastOptions.AdditionalPodAnnotations = a.additionalPodAnnotations()
+
 	return a.APIcastOptions, a.APIcastOptions.Validate()
 }
 
-func (a *APIcastOptionsProvider) getTracingConfigOptions(ctx context.Context) (*TracingConfig, error) {
+func (a *APIcastOptionsProvider) getTracingConfigOptions(ctx context.Context) (TracingConfig, error) {
 	tracingIsEnabled := a.APIcastCR.OpenTracingIsEnabled()
-	res := &TracingConfig{
+	res := TracingConfig{
 		Enabled:        tracingIsEnabled,
 		TracingLibrary: DefaultTracingLibrary,
 	}
@@ -194,7 +198,7 @@ func (a *APIcastOptionsProvider) getTracingConfigOptions(ctx context.Context) (*
 				tracingLibraryFldPath := field.NewPath("spec").Child("openTracing").Child("tracingLibrary")
 				errors := field.ErrorList{}
 				errors = append(errors, field.Invalid(tracingLibraryFldPath, openTracingConfigSpec, "invalid tracing library specified"))
-				return nil, errors.ToAggregate()
+				return res, errors.ToAggregate()
 			}
 			res.TracingLibrary = *a.APIcastCR.Spec.OpenTracing.TracingLibrary
 		}
@@ -203,21 +207,28 @@ func (a *APIcastOptionsProvider) getTracingConfigOptions(ctx context.Context) (*
 				Name:      openTracingConfigSpec.TracingConfigSecretRef.Name, // CR Validation ensures not nil
 				Namespace: a.APIcastCR.Namespace,
 			}
-			err := a.validateTracingConfigSecret(ctx, namespacedName)
+			secret, err := a.validateTracingConfigSecret(ctx, namespacedName)
 			if err != nil {
 				errors := field.ErrorList{}
 				tracingConfigFldPath := field.NewPath("spec").Child("openTracing").Child("tracingConfigSecretRef")
 				errors = append(errors, field.Invalid(tracingConfigFldPath, openTracingConfigSpec, err.Error()))
-				return nil, errors.ToAggregate()
+				return res, errors.ToAggregate()
 			}
-			res.TracingConfigSecretName = &openTracingConfigSpec.TracingConfigSecretRef.Name
+			res.Secret = secret
 		}
 	}
 
 	return res, nil
 }
 
-func (a *APIcastOptionsProvider) additionalAnnotations() map[string]string {
+func (a *APIcastOptionsProvider) additionalPodAnnotations() map[string]string {
+	// https certificate secret
+	// admin portal secret
+	// gateway conf secret
+	// custom policy secret(s)
+	// custom env secret(s)
+	// tracing config secret
+
 	annotations := map[string]string{}
 
 	if a.APIcastOptions.AdminPortalCredentialsSecret != nil {
@@ -226,6 +237,28 @@ func (a *APIcastOptionsProvider) additionalAnnotations() map[string]string {
 
 	if a.APIcastOptions.GatewayConfigurationSecret != nil {
 		annotations[GatewayConfigurationSecretResverAnnotation] = a.APIcastOptions.GatewayConfigurationSecret.ResourceVersion
+	}
+
+	if a.APIcastOptions.HTTPSCertificateSecret != nil {
+		annotations[HttpsCertSecretResverAnnotation] = a.APIcastOptions.HTTPSCertificateSecret.ResourceVersion
+	}
+
+	if a.APIcastOptions.TracingConfig.Enabled && a.APIcastOptions.TracingConfig.Secret != nil {
+		annotations[OpenTracingSecretResverAnnotation] = a.APIcastOptions.TracingConfig.Secret.ResourceVersion
+	}
+
+	for idx := range a.APIcastOptions.CustomEnvironments {
+		// Secrets must exist
+		// Annotation key includes the name of the secret
+		annotationKey := fmt.Sprintf("%s%s", CustomEnvSecretResverAnnotationPrefix, a.APIcastOptions.CustomEnvironments[idx])
+		annotations[annotationKey] = a.APIcastOptions.CustomEnvironments[idx].ResourceVersion
+	}
+
+	for idx := range a.APIcastOptions.CustomPolicies {
+		// Secrets must exist
+		// Annotation key includes the name of the secret
+		annotationKey := fmt.Sprintf("%s%s", CustomPoliciesSecretResverAnnotationPrefix, a.APIcastOptions.CustomPolicies[idx].Secret.Name)
+		annotations[annotationKey] = a.APIcastOptions.CustomPolicies[idx].Secret.ResourceVersion
 	}
 
 	return annotations
@@ -354,24 +387,24 @@ func (a *APIcastOptionsProvider) getHTTPSCertificateSecret(ctx context.Context) 
 	return secret, err
 }
 
-func (a *APIcastOptionsProvider) validateCustomPolicySecret(ctx context.Context, nn types.NamespacedName) error {
+func (a *APIcastOptionsProvider) validateCustomPolicySecret(ctx context.Context, nn types.NamespacedName) (*v1.Secret, error) {
 	secret := &v1.Secret{}
 	err := a.Client.Get(ctx, nn, secret)
 
 	if err != nil {
 		// NotFoundError is also an error, it is required to exist
-		return err
+		return nil, err
 	}
 
 	if _, ok := secret.Data["init.lua"]; !ok {
-		return fmt.Errorf("Required secret key, %s not found", "init.lua")
+		return nil, fmt.Errorf("Required secret key, %s not found", "init.lua")
 	}
 
 	if _, ok := secret.Data["apicast-policy.json"]; !ok {
-		return fmt.Errorf("Required secret key, %s not found", "apicast-policy.json")
+		return nil, fmt.Errorf("Required secret key, %s not found", "apicast-policy.json")
 	}
 
-	return nil
+	return secret, nil
 }
 
 func (a *APIcastOptionsProvider) customEnvSecret(ctx context.Context, nn types.NamespacedName) (*v1.Secret, error) {
@@ -390,20 +423,20 @@ func (a *APIcastOptionsProvider) customEnvSecret(ctx context.Context, nn types.N
 	return secret, nil
 }
 
-func (a *APIcastOptionsProvider) validateTracingConfigSecret(ctx context.Context, nn types.NamespacedName) error {
+func (a *APIcastOptionsProvider) validateTracingConfigSecret(ctx context.Context, nn types.NamespacedName) (*v1.Secret, error) {
 	secret := &v1.Secret{}
 	err := a.Client.Get(ctx, nn, secret)
 
 	if err != nil {
 		// NotFoundError is also an error, it is required to exist
-		return err
+		return nil, err
 	}
 
 	if _, ok := secret.Data[TracingConfigSecretKey]; !ok {
-		return fmt.Errorf("Required secret key, %s not found", TracingConfigSecretKey)
+		return nil, fmt.Errorf("Required secret key, %s not found", TracingConfigSecretKey)
 	}
 
-	return nil
+	return secret, nil
 }
 
 func (a *APIcastOptionsProvider) commonLabels() map[string]string {

@@ -14,15 +14,15 @@ type ExposedHost struct {
 }
 
 type CustomPolicy struct {
-	Name      string
-	Version   string
-	SecretRef v1.LocalObjectReference
+	Name    string
+	Version string
+	Secret  *v1.Secret
 }
 
 type TracingConfig struct {
-	Enabled                 bool
-	TracingLibrary          string `validate:"required"`
-	TracingConfigSecretName *string
+	Enabled        bool
+	TracingLibrary string `validate:"required"`
+	Secret         *v1.Secret
 }
 
 type APIcastOptions struct {
@@ -31,7 +31,7 @@ type APIcastOptions struct {
 	Owner                        *metav1.OwnerReference `validate:"required"`
 	ServiceName                  string                 `validate:"required"`
 	Replicas                     int32
-	AdditionalAnnotations        map[string]string       `validate:"required"`
+	AdditionalPodAnnotations     map[string]string       `validate:"required"`
 	ServiceAccountName           string                  `validate:"required"`
 	Image                        string                  `validate:"required"`
 	ExposedHost                  ExposedHost             `validate:"-"`
@@ -64,7 +64,7 @@ type APIcastOptions struct {
 	CustomPolicies                      []CustomPolicy
 	ExtendedMetrics                     *bool
 	CustomEnvironments                  []*v1.Secret
-	TracingConfig                       *TracingConfig `validate:"required"`
+	TracingConfig                       TracingConfig `validate:"-"`
 	AllProxy                            *string
 	HTTPProxy                           *string
 	HTTPSProxy                          *string
