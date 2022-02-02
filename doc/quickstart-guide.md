@@ -84,6 +84,18 @@ Example:
 kubectl create secret generic 3scaleportal --from-literal=AdminPortalURL=https://access-token@account-admin.3scale.net
 ```
 
+**Watch for secret changes**
+
+By default, content changes in the secret will not be noticed by the apicast operator.
+The apicast operator allows monitoring the secret for changes adding the `apicast.apps.3scale.net/watched-by=apicast` label.
+With that label in place, when the content of the secret is changed, the operator will get notified.
+Then, the operator will rollout apicast deployment to make the changes effective.
+The operator will not take *ownership* of the secret in any way.
+
+```
+kubectl label secret ${SOME_SECRET_NAME} apicast.apps.3scale.net/watched-by=apicast
+```
+
 For more information about the contents of the secret see the [Admin portal configuration secret reference](apicast-crd-reference.md#AdminPortalSecret).
 
 2. Create APIcast object:
@@ -177,6 +189,18 @@ stringData:
 For more information about the contents of the secret and the
 configuration of the gateway sees the
 [Embedded configuration secret](apicast-crd-reference.md#EmbeddedConfSecret) reference.
+
+**Watch for secret changes**
+
+By default, content changes in the secret will not be noticed by the apicast operator.
+The apicast operator allows monitoring the secret for changes adding the `apicast.apps.3scale.net/watched-by=apicast` label.
+With that label in place, when the content of the secret is changed, the operator will get notified.
+Then, the operator will rollout apicast deployment to make the changes effective.
+The operator will not take *ownership* of the secret in any way.
+
+```
+kubectl label secret ${SOME_SECRET_NAME} apicast.apps.3scale.net/watched-by=apicast
+```
 
 2. Create APIcast object:
 
