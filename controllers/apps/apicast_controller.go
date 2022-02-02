@@ -27,9 +27,11 @@ import (
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	apimachinerymetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -108,7 +110,7 @@ func (r *APIcastReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	if instance.ObjectMeta.Annotations[APIcastOperatorVersionAnnotation] != version.Version {
 		log.Info("APIcast operator version in annotations does not match expected version. Applying upgrade procedure...")
-		upgradeReconcileResult, err := r.upgradeAPIcast()
+		upgradeReconcileResult, err := r.upgradeAPIcast(ctx, instance, log)
 		if err != nil {
 			log.Error(err, "Error upgrading APIcast")
 			return ctrl.Result{}, err
@@ -223,7 +225,12 @@ func (r *APIcastReconciler) updateStatus(ctx context.Context, instance *appsv1al
 	return ctrl.Result{}, nil
 }
 
-func (r *APIcastReconciler) upgradeAPIcast() (ctrl.Result, error) {
+func (r *APIcastReconciler) upgradeAPIcast(ctx context.Context, apicastCR *appsv1alpha1.APIcast, logger logr.Logger) (ctrl.Result, error) {
+	err := r.removeApicastSecretOwnership(ctx, apicastCR, logger)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
 	return ctrl.Result{}, nil
 }
 
@@ -240,4 +247,79 @@ func (r *APIcastReconciler) updateAPIcastOperatorVersionInAnnotations(ctx contex
 		logger.Error(err, "Error setting APIcast operator version in annotations")
 	}
 	return err
+}
+
+func (r *APIcastReconciler) removeApicastSecretOwnership(ctx context.Context, apicastCR *appsv1alpha1.APIcast, logger logr.Logger) error {
+	// ownership only for:
+	// admin portal secret
+	// gateway conf secret
+
+	secretKeys := []client.ObjectKey{}
+	if apicastCR.Spec.AdminPortalCredentialsRef != nil {
+		secretKeys = append(secretKeys, client.ObjectKey{
+			Name:      apicastCR.Spec.AdminPortalCredentialsRef.Name,
+			Namespace: apicastCR.Namespace, // review when operator is also cluster scoped
+		})
+	}
+
+	if apicastCR.Spec.EmbeddedConfigurationSecretRef != nil {
+		secretKeys = append(secretKeys, client.ObjectKey{
+			Name:      apicastCR.Spec.EmbeddedConfigurationSecretRef.Name,
+			Namespace: apicastCR.Namespace, // review when operator is also cluster scoped
+		})
+	}
+
+	for idx := range secretKeys {
+		secret := &v1.Secret{}
+		secretKey := secretKeys[idx]
+		err := r.Client().Get(ctx, secretKey, secret)
+		logger.V(1).Info("read secret", "objectKey", secretKey, "error", err)
+		if err != nil {
+			return err
+		}
+		updated := removeSecretOwnership(secret, apicastCR)
+		if updated {
+			err = r.Client().Update(ctx, secret)
+			logger.V(1).Info("remove secret ownership", "objectKey", secretKey, "error", err)
+			if err != nil {
+				logger.Error(err, "Error setting APIcast operator version in annotations")
+			}
+		}
+	}
+	return nil
+}
+
+func removeSecretOwnership(secret *v1.Secret, apicastCR *appsv1alpha1.APIcast) bool {
+	changed := false
+
+	originalSize := len(secret.GetOwnerReferences())
+	apicastOwnerRef := apicastCR.GetOwnerRefence()
+	newOwners := []apimachinerymetav1.OwnerReference{}
+	for idx := range secret.GetOwnerReferences() {
+
+		aGV, err := schema.ParseGroupVersion(apicastOwnerRef.APIVersion)
+		if err != nil {
+			continue
+		}
+
+		bGV, err := schema.ParseGroupVersion(secret.GetOwnerReferences()[idx].APIVersion)
+		if err != nil {
+			continue
+		}
+
+		if aGV.Group != bGV.Group || apicastOwnerRef.Kind != secret.GetOwnerReferences()[idx].Kind || apicastOwnerRef.Name != secret.GetOwnerReferences()[idx].Name {
+			newOwners = append(newOwners, secret.GetOwnerReferences()[idx])
+		}
+	}
+
+	if originalSize != len(newOwners) {
+		secret.SetOwnerReferences(newOwners)
+	}
+
+	newSize := len(secret.GetOwnerReferences())
+	if originalSize != newSize {
+		changed = true
+	}
+
+	return changed
 }
