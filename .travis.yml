@@ -1,0 +1,26 @@
+sudo: required
+language: go
+go: 1.13.7
+
+os: linux-ppc64le
+
+env:
+  global:
+    - CHANGE_MINIKUBE_NONE_USER=true
+    - MINIKUBE_WANTUPDATENOTIFICATION=false
+    - MINIKUBE_WANTREPORTERRORPROMPT=false
+    - MINIKUBE_HOME=$HOME
+    - CHANGE_MINIKUBE_NONE_USER=true
+    - KUBECONFIG=$HOME/.kube/config
+
+before_install:
+  - .travis/setup_${TRAVIS_OS_NAME}_env.sh
+
+install:
+  - .travis/install_${TRAVIS_OS_NAME}_env.sh
+
+
+script:
+  - kubectl cluster-info
+  - JSONPATH='{range .items[*]}{@.metadata.name}:{range @.status.conditions[*]}{@.type}={@.status};{end}{end}'; until kubectl -n kube-system get pods -lk8s-app=kube-dns -o jsonpath="$JSONPATH" 2>&1 | grep -q "Ready=True"; do sleep 1;echo "waiting for kube-dns to be available"; kubectl get pods --all-namespaces; done
+  - .travis/run_${TRAVIS_OS_NAME}_tests.sh
