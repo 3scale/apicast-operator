@@ -21,8 +21,8 @@ const (
 	GatewayConfigurationSecretResverAnnotation = "apicast.apps.3scale.net/gateway-configuration-secret-resource-version"
 	HttpsCertSecretResverAnnotation            = "apicast.apps.3scale.net/https-cert-secret-resource-version"
 	OpenTracingSecretResverAnnotation          = "apicast.apps.3scale.net/opentracing-secret-resource-version"
-	CustomEnvSecretResverAnnotationPrefix      = "apicast.apps.3scale.net/customenv-secret-resource-version/"
-	CustomPoliciesSecretResverAnnotationPrefix = "apicast.apps.3scale.net/custompolicy-secret-resource-version/"
+	CustomEnvSecretResverAnnotationPrefix      = "apicast.apps.3scale.net/customenv-secret-resource-version-"
+	CustomPoliciesSecretResverAnnotationPrefix = "apicast.apps.3scale.net/custompolicy-secret-resource-version-"
 	APPLABEL                                   = "apicast"
 )
 
@@ -250,7 +250,7 @@ func (a *APIcastOptionsProvider) additionalPodAnnotations() map[string]string {
 	for idx := range a.APIcastOptions.CustomEnvironments {
 		// Secrets must exist
 		// Annotation key includes the name of the secret
-		annotationKey := fmt.Sprintf("%s%s", CustomEnvSecretResverAnnotationPrefix, a.APIcastOptions.CustomEnvironments[idx])
+		annotationKey := fmt.Sprintf("%s%s", CustomEnvSecretResverAnnotationPrefix, a.APIcastOptions.CustomEnvironments[idx].Name)
 		annotations[annotationKey] = a.APIcastOptions.CustomEnvironments[idx].ResourceVersion
 	}
 

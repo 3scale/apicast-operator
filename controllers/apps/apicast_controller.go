@@ -283,6 +283,7 @@ func (r *APIcastReconciler) removeApicastSecretOwnership(ctx context.Context, ap
 			logger.V(1).Info("remove secret ownership", "objectKey", secretKey, "error", err)
 			if err != nil {
 				logger.Error(err, "Error setting APIcast operator version in annotations")
+				return err
 			}
 		}
 	}
