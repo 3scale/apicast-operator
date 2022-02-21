@@ -23,13 +23,19 @@ import (
 	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
-
 	"k8s.io/apimachinery/pkg/api/errors"
+	apimachinerymetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
-
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	appsv1alpha1 "github.com/3scale/apicast-operator/apis/apps/v1alpha1"
 	"github.com/3scale/apicast-operator/pkg/apicast"
@@ -40,7 +46,9 @@ import (
 // APIcastReconciler reconciles a APIcast object
 type APIcastReconciler struct {
 	reconcilers.BaseControllerReconciler
-	Log logr.Logger
+	Log                 logr.Logger
+	SecretLabelSelector apimachinerymetav1.LabelSelector
+	WatchedNamespace    string
 }
 
 // blank assignment to verify that ReconcileAPIcast implements reconcile.Reconciler
@@ -102,7 +110,7 @@ func (r *APIcastReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	if instance.ObjectMeta.Annotations[APIcastOperatorVersionAnnotation] != version.Version {
 		log.Info("APIcast operator version in annotations does not match expected version. Applying upgrade procedure...")
-		upgradeReconcileResult, err := r.upgradeAPIcast()
+		upgradeReconcileResult, err := r.upgradeAPIcast(ctx, instance, log)
 		if err != nil {
 			log.Error(err, "Error upgrading APIcast")
 			return ctrl.Result{}, err
@@ -158,9 +166,30 @@ func (r *APIcastReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 }
 
 func (r *APIcastReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	secretToApicastEventMapper := &SecretToApicastEventMapper{
+		K8sClient: r.Client(),
+		Logger:    r.Log.WithName("secretToApicastEventMapper"),
+		Namespace: r.WatchedNamespace,
+	}
+
+	// LabelSelectorPredicate only applies to the new object in update events
+	// Thus, if the kuadrant secret label is removed, reconciliation capability will be lost
+	// Thus, if the kuadrant secret label is updated (no longer matching), reconciliation capability will be lost
+	// If the controller would want to react when the label is removed or updated, a custom predicate
+	// would be needed. Like it is implemented in the service controller of the kuadrant controller
+	// https://github.com/Kuadrant/kuadrant-controller/blob/356fb4d7abce66ef2ad5d93bad6461ee6c254e02/controllers/service_controller.go#L349
+	labelSelectorPredicate, err := predicate.LabelSelectorPredicate(r.SecretLabelSelector)
+	if err != nil {
+		return nil
+	}
+
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&appsv1alpha1.APIcast{}).
-		Owns(&corev1.Secret{}).
+		Watches(
+			&source.Kind{Type: &v1.Secret{}},
+			handler.EnqueueRequestsFromMapFunc(secretToApicastEventMapper.Map),
+			builder.WithPredicates(labelSelectorPredicate),
+		).
 		Owns(&appsv1.Deployment{}).
 		Owns(&corev1.Service{}).
 		Owns(&networkingv1.Ingress{}).
@@ -196,7 +225,12 @@ func (r *APIcastReconciler) updateStatus(ctx context.Context, instance *appsv1al
 	return ctrl.Result{}, nil
 }
 
-func (r *APIcastReconciler) upgradeAPIcast() (ctrl.Result, error) {
+func (r *APIcastReconciler) upgradeAPIcast(ctx context.Context, apicastCR *appsv1alpha1.APIcast, logger logr.Logger) (ctrl.Result, error) {
+	err := r.removeApicastSecretOwnership(ctx, apicastCR, logger)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
 	return ctrl.Result{}, nil
 }
 
@@ -213,4 +247,80 @@ func (r *APIcastReconciler) updateAPIcastOperatorVersionInAnnotations(ctx contex
 		logger.Error(err, "Error setting APIcast operator version in annotations")
 	}
 	return err
+}
+
+func (r *APIcastReconciler) removeApicastSecretOwnership(ctx context.Context, apicastCR *appsv1alpha1.APIcast, logger logr.Logger) error {
+	// ownership only for:
+	// admin portal secret
+	// gateway conf secret
+
+	secretKeys := []client.ObjectKey{}
+	if apicastCR.Spec.AdminPortalCredentialsRef != nil {
+		secretKeys = append(secretKeys, client.ObjectKey{
+			Name:      apicastCR.Spec.AdminPortalCredentialsRef.Name,
+			Namespace: apicastCR.Namespace, // review when operator is also cluster scoped
+		})
+	}
+
+	if apicastCR.Spec.EmbeddedConfigurationSecretRef != nil {
+		secretKeys = append(secretKeys, client.ObjectKey{
+			Name:      apicastCR.Spec.EmbeddedConfigurationSecretRef.Name,
+			Namespace: apicastCR.Namespace, // review when operator is also cluster scoped
+		})
+	}
+
+	for idx := range secretKeys {
+		secret := &v1.Secret{}
+		secretKey := secretKeys[idx]
+		err := r.Client().Get(ctx, secretKey, secret)
+		logger.V(1).Info("read secret", "objectKey", secretKey, "error", err)
+		if err != nil {
+			return err
+		}
+		updated := removeSecretOwnership(secret, apicastCR)
+		if updated {
+			err = r.Client().Update(ctx, secret)
+			logger.V(1).Info("remove secret ownership", "objectKey", secretKey, "error", err)
+			if err != nil {
+				logger.Error(err, "Error setting APIcast operator version in annotations")
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func removeSecretOwnership(secret *v1.Secret, apicastCR *appsv1alpha1.APIcast) bool {
+	changed := false
+
+	originalSize := len(secret.GetOwnerReferences())
+	apicastOwnerRef := apicastCR.GetOwnerRefence()
+	newOwners := []apimachinerymetav1.OwnerReference{}
+	for idx := range secret.GetOwnerReferences() {
+
+		aGV, err := schema.ParseGroupVersion(apicastOwnerRef.APIVersion)
+		if err != nil {
+			continue
+		}
+
+		bGV, err := schema.ParseGroupVersion(secret.GetOwnerReferences()[idx].APIVersion)
+		if err != nil {
+			continue
+		}
+
+		if aGV.Group != bGV.Group || apicastOwnerRef.Kind != secret.GetOwnerReferences()[idx].Kind || apicastOwnerRef.Name != secret.GetOwnerReferences()[idx].Name {
+			newOwners = append(newOwners, secret.GetOwnerReferences()[idx])
+		}
+	}
+
+	if originalSize != len(newOwners) {
+		secret.SetOwnerReferences(newOwners)
+	}
+
+	newSize := len(secret.GetOwnerReferences())
+	if originalSize != newSize {
+		changed = true
+	}
+
+	return changed
 }

@@ -22,6 +22,7 @@ import (
 	"os"
 	"runtime"
 
+	apimachinerymetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apimachineryruntime "k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -31,9 +32,9 @@ import (
 
 	appsv1alpha1 "github.com/3scale/apicast-operator/apis/apps/v1alpha1"
 	appscontroller "github.com/3scale/apicast-operator/controllers/apps"
-	"github.com/3scale/apicast-operator/version"
-
+	"github.com/3scale/apicast-operator/pkg/k8sutils"
 	"github.com/3scale/apicast-operator/pkg/reconcilers"
+	"github.com/3scale/apicast-operator/version"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -84,13 +85,26 @@ func main() {
 		LeaderElectionID:   "988b4062.3scale.net",
 	})
 	if err != nil {
-		setupLog.Error(err, "unable to start manager")
+		setupLog.Error(err, "unable init the manager")
+		os.Exit(1)
+	}
+
+	secretLabelSelector, err := apimachinerymetav1.ParseToLabelSelector(k8sutils.ApicastSecretLabel)
+	if err != nil {
+		setupLog.Error(err, "unable parse apicast secrets label")
+		os.Exit(1)
+	}
+
+	if secretLabelSelector == nil {
+		setupLog.Info("secretLabelSelector is empty")
 		os.Exit(1)
 	}
 
 	if err = (&appscontroller.APIcastReconciler{
 		BaseControllerReconciler: reconcilers.NewBaseControllerReconciler(mgr.GetClient(), mgr.GetAPIReader(), mgr.GetScheme()),
 		Log:                      ctrl.Log.WithName("controllers").WithName("APIcast"),
+		SecretLabelSelector:      *secretLabelSelector,
+		WatchedNamespace:         namespace,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "APIcast")
 		os.Exit(1)
@@ -99,7 +113,7 @@ func main() {
 
 	setupLog.Info("starting manager")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
-		setupLog.Error(err, "problem running manager")
+		setupLog.Error(err, "unable to start manager")
 		os.Exit(1)
 	}
 }

@@ -139,11 +139,14 @@ Some examples are available [here](/doc/adding-custom-environments.md)
 | --- | --- |
 | `config` | Tracing library-specific configuration |
 
-*NOTE*: Once apicast has been deployed, the content of the secret should not be updated externally.
-If the content of the secret is updated externally, after apicast has been deployed, the container can automatically see the changes.
-However, apicast has the environment already loaded and it does not change the behavior.
+**Watch for secret changes**
 
-If the custom environment content needs to be changed, there are two options:
+By default, content changes in the secret will not be noticed by the apicast operator.
+The apicast operator allows monitoring the secret for changes adding the `apicast.apps.3scale.net/watched-by=apicast` label.
+With that label in place, when the content of the secret is changed, the operator will get notified.
+Then, the operator will rollout apicast deployment to make the changes effective.
+The operator will not take *ownership* of the secret in any way.
 
-* [**recommended way**] Create another secret with a different name and update the APIcast custom resource field `spec.openTracing.tracingConfigSecretRef.name`. The operator will trigger a rolling update loading the new custom environment content.
-* Update the existing secret content and redeploy apicast turning `spec.replicas` to 0 and then back to the previous value.
+```
+kubectl label secret ${SOME_SECRET_NAME} apicast.apps.3scale.net/watched-by=apicast
+```

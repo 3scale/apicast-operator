@@ -93,9 +93,9 @@ func (a *APIcast) deploymentVolumeMounts() []v1.VolumeMount {
 		})
 	}
 
-	if a.options.TracingConfig.Enabled && a.options.TracingConfig.TracingConfigSecretName != nil {
+	if a.options.TracingConfig.Enabled && a.options.TracingConfig.Secret != nil {
 		volumeMounts = append(volumeMounts, v1.VolumeMount{
-			Name:      tracingConfigVolumeName(a.options.TracingConfig.TracingLibrary, *a.options.TracingConfig.TracingConfigSecretName),
+			Name:      tracingConfigVolumeName(a.options.TracingConfig.TracingLibrary, a.options.TracingConfig.Secret.Name),
 			MountPath: TracingConfigMountBasePath,
 		})
 	}
@@ -150,7 +150,7 @@ func (a *APIcast) deploymentVolumes() []v1.Volume {
 			Name: policyVolumeName(customPolicy),
 			VolumeSource: v1.VolumeSource{
 				Secret: &v1.SecretVolumeSource{
-					SecretName: customPolicy.SecretRef.Name,
+					SecretName: customPolicy.Secret.Name,
 				},
 			},
 		})
@@ -167,16 +167,16 @@ func (a *APIcast) deploymentVolumes() []v1.Volume {
 		})
 	}
 
-	if a.options.TracingConfig.Enabled && a.options.TracingConfig.TracingConfigSecretName != nil {
+	if a.options.TracingConfig.Enabled && a.options.TracingConfig.Secret != nil {
 		volumes = append(volumes, v1.Volume{
-			Name: tracingConfigVolumeName(a.options.TracingConfig.TracingLibrary, *a.options.TracingConfig.TracingConfigSecretName),
+			Name: tracingConfigVolumeName(a.options.TracingConfig.TracingLibrary, a.options.TracingConfig.Secret.Name),
 			VolumeSource: v1.VolumeSource{
 				Secret: &v1.SecretVolumeSource{
-					SecretName: *a.options.TracingConfig.TracingConfigSecretName,
+					SecretName: a.options.TracingConfig.Secret.Name,
 					Items: []v1.KeyToPath{
 						v1.KeyToPath{
 							Key:  TracingConfigSecretKey,
-							Path: tracingConfigVolumeName(a.options.TracingConfig.TracingLibrary, *a.options.TracingConfig.TracingConfigSecretName),
+							Path: tracingConfigVolumeName(a.options.TracingConfig.TracingLibrary, a.options.TracingConfig.Secret.Name),
 						},
 					},
 				},
@@ -312,8 +312,8 @@ func (a *APIcast) deploymentEnv() []v1.EnvVar {
 	if a.options.TracingConfig.Enabled {
 		env = append(env, k8sutils.EnvVarFromValue("OPENTRACING_TRACER", a.options.TracingConfig.TracingLibrary))
 
-		if a.options.TracingConfig.TracingConfigSecretName != nil {
-			env = append(env, k8sutils.EnvVarFromValue("OPENTRACING_CONFIG", strings.Join([]string{TracingConfigMountBasePath, tracingConfigVolumeName(a.options.TracingConfig.TracingLibrary, *a.options.TracingConfig.TracingConfigSecretName)}, "/")))
+		if a.options.TracingConfig.Secret != nil {
+			env = append(env, k8sutils.EnvVarFromValue("OPENTRACING_CONFIG", strings.Join([]string{TracingConfigMountBasePath, tracingConfigVolumeName(a.options.TracingConfig.TracingLibrary, a.options.TracingConfig.Secret.Name)}, "/")))
 		}
 	}
 
@@ -393,7 +393,7 @@ func (a *APIcast) podAnnotations() map[string]string {
 		"prometheus.io/port":   "9421",
 	}
 
-	for key, val := range a.options.AdditionalAnnotations {
+	for key, val := range a.options.AdditionalPodAnnotations {
 		annotations[key] = val
 	}
 
@@ -519,28 +519,6 @@ func (a *APIcast) Ingress() *networkingv1.Ingress {
 
 	addOwnerRefToObject(ingress, *a.options.Owner)
 	return ingress
-}
-
-func (a *APIcast) AdminPortalCredentialsSecret() *v1.Secret {
-	if a.options.AdminPortalCredentialsSecret == nil {
-		return nil
-	}
-
-	secret := a.options.AdminPortalCredentialsSecret
-
-	addOwnerRefToObject(secret, *a.options.Owner)
-	return secret
-}
-
-func (a *APIcast) GatewayConfigurationSecret() *v1.Secret {
-	if a.options.GatewayConfigurationSecret == nil {
-		return nil
-	}
-
-	secret := a.options.GatewayConfigurationSecret
-
-	addOwnerRefToObject(secret, *a.options.Owner)
-	return secret
 }
 
 func addOwnerRefToObject(o metav1.Object, owner metav1.OwnerReference) {

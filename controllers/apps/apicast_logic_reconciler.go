@@ -4,17 +4,17 @@ import (
 	"context"
 	"fmt"
 
-	appsv1alpha1 "github.com/3scale/apicast-operator/apis/apps/v1alpha1"
-	apicast "github.com/3scale/apicast-operator/pkg/apicast"
-	"github.com/3scale/apicast-operator/pkg/k8sutils"
-	"github.com/3scale/apicast-operator/pkg/reconcilers"
-
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+
+	appsv1alpha1 "github.com/3scale/apicast-operator/apis/apps/v1alpha1"
+	apicast "github.com/3scale/apicast-operator/pkg/apicast"
+	"github.com/3scale/apicast-operator/pkg/k8sutils"
+	"github.com/3scale/apicast-operator/pkg/reconcilers"
 )
 
 type APIcastLogicReconciler struct {
@@ -48,24 +48,6 @@ func (r *APIcastLogicReconciler) Reconcile(ctx context.Context) (reconcile.Resul
 	}
 
 	apicastFactory, err := apicast.Factory(ctx, r.APIcastCR, r.Client())
-	if err != nil {
-		return reconcile.Result{}, err
-	}
-
-	//
-	// Admin Portal Credentials secret
-	//
-	adminPortalSecret := apicastFactory.AdminPortalCredentialsSecret()
-	err = r.reconcileApicastSecret(ctx, adminPortalSecret)
-	if err != nil {
-		return reconcile.Result{}, err
-	}
-
-	//
-	// Gateway configuration secret
-	//
-	confSecret := apicastFactory.GatewayConfigurationSecret()
-	err = r.reconcileApicastSecret(ctx, confSecret)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
@@ -112,28 +94,25 @@ func (r *APIcastLogicReconciler) Reconcile(ctx context.Context) (reconcile.Resul
 	return reconcile.Result{}, nil
 }
 
-func (r *APIcastLogicReconciler) reconcileApicastSecret(ctx context.Context, secret *v1.Secret) error {
-	if secret == nil {
-		return nil
+func (r *APIcastLogicReconciler) initialize(ctx context.Context) (bool, error) {
+	appliedSomeInitialization, err := r.applyInitialization(ctx)
+	if err != nil {
+		return false, err
 	}
 
-	return r.ReconcileResource(ctx, &v1.Secret{}, secret, r.ensureOwnerReferenceMutator)
-}
-
-func (r *APIcastLogicReconciler) initialize(ctx context.Context) (bool, error) {
-	if appliedSomeInitialization := r.applyInitialization(); appliedSomeInitialization {
+	if appliedSomeInitialization {
 		r.Logger().Info(fmt.Sprintf("Updating %s", k8sutils.ObjectInfo(r.APIcastCR)))
 		err := r.Client().Update(ctx, r.APIcastCR)
 		if err != nil {
 			return false, err
 		}
-		r.Logger().Info("APIcast resource missed optional fields. Updated CR which triggered a new reconciliation event")
+		r.Logger().Info("APIcast resource missed some fields. Updated CR which triggered a new reconciliation event")
 		return true, nil
 	}
 	return false, nil
 }
 
-func (r *APIcastLogicReconciler) applyInitialization() bool {
+func (r *APIcastLogicReconciler) applyInitialization(ctx context.Context) (bool, error) {
 	var defaultAPIcastReplicas int64 = 1
 	appliedInitialization := false
 
@@ -142,7 +121,86 @@ func (r *APIcastLogicReconciler) applyInitialization() bool {
 		appliedInitialization = true
 	}
 
-	return appliedInitialization
+	changed, err := r.reconcileApicastSecretLabels(ctx)
+	if err != nil {
+		return false, err
+	}
+	appliedInitialization = appliedInitialization || changed
+
+	return appliedInitialization, nil
+}
+
+func (r *APIcastLogicReconciler) reconcileApicastSecretLabels(ctx context.Context) (bool, error) {
+	secretUIDs, err := r.getSecretUIDs(ctx)
+	if err != nil {
+		return false, err
+	}
+
+	return replaceAPIcastSecretLabels(r.APIcastCR, secretUIDs), nil
+}
+
+func (r *APIcastLogicReconciler) getSecretUIDs(ctx context.Context) ([]string, error) {
+	// https certificate secret
+	// admin portal secret
+	// gateway conf secret
+	// custom policy secret(s)
+	// custom env secret(s)
+	// tracing config secret
+
+	secretKeys := []client.ObjectKey{}
+	if r.APIcastCR.Spec.HTTPSCertificateSecretRef != nil {
+		secretKeys = append(secretKeys, client.ObjectKey{
+			Name:      r.APIcastCR.Spec.HTTPSCertificateSecretRef.Name,
+			Namespace: r.APIcastCR.Namespace, // review when operator is also cluster scoped
+		})
+	}
+	if r.APIcastCR.Spec.AdminPortalCredentialsRef != nil {
+		secretKeys = append(secretKeys, client.ObjectKey{
+			Name:      r.APIcastCR.Spec.AdminPortalCredentialsRef.Name,
+			Namespace: r.APIcastCR.Namespace, // review when operator is also cluster scoped
+		})
+	}
+	if r.APIcastCR.Spec.EmbeddedConfigurationSecretRef != nil {
+		secretKeys = append(secretKeys, client.ObjectKey{
+			Name:      r.APIcastCR.Spec.EmbeddedConfigurationSecretRef.Name,
+			Namespace: r.APIcastCR.Namespace, // review when operator is also cluster scoped
+		})
+	}
+
+	for idx := range r.APIcastCR.Spec.CustomPolicies {
+		secretKeys = append(secretKeys, client.ObjectKey{
+			Name:      r.APIcastCR.Spec.CustomPolicies[idx].SecretRef.Name, // CR validation ensures not nil
+			Namespace: r.APIcastCR.Namespace,                               // review when operator is also cluster scoped
+		})
+	}
+
+	for idx := range r.APIcastCR.Spec.CustomEnvironments {
+		secretKeys = append(secretKeys, client.ObjectKey{
+			Name:      r.APIcastCR.Spec.CustomEnvironments[idx].SecretRef.Name, // CR validation ensures not nil
+			Namespace: r.APIcastCR.Namespace,                                   // review when operator is also cluster scoped
+		})
+	}
+
+	if r.APIcastCR.OpenTracingIsEnabled() && r.APIcastCR.Spec.OpenTracing.TracingConfigSecretRef != nil {
+		secretKeys = append(secretKeys, client.ObjectKey{
+			Name:      r.APIcastCR.Spec.OpenTracing.TracingConfigSecretRef.Name,
+			Namespace: r.APIcastCR.Namespace, // review when operator is also cluster scoped
+		})
+	}
+
+	uids := []string{}
+	for idx := range secretKeys {
+		secret := &v1.Secret{}
+		secretKey := secretKeys[idx]
+		err := r.Client().Get(ctx, secretKey, secret)
+		r.Logger().V(1).Info("read secret", "objectKey", secretKey, "error", err)
+		if err != nil {
+			return nil, err
+		}
+		uids = append(uids, string(secret.GetUID()))
+	}
+
+	return uids, nil
 }
 
 func (r *APIcastLogicReconciler) reconcileIngress(ctx context.Context, desired *networkingv1.Ingress) error {
@@ -151,23 +209,6 @@ func (r *APIcastLogicReconciler) reconcileIngress(ctx context.Context, desired *
 	}
 
 	return r.ReconcileResource(ctx, &networkingv1.Ingress{}, desired, reconcilers.IngressMutator)
-}
-
-func (r *APIcastLogicReconciler) ensureOwnerReferenceMutator(existing, desired k8sutils.KubernetesObject) (bool, error) {
-	changed := false
-
-	originalSize := len(existing.GetOwnerReferences())
-
-	if err := controllerutil.SetControllerReference(r.APIcastCR, existing, r.Scheme()); err != nil {
-		return false, err
-	}
-
-	newSize := len(existing.GetOwnerReferences())
-	if originalSize != newSize {
-		changed = true
-	}
-
-	return changed, nil
 }
 
 func (r *APIcastLogicReconciler) validateAPicastCR() error {

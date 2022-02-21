@@ -92,3 +92,5 @@ tags
 
 # controller-runtime testenv binaries
 testbin/*
+
+apicast-operator
