@@ -34,7 +34,10 @@ spec:
       - command:
         - /manager
         args:
-        - --enable-leader-election
+        - "--enable-leader-election"
+        - "--leader-lease-duration=60"
+        - "--leader-renew-deadline=40"
+        - "--leader-retry-period=5"
         image: controller:latest
         name: manager
         resources:

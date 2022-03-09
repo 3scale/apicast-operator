@@ -13,6 +13,9 @@ spec:
         args:
         - "--metrics-addr=0.0.0.0:8080"
         - "--enable-leader-election"
+        - "--leader-lease-duration=60"
+        - "--leader-renew-deadline=40"
+        - "--leader-retry-period=5"
         ports:
         - containerPort: 8080
           name: metrics

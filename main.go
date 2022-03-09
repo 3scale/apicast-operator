@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"os"
 	"runtime"
+	"time"
 
 	apimachinerymetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apimachineryruntime "k8s.io/apimachinery/pkg/runtime"
@@ -53,6 +54,9 @@ func init() {
 func main() {
 	var metricsAddr string
 	var enableLeaderElection bool
+	var leaseDurationLeaderElection int
+	var renewDeadlineLeaderElection int
+	var retryPeriodLeaderElection int
 
 	// https://v1-2-x.sdk.operatorframework.io/docs/building-operators/golang/references/logging/#a-simple-example
 	// Add the zap logger flag set to the CLI. The flag set must
@@ -64,6 +68,9 @@ func main() {
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
+	flag.IntVar(&leaseDurationLeaderElection, "leader-lease-duration", 0, "LeaseDuration is the duration that non-leader candidates will wait to force acquire leadership")
+	flag.IntVar(&renewDeadlineLeaderElection, "leader-renew-deadline", 0, "RenewDeadline is the duration that the acting controlplane will retry refreshing leadership before giving up")
+	flag.IntVar(&retryPeriodLeaderElection, "leader-retry-period", 0, "RetryPeriod is the duration the LeaderElector clients should wait between tries of actions")
 	flag.Parse()
 
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&loggerOpts)))
@@ -76,14 +83,31 @@ func main() {
 		os.Exit(1)
 	}
 
-	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
+	mgrOptions := ctrl.Options{
 		Namespace:          namespace,
 		Scheme:             scheme,
 		MetricsBindAddress: metricsAddr,
 		Port:               9443,
 		LeaderElection:     enableLeaderElection,
 		LeaderElectionID:   "988b4062.3scale.net",
-	})
+	}
+
+	if leaseDurationLeaderElection != 0 {
+		tmp := time.Duration(leaseDurationLeaderElection) * time.Second
+		mgrOptions.LeaseDuration = &tmp
+	}
+
+	if renewDeadlineLeaderElection != 0 {
+		tmp := time.Duration(renewDeadlineLeaderElection) * time.Second
+		mgrOptions.RenewDeadline = &tmp
+	}
+
+	if retryPeriodLeaderElection != 0 {
+		tmp := time.Duration(retryPeriodLeaderElection) * time.Second
+		mgrOptions.RetryPeriod = &tmp
+	}
+
+	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), mgrOptions)
 	if err != nil {
 		setupLog.Error(err, "unable init the manager")
 		os.Exit(1)
