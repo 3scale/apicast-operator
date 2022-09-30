@@ -38,8 +38,18 @@ func DeploymentMutator(opts ...DeploymentMutateFn) MutateFn {
 func DeploymentReplicasMutator(desired, existing *appsv1.Deployment) bool {
 	update := false
 
-	if desired.Spec.Replicas != existing.Spec.Replicas {
-		existing.Spec.Replicas = desired.Spec.Replicas
+	var existingReplicas int32 = 1
+	if existing.Spec.Replicas != nil {
+		existingReplicas = *existing.Spec.Replicas
+	}
+
+	var desiredReplicas int32 = 1
+	if desired.Spec.Replicas != nil {
+		desiredReplicas = *desired.Spec.Replicas
+	}
+
+	if desiredReplicas != existingReplicas {
+		existing.Spec.Replicas = &desiredReplicas
 		update = true
 	}
 

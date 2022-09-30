@@ -55,8 +55,12 @@ func (r *APIcastLogicReconciler) Reconcile(ctx context.Context) (reconcile.Resul
 	//
 	// Gateway deployment
 	//
-	deploymentMutator := reconcilers.DeploymentMutator(
-		reconcilers.DeploymentReplicasMutator,
+	deploymentMutators := make([]reconcilers.DeploymentMutateFn, 0)
+	if r.APIcastCR.Spec.Replicas != nil {
+		deploymentMutators = append(deploymentMutators, reconcilers.DeploymentReplicasMutator)
+	}
+
+	deploymentMutators = append(deploymentMutators,
 		reconcilers.DeploymentImageMutator,
 		reconcilers.DeploymentServiceAccountNameMutator,
 		reconcilers.DeploymentEnvVarsMutator,
@@ -67,8 +71,9 @@ func (r *APIcastLogicReconciler) Reconcile(ctx context.Context) (reconcile.Resul
 		reconcilers.DeploymentPortsMutator,
 		reconcilers.DeploymentTemplateLabelsMutator,
 	)
+
 	deployment := apicastFactory.Deployment()
-	err = r.ReconcileResource(ctx, &appsv1.Deployment{}, deployment, deploymentMutator)
+	err = r.ReconcileResource(ctx, &appsv1.Deployment{}, deployment, reconcilers.DeploymentMutator(deploymentMutators...))
 	if err != nil {
 		return reconcile.Result{}, err
 	}
@@ -113,13 +118,7 @@ func (r *APIcastLogicReconciler) initialize(ctx context.Context) (bool, error) {
 }
 
 func (r *APIcastLogicReconciler) applyInitialization(ctx context.Context) (bool, error) {
-	var defaultAPIcastReplicas int64 = 1
 	appliedInitialization := false
-
-	if r.APIcastCR.Spec.Replicas == nil {
-		r.APIcastCR.Spec.Replicas = &defaultAPIcastReplicas
-		appliedInitialization = true
-	}
 
 	changed, err := r.reconcileApicastSecretLabels(ctx)
 	if err != nil {

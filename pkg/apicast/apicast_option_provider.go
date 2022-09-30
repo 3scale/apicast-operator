@@ -47,7 +47,11 @@ func (a *APIcastOptionsProvider) GetApicastOptions(ctx context.Context) (*APIcas
 	apicastFullName := "apicast-" + a.APIcastCR.Name
 	a.APIcastOptions.DeploymentName = apicastFullName
 	a.APIcastOptions.ServiceName = apicastFullName
-	a.APIcastOptions.Replicas = int32(*a.APIcastCR.Spec.Replicas)
+
+	a.APIcastOptions.Replicas = 1
+	if a.APIcastCR.Spec.Replicas != nil {
+		a.APIcastOptions.Replicas = int32(*a.APIcastCR.Spec.Replicas)
+	}
 
 	a.APIcastOptions.ServiceAccountName = "default"
 	if a.APIcastCR.Spec.ServiceAccount != nil {
