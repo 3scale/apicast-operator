@@ -66,7 +66,7 @@ require (
 	go.uber.org/multierr v1.6.0 // indirect
 	go.uber.org/zap v1.19.0 // indirect
 	golang.org/x/crypto v0.0.0-20220622213112-05595931fe9d // indirect
-	golang.org/x/net v0.0.0-20210520170846-37e1c6afe023 // indirect
+	golang.org/x/net v0.0.0-20211112202133-69e39bad7dc2 // indirect
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d // indirect
 	golang.org/x/sys v0.0.0-20210817190340-bfb29a6856f2 // indirect
 	golang.org/x/term v0.0.0-20210220032956-6a3ed077a48d // indirect
@@ -87,12 +87,3 @@ require (
 	sigs.k8s.io/structured-merge-diff/v4 v4.1.2 // indirect
 	sigs.k8s.io/yaml v1.2.0 // indirect
 )
-
-// security release to address CVE-2020-14040
-replace golang.org/x/text => golang.org/x/text v0.3.3
-
-// security release to address CVE-2020-9283. First version
-// that addresses the CVE is golang.org/x/crypto v0.0.0-20200220183623-bac4c82f6975
-// but we replace to the most recent version that appeared on go.sum before
-// this change
-replace golang.org/x/crypto => golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
