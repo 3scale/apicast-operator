@@ -3,7 +3,7 @@ module github.com/3scale/apicast-operator
 go 1.17
 
 require (
-	github.com/RHsyseng/operator-utils v0.0.0-20200213165520-1a022eb07a43
+	github.com/RHsyseng/operator-utils v1.4.9
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-logr/logr v0.4.0
 	github.com/go-playground/validator/v10 v10.4.0
