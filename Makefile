@@ -239,4 +239,4 @@ golangci-lint: $(GOLANGCI-LINT)
 
 .PHONY: run-lint
 run-lint: $(GOLANGCI-LINT)
-	$(GOLANGCI-LINT) run
+	$(GOLANGCI-LINT) run --timeout 5m
