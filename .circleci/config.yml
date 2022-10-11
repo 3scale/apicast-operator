@@ -39,7 +39,7 @@ commands:
       - run:
           name: Install Golang
           command: |
-            curl --fail -L https://dl.google.com/go/go1.13.7.linux-amd64.tar.gz | sudo tar -C /opt -xzf-
+            curl --fail -L https://dl.google.com/go/go1.17.3.linux-amd64.tar.gz | sudo tar -C /opt -xzf-
 
   install-operator-sdk:
     steps:
@@ -77,7 +77,7 @@ commands:
 jobs:
   install-operator:
     docker:
-      - image: circleci/golang:1.13.7
+      - image: circleci/golang:1.17.3
     working_directory: /go/src/github.com/3scale/apicast-operator
     steps:
       - setup_remote_docker:
@@ -152,7 +152,7 @@ jobs:
 
   run-e2e-test:
     docker:
-      - image: circleci/golang:1.13.7
+      - image: circleci/golang:1.17.3
     working_directory: /go/src/github.com/3scale/apicast-operator
     steps:
       - install-operator-sdk
@@ -166,7 +166,7 @@ jobs:
 
   lint:
     docker:
-      - image: circleci/golang:1.13.7
+      - image: circleci/golang:1.17.3
     steps:
       - checkout
       - install-operator-dependencies
@@ -177,7 +177,7 @@ jobs:
 
   test-crds:
     docker:
-      - image: circleci/golang:1.13.7
+      - image: circleci/golang:1.17.3
     working_directory: /go/src/github.com/3scale/apicast-operator
     steps:
       - checkout
@@ -186,7 +186,7 @@ jobs:
 
   test-manifests-version:
     docker:
-      - image: circleci/golang:1.13.7
+      - image: circleci/golang:1.17.3
     steps:
       - checkout
       - install-operator-dependencies
@@ -194,7 +194,7 @@ jobs:
 
   bundle-validate:
     docker:
-      - image: circleci/golang:1.13.7
+      - image: circleci/golang:1.17.3
     working_directory: /go/src/github.com/3scale/apicast-operator
     steps:
       - checkout
