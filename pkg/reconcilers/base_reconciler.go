@@ -60,8 +60,10 @@ func (b *BaseReconciler) Logger() logr.Logger {
 // with the existing state inside the passed in callback MutateFn.
 //
 // obj: Object of the same type as the 'desired' object.
-//            Used to read the resource from the kubernetes cluster.
-//            Could be zero-valued initialized object.
+//
+//	Used to read the resource from the kubernetes cluster.
+//	Could be zero-valued initialized object.
+//
 // desired: Object representing the desired state
 //
 // It returns an error.
