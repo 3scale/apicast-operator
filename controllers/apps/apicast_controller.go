@@ -27,11 +27,9 @@ import (
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	apimachinerymetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -40,7 +38,6 @@ import (
 	appsv1alpha1 "github.com/3scale/apicast-operator/apis/apps/v1alpha1"
 	"github.com/3scale/apicast-operator/pkg/apicast"
 	"github.com/3scale/apicast-operator/pkg/reconcilers"
-	"github.com/3scale/apicast-operator/version"
 )
 
 // APIcastReconciler reconciles a APIcast object
@@ -53,10 +50,6 @@ type APIcastReconciler struct {
 
 // blank assignment to verify that ReconcileAPIcast implements reconcile.Reconciler
 var _ reconcile.Reconciler = &APIcastReconciler{}
-
-const (
-	APIcastOperatorVersionAnnotation = "apicast.apps.3scale.net/operator-version"
-)
 
 // +kubebuilder:rbac:groups=apps.3scale.net,namespace=placeholder,resources=apicasts,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=apps.3scale.net,namespace=placeholder,resources=apicasts/status,verbs=get;update;patch
@@ -71,8 +64,9 @@ const (
 // +kubebuilder:rbac:groups=networking.k8s.io,namespace=placeholder,resources=ingresses,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=route.openshift.io,namespace=placeholder,resources=routes/custom-host,verbs=get;list;watch;create;update;patch;delete
 
-func (r *APIcastReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *APIcastReconciler) Reconcile(eventCtx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := r.Log.WithValues("apicast", req.NamespacedName)
+	ctx := logr.NewContext(eventCtx, log)
 
 	// your logic here
 	log.Info("Reconciling APIcast")
@@ -95,36 +89,11 @@ func (r *APIcastReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		log.V(1).Info(string(jsonData))
 	}
 
-	if instance.ObjectMeta.Annotations == nil || instance.ObjectMeta.Annotations[APIcastOperatorVersionAnnotation] == "" {
-		log.Info("APIcast operator version not set in annotations. Setting it...")
-		if instance.ObjectMeta.Annotations == nil {
-			instance.ObjectMeta.Annotations = map[string]string{}
-		}
-		err = r.updateAPIcastOperatorVersionInAnnotations(ctx, instance, log)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-		log.Info("APIcast operator version in annotations set. Requeuing request...")
-		return ctrl.Result{Requeue: true}, err
+	res, err := r.reconcileAPIcastCR(ctx, instance)
+	if err != nil {
+		return ctrl.Result{}, err
 	}
-
-	if instance.ObjectMeta.Annotations[APIcastOperatorVersionAnnotation] != version.Version {
-		log.Info("APIcast operator version in annotations does not match expected version. Applying upgrade procedure...")
-		upgradeReconcileResult, err := r.upgradeAPIcast(ctx, instance, log)
-		if err != nil {
-			log.Error(err, "Error upgrading APIcast")
-			return ctrl.Result{}, err
-		}
-		if upgradeReconcileResult.Requeue {
-			return upgradeReconcileResult, nil
-		}
-		log.Info("APIcast upgrade procedure applied")
-		log.Info("Setting APIcast operator version in annotations...")
-		err = r.updateAPIcastOperatorVersionInAnnotations(ctx, instance, log)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-		log.Info("APIcast operator version in annotations set. Requeuing request...")
+	if res.Requeue {
 		return ctrl.Result{Requeue: true}, nil
 	}
 
@@ -163,6 +132,20 @@ func (r *APIcastReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 	log.Info("APIcast status reconciled")
 	return ctrl.Result{}, nil
+}
+
+func (r *APIcastReconciler) reconcileAPIcastCR(ctx context.Context, apicast *appsv1alpha1.APIcast) (ctrl.Result, error) {
+	changed := false
+	var err error
+
+	tmpChanged := apicast.UpdateOperatorVersion()
+	changed = changed || tmpChanged
+
+	if changed {
+		err = r.Client().Update(ctx, apicast)
+	}
+
+	return ctrl.Result{Requeue: changed}, err
 }
 
 func (r *APIcastReconciler) SetupWithManager(mgr ctrl.Manager) error {
@@ -225,102 +208,8 @@ func (r *APIcastReconciler) updateStatus(ctx context.Context, instance *appsv1al
 	return ctrl.Result{}, nil
 }
 
-func (r *APIcastReconciler) upgradeAPIcast(ctx context.Context, apicastCR *appsv1alpha1.APIcast, logger logr.Logger) (ctrl.Result, error) {
-	err := r.removeApicastSecretOwnership(ctx, apicastCR, logger)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-
-	return ctrl.Result{}, nil
-}
-
 func (r *APIcastReconciler) getAPIcast(ctx context.Context, request ctrl.Request) (*appsv1alpha1.APIcast, error) {
 	instance := appsv1alpha1.APIcast{}
 	err := r.Client().Get(ctx, request.NamespacedName, &instance)
 	return &instance, err
-}
-
-func (r *APIcastReconciler) updateAPIcastOperatorVersionInAnnotations(ctx context.Context, instance *appsv1alpha1.APIcast, logger logr.Logger) error {
-	instance.Annotations[APIcastOperatorVersionAnnotation] = version.Version
-	err := r.Client().Update(ctx, instance)
-	if err != nil {
-		logger.Error(err, "Error setting APIcast operator version in annotations")
-	}
-	return err
-}
-
-func (r *APIcastReconciler) removeApicastSecretOwnership(ctx context.Context, apicastCR *appsv1alpha1.APIcast, logger logr.Logger) error {
-	// ownership only for:
-	// admin portal secret
-	// gateway conf secret
-
-	secretKeys := []client.ObjectKey{}
-	if apicastCR.Spec.AdminPortalCredentialsRef != nil {
-		secretKeys = append(secretKeys, client.ObjectKey{
-			Name:      apicastCR.Spec.AdminPortalCredentialsRef.Name,
-			Namespace: apicastCR.Namespace, // review when operator is also cluster scoped
-		})
-	}
-
-	if apicastCR.Spec.EmbeddedConfigurationSecretRef != nil {
-		secretKeys = append(secretKeys, client.ObjectKey{
-			Name:      apicastCR.Spec.EmbeddedConfigurationSecretRef.Name,
-			Namespace: apicastCR.Namespace, // review when operator is also cluster scoped
-		})
-	}
-
-	for idx := range secretKeys {
-		secret := &v1.Secret{}
-		secretKey := secretKeys[idx]
-		err := r.Client().Get(ctx, secretKey, secret)
-		logger.V(1).Info("read secret", "objectKey", secretKey, "error", err)
-		if err != nil {
-			return err
-		}
-		updated := removeSecretOwnership(secret, apicastCR)
-		if updated {
-			err = r.Client().Update(ctx, secret)
-			logger.V(1).Info("remove secret ownership", "objectKey", secretKey, "error", err)
-			if err != nil {
-				logger.Error(err, "Error setting APIcast operator version in annotations")
-				return err
-			}
-		}
-	}
-	return nil
-}
-
-func removeSecretOwnership(secret *v1.Secret, apicastCR *appsv1alpha1.APIcast) bool {
-	changed := false
-
-	originalSize := len(secret.GetOwnerReferences())
-	apicastOwnerRef := apicastCR.GetOwnerRefence()
-	newOwners := []apimachinerymetav1.OwnerReference{}
-	for idx := range secret.GetOwnerReferences() {
-
-		aGV, err := schema.ParseGroupVersion(apicastOwnerRef.APIVersion)
-		if err != nil {
-			continue
-		}
-
-		bGV, err := schema.ParseGroupVersion(secret.GetOwnerReferences()[idx].APIVersion)
-		if err != nil {
-			continue
-		}
-
-		if aGV.Group != bGV.Group || apicastOwnerRef.Kind != secret.GetOwnerReferences()[idx].Kind || apicastOwnerRef.Name != secret.GetOwnerReferences()[idx].Name {
-			newOwners = append(newOwners, secret.GetOwnerReferences()[idx])
-		}
-	}
-
-	if originalSize != len(newOwners) {
-		secret.SetOwnerReferences(newOwners)
-	}
-
-	newSize := len(secret.GetOwnerReferences())
-	if originalSize != newSize {
-		changed = true
-	}
-
-	return changed
 }
