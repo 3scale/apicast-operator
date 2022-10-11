@@ -89,14 +89,6 @@ func (r *APIcastReconciler) Reconcile(eventCtx context.Context, req ctrl.Request
 		log.V(1).Info(string(jsonData))
 	}
 
-	res, err := r.reconcileAPIcastCR(ctx, instance)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-	if res.Requeue {
-		return ctrl.Result{Requeue: true}, nil
-	}
-
 	baseReconciler := reconcilers.NewBaseReconciler(r.Client(), r.APIClientReader(), r.Scheme(), log)
 	logicReconciler := NewAPIcastLogicReconciler(baseReconciler, instance)
 	result, err := logicReconciler.Reconcile(ctx)
@@ -132,20 +124,6 @@ func (r *APIcastReconciler) Reconcile(eventCtx context.Context, req ctrl.Request
 	}
 	log.Info("APIcast status reconciled")
 	return ctrl.Result{}, nil
-}
-
-func (r *APIcastReconciler) reconcileAPIcastCR(ctx context.Context, apicast *appsv1alpha1.APIcast) (ctrl.Result, error) {
-	changed := false
-	var err error
-
-	tmpChanged := apicast.UpdateOperatorVersion()
-	changed = changed || tmpChanged
-
-	if changed {
-		err = r.Client().Update(ctx, apicast)
-	}
-
-	return ctrl.Result{Requeue: changed}, err
 }
 
 func (r *APIcastReconciler) SetupWithManager(mgr ctrl.Manager) error {
