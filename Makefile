@@ -42,14 +42,14 @@ all: manager
 # download controller-gen if necessary
 CONTROLLER_GEN=$(PROJECT_PATH)/bin/controller-gen
 $(CONTROLLER_GEN):
-	$(call go-get-tool,$(CONTROLLER_GEN),sigs.k8s.io/controller-tools/cmd/controller-gen@v0.3.0)
+	$(call go-bin-install,$(CONTROLLER_GEN),sigs.k8s.io/controller-tools/cmd/controller-gen@v0.9.2)
 
 .PHONY: controller-gen
 controller-gen: $(CONTROLLER_GEN)
 
 KUSTOMIZE=$(PROJECT_PATH)/bin/kustomize
 $(KUSTOMIZE):
-	$(call go-get-tool,$(KUSTOMIZE),sigs.k8s.io/kustomize/kustomize/v3@v3.5.4)
+	$(call go-bin-install,$(KUSTOMIZE),sigs.k8s.io/kustomize/kustomize/v4@v4.5.7)
 
 .PHONY: kustomize
 kustomize: $(KUSTOMIZE)
@@ -69,7 +69,7 @@ operator-sdk: $(OPERATOR_SDK)
 # find or download yq
 YQ=$(PROJECT_PATH)/bin/yq
 $(YQ):
-	$(call go-get-tool,$(YQ),github.com/mikefarah/yq/v3)
+	$(call go-bin-install,$(YQ),github.com/mikefarah/yq/v3)
 
 .PHONY: yq
 yq: $(YQ)
@@ -239,4 +239,4 @@ golangci-lint: $(GOLANGCI-LINT)
 
 .PHONY: run-lint
 run-lint: $(GOLANGCI-LINT)
-	$(GOLANGCI-LINT) run
+	$(GOLANGCI-LINT) run --timeout 5m
