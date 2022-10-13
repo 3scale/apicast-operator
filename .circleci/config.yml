@@ -216,8 +216,6 @@ workflows:
           filters: # required since `tag-operator-image-release` job has tag filters AND requires `install-operator`. Otherwise tag build will not be triggered on new tags
             tags:
               only: /^v.*/
-            branches:
-              only: master
       - tag-operator-image-master:
           context: org-global
           requires:
