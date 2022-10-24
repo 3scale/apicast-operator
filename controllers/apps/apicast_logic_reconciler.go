@@ -99,9 +99,12 @@ func (r *APIcastLogicReconciler) Reconcile(ctx context.Context) (reconcile.Resul
 }
 
 func (r *APIcastLogicReconciler) reconcileAPIcastCR(ctx context.Context) (ctrl.Result, error) {
-	logger := logr.FromContext(ctx)
+	logger, err := logr.FromContext(ctx)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
 	changed := false
-	var err error
 
 	tmpChanged := r.APIcastCR.UpdateOperatorVersion()
 	changed = changed || tmpChanged
