@@ -452,7 +452,7 @@ func (a *APIcast) containerPorts() []v1.ContainerPort {
 
 func (a *APIcast) livenessProbe() *v1.Probe {
 	return &v1.Probe{
-		Handler: v1.Handler{
+		ProbeHandler: v1.ProbeHandler{
 			HTTPGet: &v1.HTTPGetAction{
 				Path: "/status/live",
 				Port: intstr.FromInt(8090),
@@ -466,7 +466,7 @@ func (a *APIcast) livenessProbe() *v1.Probe {
 
 func (a *APIcast) readinessProbe() *v1.Probe {
 	return &v1.Probe{
-		Handler: v1.Handler{
+		ProbeHandler: v1.ProbeHandler{
 			HTTPGet: &v1.HTTPGetAction{
 				Path: "/status/ready",
 				Port: intstr.FromInt(8090),
