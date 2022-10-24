@@ -94,8 +94,18 @@ func (r *APIcastLogicReconciler) Reconcile(ctx context.Context) (reconcile.Resul
 	return reconcile.Result{}, nil
 }
 
-func (r *APIcastLogicReconciler) initialize(ctx context.Context) (bool, error) {
-	appliedSomeInitialization, err := r.applyInitialization(ctx)
+func (r *APIcastLogicReconciler) reconcileAPIcastCR(ctx context.Context) (ctrl.Result, error) {
+	logger, err := logr.FromContext(ctx)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	changed := false
+
+	tmpChanged := r.APIcastCR.UpdateOperatorVersion()
+	changed = changed || tmpChanged
+
+	tmpChanged, err = r.reconcileApicastSecretLabels(ctx)
 	if err != nil {
 		return false, err
 	}
