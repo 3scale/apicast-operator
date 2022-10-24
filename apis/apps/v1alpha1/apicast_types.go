@@ -19,12 +19,17 @@ package v1alpha1
 import (
 	"fmt"
 
-	appscommon "github.com/3scale/apicast-operator/apis/apps"
-
 	v1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+
+	appscommon "github.com/3scale/apicast-operator/apis/apps"
+	"github.com/3scale/apicast-operator/version"
+)
+
+const (
+	APIcastOperatorVersionAnnotation = "apicast.apps.3scale.net/operator-version"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -311,6 +316,22 @@ func (a *APIcast) GetOwnerRefence() *metav1.OwnerReference {
 		UID:        a.UID,
 		Controller: &trueVar,
 	}
+}
+
+func (a *APIcast) UpdateOperatorVersion() bool {
+	changed := false
+
+	if a.Annotations == nil {
+		a.Annotations = map[string]string{}
+		changed = true
+	}
+
+	if v, ok := a.Annotations[APIcastOperatorVersionAnnotation]; !ok || v != version.Version {
+		a.Annotations[APIcastOperatorVersionAnnotation] = version.Version
+		changed = true
+	}
+
+	return changed
 }
 
 func (a *APIcast) Reset() { *a = APIcast{} }
