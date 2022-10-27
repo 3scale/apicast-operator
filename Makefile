@@ -69,7 +69,7 @@ operator-sdk: $(OPERATOR_SDK)
 # find or download yq
 YQ=$(PROJECT_PATH)/bin/yq
 $(YQ):
-	$(call go-bin-install,$(YQ),github.com/mikefarah/yq/v3)
+	$(call go-bin-install,$(YQ),github.com/mikefarah/yq/v4@latest)
 
 .PHONY: yq
 yq: $(YQ)
@@ -209,14 +209,14 @@ bundle-custom-updates: BUNDLE_PREFIX=dev$(CURRENT_DATE)
 bundle-custom-updates: $(YQ)
 	@echo "Update metadata to avoid collision with existing APIcast Operator official public operators catalog entries"
 	@echo "using BUNDLE_PREFIX $(BUNDLE_PREFIX)"
-	$(YQ) w --inplace $(PROJECT_PATH)/bundle/manifests/apicast-operator.clusterserviceversion.yaml metadata.name $(BUNDLE_PREFIX)-apicast-operator.$(VERSION)
-	$(YQ) w --inplace $(PROJECT_PATH)/bundle/manifests/apicast-operator.clusterserviceversion.yaml spec.displayName "$(BUNDLE_PREFIX) apicast operator"
-	$(YQ) w --inplace $(PROJECT_PATH)/bundle/manifests/apicast-operator.clusterserviceversion.yaml spec.provider.name $(BUNDLE_PREFIX)
-	$(YQ) w --inplace $(PROJECT_PATH)/bundle/metadata/annotations.yaml 'annotations."operators.operatorframework.io.bundle.package.v1"' $(BUNDLE_PREFIX)-apicast-operator
+	$(YQ) --inplace '.metadata.name = "$(BUNDLE_PREFIX)-apicast-operator.$(VERSION)"' $(PROJECT_PATH)/bundle/manifests/apicast-operator.clusterserviceversion.yaml 
+	$(YQ) --inplace '.spec.displayName = "$(BUNDLE_PREFIX) apicast operator"' $(PROJECT_PATH)/bundle/manifests/apicast-operator.clusterserviceversion.yaml 
+	$(YQ) --inplace '.spec.provider.name = "$(BUNDLE_PREFIX)"' $(PROJECT_PATH)/bundle/manifests/apicast-operator.clusterserviceversion.yaml 
+	$(YQ) --inplace '.annotations."operators.operatorframework.io.bundle.package.v1" = "$(BUNDLE_PREFIX)-apicast-operator"' $(PROJECT_PATH)/bundle/metadata/annotations.yaml 
 	sed -E -i 's/(operators\.operatorframework\.io\.bundle\.package\.v1=).+/\1$(BUNDLE_PREFIX)-apicast-operator/' $(PROJECT_PATH)/bundle.Dockerfile
 	@echo "Update operator image reference URL"
-	$(YQ) w --inplace $(PROJECT_PATH)/bundle/manifests/apicast-operator.clusterserviceversion.yaml metadata.annotations.containerImage $(IMG)
-	$(YQ) w --inplace $(PROJECT_PATH)/bundle/manifests/apicast-operator.clusterserviceversion.yaml spec.install.spec.deployments[0].spec.template.spec.containers[0].image $(IMG)
+	$(YQ) --inplace '.metadata.annotations.containerImage = "$(IMG)"' $(PROJECT_PATH)/bundle/manifests/apicast-operator.clusterserviceversion.yaml 
+	$(YQ) --inplace '.spec.install.spec.deployments[0].spec.template.spec.containers[0].image = "$(IMG)"' $(PROJECT_PATH)/bundle/manifests/apicast-operator.clusterserviceversion.yaml 
 
 .PHONY: bundle-restore
 bundle-restore:
