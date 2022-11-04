@@ -97,7 +97,7 @@ spec:
                 com.company: Red_Hat
                 control-plane: controller-manager
                 rht.comp: 3scale_apicast
-                rht.comp_ver: master
+                rht.comp_ver: "2.14"
                 rht.prod_name: Red_Hat_Integration
                 rht.prod_ver: master
                 rht.subcomp: apicast_operator
