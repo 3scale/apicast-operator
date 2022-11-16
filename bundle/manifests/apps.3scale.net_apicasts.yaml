@@ -271,6 +271,10 @@ spec:
               serviceAccount:
                 description: Kubernetes Service Account name to be used for the APIcast Deployment. The Service Account must exist beforehand.
                 type: string
+              serviceCacheSize:
+                description: ServiceCacheSize specifies the number of services that APICast can store in the internal cache
+                format: int32
+                type: integer
               serviceConfigurationVersionOverride:
                 additionalProperties:
                   type: string

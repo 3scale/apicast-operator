@@ -50,6 +50,7 @@ type APIcastOptions struct {
 	ManagementAPIScope                  *string
 	OpenSSLPeerVerificationEnabled      *bool
 	UpstreamRetryCases                  *string
+	ServiceCacheSize                    *int32
 	CacheMaxTime                        *string
 	CacheStatusCodes                    *string
 	OidcLogLevel                        *string

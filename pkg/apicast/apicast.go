@@ -256,6 +256,10 @@ func (a *APIcast) deploymentEnv() []v1.EnvVar {
 		env = append(env, k8sutils.EnvVarFromValue("APICAST_CACHE_STATUS_CODES", *a.options.CacheStatusCodes))
 	}
 
+	if a.options.ServiceCacheSize != nil {
+		env = append(env, k8sutils.EnvVarFromValue("APICAST_SERVICE_CACHE_SIZE", fmt.Sprintf("%d", *a.options.ServiceCacheSize)))
+	}
+
 	if a.options.OidcLogLevel != nil {
 		env = append(env, k8sutils.EnvVarFromValue("APICAST_OIDC_LOG_LEVEL", *a.options.OidcLogLevel))
 	}
