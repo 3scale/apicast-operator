@@ -226,6 +226,11 @@ func (in *APIcastSpec) DeepCopyInto(out *APIcastSpec) {
 		*out = new(string)
 		**out = **in
 	}
+	if in.ServiceCacheSize != nil {
+		in, out := &in.ServiceCacheSize, &out.ServiceCacheSize
+		*out = new(int32)
+		**out = **in
+	}
 	if in.OidcLogLevel != nil {
 		in, out := &in.OidcLogLevel, &out.OidcLogLevel
 		*out = new(string)

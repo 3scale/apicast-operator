@@ -101,6 +101,7 @@ func (a *APIcastOptionsProvider) GetApicastOptions(ctx context.Context) (*APIcas
 	a.APIcastOptions.UpstreamRetryCases = a.APIcastCR.Spec.UpstreamRetryCases
 	a.APIcastOptions.CacheMaxTime = a.APIcastCR.Spec.CacheMaxTime
 	a.APIcastOptions.CacheStatusCodes = a.APIcastCR.Spec.CacheStatusCodes
+	a.APIcastOptions.ServiceCacheSize = a.APIcastCR.Spec.ServiceCacheSize
 	a.APIcastOptions.OidcLogLevel = a.APIcastCR.Spec.OidcLogLevel
 	a.APIcastOptions.LoadServicesWhenNeeded = a.APIcastCR.Spec.LoadServicesWhenNeeded
 	a.APIcastOptions.ServicesFilterByURL = a.APIcastCR.Spec.ServicesFilterByURL

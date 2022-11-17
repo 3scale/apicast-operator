@@ -142,6 +142,9 @@ type APIcastSpec struct {
 	// CacheStatusCodes defines the status codes for which the response content will be cached.
 	// +optional
 	CacheStatusCodes *string `json:"cacheStatusCodes,omitempty"` // APICAST_CACHE_STATUS_CODES
+	// ServiceCacheSize specifies the number of services that APICast can store in the internal cache
+	// +optional
+	ServiceCacheSize *int32 `json:"serviceCacheSize,omitempty"`
 	// OidcLogLevel allows to set the log level for the logs related to OpenID Connect integration.
 	// +kubebuilder:validation:Enum=debug;info;notice;warn;error;crit;alert;emerg
 	// +optional
