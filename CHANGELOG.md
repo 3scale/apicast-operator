@@ -4,6 +4,12 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [0.7.0] - 2022-10-11
+
+### Fixed
+
+* Enhance replica reconciliation [#178](https://github.com/3scale/apicast-operator/pull/178)
+
 ## [0.6.0] - 2022-08-23
 
 ### Added
@@ -84,7 +90,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Added
 - APIcast v3.7
 
-[Unreleased]: https://github.com/3scale/apicast-operator/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/3scale/apicast-operator/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/3scale/apicast-operator/releases/tag/v0.7.0
 [0.6.0]: https://github.com/3scale/apicast-operator/releases/tag/v0.6.0
 [0.5.1]: https://github.com/3scale/apicast-operator/releases/tag/v0.5.1
 [0.4.0]: https://github.com/3scale/apicast-operator/releases/tag/v0.4.0
