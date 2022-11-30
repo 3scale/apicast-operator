@@ -69,6 +69,7 @@ func (r *APIcastLogicReconciler) Reconcile(ctx context.Context) (reconcile.Resul
 		reconcilers.DeploymentVolumeMountsMutator,
 		reconcilers.DeploymentPortsMutator,
 		reconcilers.DeploymentTemplateLabelsMutator,
+		reconcilers.DeploymentSelectorMutator,
 	)
 
 	deployment := apicastFactory.Deployment()
@@ -80,8 +81,13 @@ func (r *APIcastLogicReconciler) Reconcile(ctx context.Context) (reconcile.Resul
 	//
 	// Gateway service
 	//
+	serviceMutators := []reconcilers.ServiceMutateFn{
+		reconcilers.ServicePortMutator,
+		reconcilers.ServiceSelectorMutator,
+	}
+
 	service := apicastFactory.Service()
-	err = r.ReconcileResource(ctx, &v1.Service{}, service, reconcilers.ServicePortMutator)
+	err = r.ReconcileResource(ctx, &v1.Service{}, service, reconcilers.ServiceMutator(serviceMutators...))
 	if err != nil {
 		return reconcile.Result{}, err
 	}

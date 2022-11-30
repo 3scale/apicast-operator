@@ -160,3 +160,14 @@ func DeploymentTemplateLabelsMutator(desired, existing *appsv1.Deployment) bool 
 
 	return update
 }
+
+func DeploymentSelectorMutator(desired, existing *appsv1.Deployment) bool {
+	update := false
+
+	if !reflect.DeepEqual(existing.Spec.Selector, desired.Spec.Selector) {
+		update = true
+		existing.Spec.Selector = desired.Spec.Selector
+	}
+
+	return update
+}
