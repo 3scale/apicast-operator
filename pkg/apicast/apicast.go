@@ -349,7 +349,7 @@ func (a *APIcast) Deployment() *appsv1.Deployment {
 		},
 		Spec: appsv1.DeploymentSpec{
 			Selector: &metav1.LabelSelector{
-				MatchLabels: a.options.PodTemplateLabels,
+				MatchLabels: a.options.PodLabelSelector,
 			},
 			Strategy: appsv1.DeploymentStrategy{
 				Type: appsv1.RollingUpdateDeploymentStrategyType,
@@ -413,7 +413,7 @@ func (a *APIcast) Service() *v1.Service {
 		},
 		Spec: v1.ServiceSpec{
 			Ports:    a.servicePorts(),
-			Selector: a.options.PodTemplateLabels,
+			Selector: a.options.PodLabelSelector,
 		},
 	}
 
