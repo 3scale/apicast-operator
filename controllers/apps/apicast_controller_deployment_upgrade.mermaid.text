@@ -1,0 +1,25 @@
+%% Diagram can be generated using MERMAID
+%% https://mermaid-js.github.io/mermaid
+%% https://github.com/mermaid-js/mermaid
+%% https://mermaid.live
+flowchart
+    Start[Apicast Event] --> A{APIcast deployment exists?}
+    A-->|NO| B{temp deployment exists?}
+    A-->|YES| C{Upgraded?}
+    B-->|NO| N[DONE]
+    B-->|YES| D{Create latest APIcast deployment?}
+    D-->Z1[REQUEUE]
+    C-->|NO| E[Reconcile APIcast service]
+    C-->|YES| F{temp deployment exists?}
+    E-->J{temp deployment exists?}
+    F-->|NO| G[DONE]
+    F-->|YES| H{Latest APIcast deployment ready?}
+    H-->|NO| Z2[REQUEUE]
+    H-->|YES| I[Delete temp deployment]
+    J-->|NO| K[Create temp deployment]
+    K-->Z3[REQUEUE]
+    J-->|YES| L{Temp deployment ready?}
+    L-->|NO| Z4[REQUEUE]
+    L-->|YES| M[Delete old APIcast deployment] 
+    M-->Z5[REQUEUE]
+    I-->Z6[REQUEUE]
