@@ -307,7 +307,7 @@ type APIcastList struct {
 	Items           []APIcast `json:"items"`
 }
 
-func (a *APIcast) GetOwnerRefence() *metav1.OwnerReference {
+func (a *APIcast) GetOwnerReference() *metav1.OwnerReference {
 	trueVar := true
 	return &metav1.OwnerReference{
 		APIVersion: GroupVersion.String(),

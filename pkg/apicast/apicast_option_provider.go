@@ -42,7 +42,7 @@ func NewApicastOptionsProvider(cr *appsv1alpha1.APIcast, cl client.Client) *APIc
 
 func (a *APIcastOptionsProvider) GetApicastOptions(ctx context.Context) (*APIcastOptions, error) {
 	a.APIcastOptions.Namespace = a.APIcastCR.Namespace
-	a.APIcastOptions.Owner = a.APIcastCR.GetOwnerRefence()
+	a.APIcastOptions.Owner = a.APIcastCR.GetOwnerReference()
 
 	apicastFullName := "apicast-" + a.APIcastCR.Name
 	a.APIcastOptions.DeploymentName = apicastFullName
