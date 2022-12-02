@@ -134,7 +134,8 @@ make test-unit
 #### Run end-to-end tests
 
 ```sh
-make test-e2e
+make kind-create-cluster
+make test-integration
 ```
 
 ## Bundle management

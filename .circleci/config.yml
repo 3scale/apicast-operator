@@ -41,15 +41,6 @@ commands:
           command: |
             curl --fail -L https://dl.google.com/go/go1.17.3.linux-amd64.tar.gz | sudo tar -C /opt -xzf-
 
-  install-operator-sdk:
-    steps:
-      - run:
-          name: Install operator-sdk
-          command: |
-            export OPERATOR_SDK_RELEASE_VERSION=v1.2.0
-            curl -OJL https://github.com/operator-framework/operator-sdk/releases/download/${OPERATOR_SDK_RELEASE_VERSION}/operator-sdk-${OPERATOR_SDK_RELEASE_VERSION}-x86_64-linux-gnu
-            chmod +x operator-sdk-${OPERATOR_SDK_RELEASE_VERSION}-x86_64-linux-gnu && sudo cp operator-sdk-${OPERATOR_SDK_RELEASE_VERSION}-x86_64-linux-gnu /usr/local/bin/operator-sdk && rm operator-sdk-${OPERATOR_SDK_RELEASE_VERSION}-x86_64-linux-gnu
-
   install-operator-dependencies:
     steps:
       - restore_cache:
@@ -67,7 +58,6 @@ commands:
   build-operator-image:
     steps:
       - checkout
-      - install-operator-sdk
       - install-operator-dependencies
       - run:
           name: Build Operator
@@ -150,20 +140,34 @@ jobs:
           command: |
               docker push quay.io/3scale/apicast-operator:${CIRCLE_TAG}
 
-  run-e2e-test:
+  run-unit-test:
     docker:
       - image: circleci/golang:1.17.3
-    working_directory: /go/src/github.com/3scale/apicast-operator
     steps:
-      - install-operator-sdk
       - checkout
-      - install-operator-dependencies
       - run:
-          name: run E2E tests
+          name: run unit tests
           command: |
-            make test-e2e
+            make test-unit
+  run-integration-test:
+    machine:
+      image: ubuntu-2004:202201-02
+      docker_layer_caching: true
+    steps:
+      - checkout
+      - run:
+          name: Install KinD
+          command: |
+            make kind
+      - run:
+          name: Create Kubernetes Cluster
+          command: |
+            make kind-create-cluster
+      - run:
+          name: run integration tests
+          command: |
+            make test-integration
           no_output_timeout: 30m
-
   lint:
     docker:
       - image: circleci/golang:1.17.3
@@ -175,30 +179,12 @@ jobs:
           command: |
             make run-lint
 
-  test-crds:
-    docker:
-      - image: circleci/golang:1.17.3
-    working_directory: /go/src/github.com/3scale/apicast-operator
-    steps:
-      - checkout
-      - install-operator-dependencies
-      - run: make test-crds
-
-  test-manifests-version:
-    docker:
-      - image: circleci/golang:1.17.3
-    steps:
-      - checkout
-      - install-operator-dependencies
-      - run: make test-manifests-version
-
   bundle-validate:
     docker:
       - image: circleci/golang:1.17.3
     working_directory: /go/src/github.com/3scale/apicast-operator
     steps:
       - checkout
-      - install-operator-sdk
       - run: make bundle
       - run: make bundle-update-test
 
@@ -209,9 +195,8 @@ workflows:
       - license-check
       - bundle-validate
       - lint
-      - test-crds
-      - test-manifests-version
-      - run-e2e-test
+      - run-unit-test
+      - run-integration-test
       - install-operator:
           filters: # required since `tag-operator-image-release` job has tag filters AND requires `install-operator`. Otherwise tag build will not be triggered on new tags
             tags:
@@ -219,7 +204,8 @@ workflows:
       - tag-operator-image-master:
           context: org-global
           requires:
-            - run-e2e-test
+            - run-unit-test
+            - run-integration-test
             - install-operator
           filters:
             branches:
@@ -227,7 +213,8 @@ workflows:
       - tag-operator-image-release:
           context: org-global
           requires:
-            - run-e2e-test
+            - run-unit-test
+            - run-integration-test
             - install-operator
           filters:
             tags:

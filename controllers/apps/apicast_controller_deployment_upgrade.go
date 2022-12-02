@@ -20,7 +20,7 @@ import (
 const TMP_DEPLOYMENT_NAME = "tmp-upgrade-apicast"
 
 func (r *APIcastLogicReconciler) upgradeDeploymentSelector(ctx context.Context, apicastFactory *apicast.APIcast) (ctrl.Result, error) {
-	// Some previous released apicast operator added labels with release version in the
+	// Some previously released apicast operator (v0.6.0) added labels with release version in the
 	// deployment selector, which happens to be immutable
 	// https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#label-selector-updates
 	//
@@ -34,7 +34,7 @@ func (r *APIcastLogicReconciler) upgradeDeploymentSelector(ctx context.Context, 
 	// 5) Delete temporary deployment
 
 	// To understand the code, a diagram with the implemented workflow has been generated
-	// in apicast_controller_deployment_upgrade.md
+	// in the apicast_controller_deployment_upgrade.mermaid.text file
 
 	logger, err := logr.FromContext(ctx)
 	if err != nil {
