@@ -1,3 +1,5 @@
+//go:build integration
+
 /*
 Copyright 2020 Red Hat.
 
@@ -31,9 +33,8 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	"github.com/3scale/apicast-operator/pkg/reconcilers"
-
 	appsv1alpha1 "github.com/3scale/apicast-operator/apis/apps/v1alpha1"
+	"github.com/3scale/apicast-operator/pkg/reconcilers"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -41,8 +42,10 @@ import (
 // http://onsi.github.io/ginkgo/ to learn more about Ginkgo.
 
 var cfg *rest.Config
-var testK8sClient client.Client
+var k8sClient client.Client
 var testEnv *envtest.Environment
+
+func testClient() client.Client { return k8sClient }
 
 func TestAPIs(t *testing.T) {
 	RegisterFailHandler(Fail)
@@ -52,12 +55,14 @@ func TestAPIs(t *testing.T) {
 		[]Reporter{printer.NewlineReporter{}})
 }
 
-var _ = BeforeSuite(func(done Done) {
+var _ = BeforeSuite(func() {
 	// Set controller-runtime output to GinkgoWriter
 	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
+
 	By("bootstrapping test environment")
 	testEnv = &envtest.Environment{
-		CRDDirectoryPaths: []string{filepath.Join("..", "..", "config", "crd", "bases")},
+		CRDDirectoryPaths:     []string{filepath.Join("..", "..", "config", "crd", "bases")},
+		ErrorIfCRDPathMissing: true,
 	}
 
 	var err error
@@ -70,11 +75,10 @@ var _ = BeforeSuite(func(done Done) {
 
 	// +kubebuilder:scaffold:scheme
 
-	// TODO show we add specific namespace watch like is done in main.go?
-	// if so, which one? (take into account possible concurrency, etc...)
-	// For now we have not added a specific namespace because we need to create
-	// different namespaces due to tests are run in parallel. However, it has
-	// the downside that the same manager behavior is not being `exactly` tested
+	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
+	Expect(err).NotTo(HaveOccurred())
+	Expect(k8sClient).NotTo(BeNil())
+
 	mgr, err := ctrl.NewManager(cfg, ctrl.Options{
 		Scheme: scheme.Scheme,
 	})
@@ -86,14 +90,11 @@ var _ = BeforeSuite(func(done Done) {
 	Expect(err).ToNot(HaveOccurred())
 
 	go func() {
+		defer GinkgoRecover()
 		err = mgr.Start(ctrl.SetupSignalHandler())
 		Expect(err).ToNot(HaveOccurred())
 	}()
 
-	testK8sClient = mgr.GetClient()
-	Expect(testK8sClient).ToNot(BeNil())
-
-	close(done)
 }, 60)
 
 var _ = AfterSuite(func() {
