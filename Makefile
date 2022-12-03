@@ -7,6 +7,8 @@ SHELL = /usr/bin/env bash -o pipefail
 MKFILE_PATH := $(abspath $(lastword $(MAKEFILE_LIST)))
 PROJECT_PATH := $(patsubst %/,%,$(dir $(MKFILE_PATH)))
 
+all: manager
+
 # Include last to avoid changing MAKEFILE_LIST used above
 include ./make/*.mk
 
@@ -44,8 +46,6 @@ DEPENDENCY_DECISION_FILE = $(PROJECT_PATH)/doc/dependency_decisions.yml
 NAMESPACE ?= $(shell $(KUBECTL) config view --minify -o jsonpath='{.contexts[0].context.namespace}' 2>/dev/null || echo operator-test)
 
 CURRENT_DATE=$(shell date +%s)
-
-all: manager
 
 # find or download controller-gen
 # download controller-gen if necessary
