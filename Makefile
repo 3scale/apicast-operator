@@ -1,5 +1,4 @@
 # Setting SHELL to bash allows bash commands to be executed by recipes.
-# This is a requirement for 'setup-envtest.sh' in the test target.
 # Options are set to exit when a recipe line exits non-zero or a piped command fails.
 SHELL = /usr/bin/env bash -o pipefail
 .SHELLFLAGS = -ec
@@ -25,9 +24,6 @@ BUNDLE_DEFAULT_CHANNEL := --default-channel=$(DEFAULT_CHANNEL)
 endif
 BUNDLE_METADATA_OPTS ?= $(BUNDLE_CHANNELS) $(BUNDLE_DEFAULT_CHANNEL)
 
-# ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
-ENVTEST_K8S_VERSION = 1.22
-
 # Image URL to use all building/pushing image targets
 IMG ?= quay.io/3scale/apicast-operator:master
 
@@ -38,7 +34,6 @@ KUBECTL ?= kubectl
 
 OS := $(shell uname | awk '{print tolower($$0)}' | sed -e s/linux/linux-gnu/ )
 ARCH := $(shell uname -m)
-ARCH_PARAM =
 
 LICENSEFINDERBINARY := $(shell command -v license_finder 2> /dev/null)
 DEPENDENCY_DECISION_FILE = $(PROJECT_PATH)/doc/dependency_decisions.yml
@@ -62,10 +57,6 @@ $(KUSTOMIZE):
 
 .PHONY: kustomize
 kustomize: $(KUSTOMIZE)
-
-ENVTEST = $(PROJECT_PATH)/bin/setup-envtest
-envtest: ## Download envtest-setup locally if necessary.
-	$(call go-bin-install,$(ENVTEST),sigs.k8s.io/controller-runtime/tools/setup-envtest@latest)
 
 OPERATOR_SDK = $(PROJECT_PATH)/bin/operator-sdk
 # Note: release file patterns changed after v1.2.0
@@ -195,7 +186,7 @@ test-unit: generate fmt vet manifests ## Run Unit tests.
 # 2) Namespace usage limitation https://book.kubebuilder.io/reference/envtest.html#namespace-usage-limitation
 # 3) Timeout waiting for process kube-apiserver to stop https://github.com/kubernetes-sigs/controller-runtime/issues/1571
 test-integration: export USE_EXISTING_CLUSTER=true
-test-integration: generate fmt vet envtest manifests ## Run Integration tests.
+test-integration: generate fmt vet manifests ## Run Integration tests.
 	go test ./... -tags integration -ginkgo.v -ginkgo.progress -v -timeout 600s
 
 .PHONY: bundle-validate
