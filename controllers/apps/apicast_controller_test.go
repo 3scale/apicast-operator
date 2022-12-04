@@ -7,16 +7,13 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	appsv1alpha1 "github.com/3scale/apicast-operator/apis/apps/v1alpha1"
 )
@@ -26,55 +23,8 @@ const testAPIcastEmbeddedConfigurationSecretName = "apicast-embedded-configurati
 var _ = Describe("APIcast controller", func() {
 	var testNamespace string
 
-	BeforeEach(func() {
-		var generatedTestNamespace = "test-namespace-" + uuid.New().String()
-		// Add any setup steps that needs to be executed before each test
-		desiredTestNamespace := &v1.Namespace{
-			TypeMeta: metav1.TypeMeta{
-				APIVersion: "v1",
-				Kind:       "Namespace",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name: generatedTestNamespace,
-			},
-		}
-
-		err := testClient().Create(context.Background(), desiredTestNamespace)
-		Expect(err).ToNot(HaveOccurred())
-
-		existingNamespace := &v1.Namespace{}
-		Eventually(func() bool {
-			err := testClient().Get(context.Background(), types.NamespacedName{Name: generatedTestNamespace}, existingNamespace)
-			return err == nil
-		}, 5*time.Minute, 5*time.Second).Should(BeTrue())
-
-		testNamespace = existingNamespace.Name
-	})
-
-	AfterEach(func() {
-		desiredTestNamespace := &v1.Namespace{
-			TypeMeta: metav1.TypeMeta{
-				APIVersion: "v1",
-				Kind:       "Namespace",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name: testNamespace,
-			},
-		}
-		// Add any teardown steps that needs to be executed after each test
-		err := testClient().Delete(context.Background(), desiredTestNamespace, client.PropagationPolicy(metav1.DeletePropagationForeground))
-
-		Expect(err).ToNot(HaveOccurred())
-
-		existingNamespace := &v1.Namespace{}
-		Eventually(func() bool {
-			err := testClient().Get(context.Background(), types.NamespacedName{Name: testNamespace}, existingNamespace)
-			if err != nil && errors.IsNotFound(err) {
-				return true
-			}
-			return false
-		}, 5*time.Minute, 5*time.Second).Should(BeTrue())
-	})
+	BeforeEach(CreateNamespaceCallback(&testNamespace))
+	AfterEach(DeleteNamespaceCallback(&testNamespace))
 
 	Context("Run directly without existing APIcast", func() {
 		It("Should create successfully", func() {

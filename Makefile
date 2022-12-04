@@ -196,7 +196,7 @@ test-unit: generate fmt vet manifests ## Run Unit tests.
 # 3) Timeout waiting for process kube-apiserver to stop https://github.com/kubernetes-sigs/controller-runtime/issues/1571
 test-integration: export USE_EXISTING_CLUSTER=true
 test-integration: generate fmt vet envtest manifests ## Run Integration tests.
-	go test ./... -tags integration -ginkgo.v -ginkgo.progress -v -timeout 300s
+	go test ./... -tags integration -ginkgo.v -ginkgo.progress -v -timeout 600s
 
 .PHONY: bundle-validate
 bundle-validate: $(OPERATOR_SDK)
