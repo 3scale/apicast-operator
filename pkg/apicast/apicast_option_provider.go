@@ -42,7 +42,7 @@ func NewApicastOptionsProvider(cr *appsv1alpha1.APIcast, cl client.Client) *APIc
 
 func (a *APIcastOptionsProvider) GetApicastOptions(ctx context.Context) (*APIcastOptions, error) {
 	a.APIcastOptions.Namespace = a.APIcastCR.Namespace
-	a.APIcastOptions.Owner = a.APIcastCR.GetOwnerRefence()
+	a.APIcastOptions.Owner = a.APIcastCR.GetOwnerReference()
 
 	apicastFullName := "apicast-" + a.APIcastCR.Name
 	a.APIcastOptions.DeploymentName = apicastFullName
@@ -63,8 +63,9 @@ func (a *APIcastOptionsProvider) GetApicastOptions(ctx context.Context) (*APIcas
 		a.APIcastOptions.Image = *a.APIcastCR.Spec.Image
 	}
 
+	a.APIcastOptions.PodLabelSelector = a.podLabelSelector(a.APIcastOptions.DeploymentName)
 	a.APIcastOptions.CommonLabels = a.commonLabels()
-	a.APIcastOptions.PodTemplateLabels = a.podTemplateLabels(a.APIcastOptions.DeploymentName)
+	a.APIcastOptions.PodTemplateLabels = a.podTemplateLabels(a.APIcastOptions.PodLabelSelector)
 
 	a.APIcastOptions.ExposedHost = ExposedHost{}
 	if a.APIcastCR.Spec.ExposedHost != nil {
@@ -451,10 +452,26 @@ func (a *APIcastOptionsProvider) commonLabels() map[string]string {
 	}
 }
 
-func (a *APIcastOptionsProvider) podTemplateLabels(deploymentName string) map[string]string {
-	labels := helper.MeteringLabels(helper.ApplicationType)
+func (a *APIcastOptionsProvider) podTemplateLabels(labelSelector map[string]string) map[string]string {
+	meteringLabels := helper.MeteringLabels(helper.ApplicationType)
 
-	labels["deployment"] = deploymentName
+	// merge maps
 
-	return labels
+	result := make(map[string]string)
+
+	for k, v := range meteringLabels {
+		result[k] = v
+	}
+
+	for k, v := range labelSelector {
+		result[k] = v
+	}
+
+	return result
+}
+
+func (a *APIcastOptionsProvider) podLabelSelector(deploymentName string) map[string]string {
+	return map[string]string{
+		"deployment": deploymentName,
+	}
 }

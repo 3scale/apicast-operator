@@ -31,14 +31,17 @@ func NewAPIcastLogicReconciler(b reconcilers.BaseReconciler, cr *appsv1alpha1.AP
 }
 
 func (r *APIcastLogicReconciler) Reconcile(ctx context.Context) (reconcile.Result, error) {
-	r.Logger().WithValues("Name", r.APIcastCR.Name, "Namespace", r.APIcastCR.Namespace)
+	logger, err := logr.FromContext(ctx)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
 
 	res, err := r.reconcileAPIcastCR(ctx)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 	if res.Requeue {
-		return ctrl.Result{Requeue: true}, nil
+		return res, nil
 	}
 
 	err = r.validateAPicastCR()
@@ -49,6 +52,15 @@ func (r *APIcastLogicReconciler) Reconcile(ctx context.Context) (reconcile.Resul
 	apicastFactory, err := apicast.Factory(ctx, r.APIcastCR, r.Client())
 	if err != nil {
 		return reconcile.Result{}, err
+	}
+
+	upgradeDeploymentResult, err := r.upgradeDeploymentSelector(ctx, apicastFactory)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+	if upgradeDeploymentResult.Requeue {
+		logger.Info("Upgrade in process. Requeueing request...")
+		return upgradeDeploymentResult, nil
 	}
 
 	//
@@ -80,8 +92,13 @@ func (r *APIcastLogicReconciler) Reconcile(ctx context.Context) (reconcile.Resul
 	//
 	// Gateway service
 	//
+	serviceMutators := []reconcilers.ServiceMutateFn{
+		reconcilers.ServicePortMutator,
+		reconcilers.ServiceSelectorMutator,
+	}
+
 	service := apicastFactory.Service()
-	err = r.ReconcileResource(ctx, &v1.Service{}, service, reconcilers.ServicePortMutator)
+	err = r.ReconcileResource(ctx, &v1.Service{}, service, reconcilers.ServiceMutator(serviceMutators...))
 	if err != nil {
 		return reconcile.Result{}, err
 	}

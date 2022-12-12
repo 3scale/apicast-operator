@@ -1,6 +1,15 @@
-SHELL := /bin/bash
+# Setting SHELL to bash allows bash commands to be executed by recipes.
+# Options are set to exit when a recipe line exits non-zero or a piped command fails.
+SHELL = /usr/bin/env bash -o pipefail
+.SHELLFLAGS = -ec
 
-include utils.mk
+MKFILE_PATH := $(abspath $(lastword $(MAKEFILE_LIST)))
+PROJECT_PATH := $(patsubst %/,%,$(dir $(MKFILE_PATH)))
+
+all: manager
+
+# Include last to avoid changing MAKEFILE_LIST used above
+include ./make/*.mk
 
 # Current Operator version
 VERSION ?= 0.0.1
@@ -23,9 +32,6 @@ CRD_OPTIONS ?= "crd:crdVersions=v1"
 DOCKER ?= docker
 KUBECTL ?= kubectl
 
-MKFILE_PATH := $(abspath $(lastword $(MAKEFILE_LIST)))
-PROJECT_PATH := $(patsubst %/,%,$(dir $(MKFILE_PATH)))
-
 OS := $(shell uname | awk '{print tolower($$0)}' | sed -e s/linux/linux-gnu/ )
 ARCH := $(shell uname -m)
 
@@ -35,8 +41,6 @@ DEPENDENCY_DECISION_FILE = $(PROJECT_PATH)/doc/dependency_decisions.yml
 NAMESPACE ?= $(shell $(KUBECTL) config view --minify -o jsonpath='{.contexts[0].context.namespace}' 2>/dev/null || echo operator-test)
 
 CURRENT_DATE=$(shell date +%s)
-
-all: manager
 
 # find or download controller-gen
 # download controller-gen if necessary
@@ -75,7 +79,7 @@ $(YQ):
 yq: $(YQ)
 
 # Run all tests
-test: test-unit test-crds test-e2e
+test: test-unit test-integration
 
 # Build manager binary
 manager: generate fmt vet
@@ -172,29 +176,18 @@ endif
 	@echo "Checking license compliance"
 	license_finder --decisions-file=$(DEPENDENCY_DECISION_FILE)
 
-
 # Run unit tests
-TEST_UNIT_PKGS = $(shell go list ./... | grep -E 'github.com/3scale/apicast-operator/pkg/|github.com/3scale/apicast-operator/pkg/apis')
-test-unit: generate fmt vet manifests
-	go test -v $(TEST_UNIT_PKGS)
+test-unit: generate fmt vet manifests ## Run Unit tests.
+	go test ./... -tags unit -v -timeout 0
 
-# Run CRD tests
-TEST_CRD_PKGS = $(shell go list ./... | grep 'github.com/3scale/apicast-operator/test/crds')
-test-crds: generate fmt vet manifests
-	go test -v $(TEST_CRD_PKGS)
-
-## test-manifests-version: Run manifest version checks
-test-manifests-version:
-	cd $(PROJECT_PATH)/test/manifests-version && go test -v
-
-# Run e2e tests
-
-TEST_E2E_PKGS = $(shell go list ./... | grep -E 'github.com/3scale/apicast-operator/controllers')
-ENVTEST_ASSETS_DIR=$(PROJECT_PATH)/testbin
-test-e2e: generate fmt vet manifests
-	mkdir -p ${ENVTEST_ASSETS_DIR}
-	test -f $(ENVTEST_ASSETS_DIR)/setup-envtest.sh || curl -sSLo $(ENVTEST_ASSETS_DIR)/setup-envtest.sh https://raw.githubusercontent.com/kubernetes-sigs/controller-runtime/v0.8.0/hack/setup-envtest.sh
-	source ${ENVTEST_ASSETS_DIR}/setup-envtest.sh; fetch_envtest_tools $(ENVTEST_ASSETS_DIR); setup_envtest_env $(ENVTEST_ASSETS_DIR); go test $(TEST_E2E_PKGS) -coverprofile cover.out -ginkgo.v -ginkgo.progress -v
+# Run integration tests
+# Runnning integration tests with a local kind cluster until envtest issues are fixed
+# 1) make test does not terminate kube-apiserver and etcd processes https://github.com/kubernetes-sigs/cluster-api-provider-aws/issues/2753
+# 2) Namespace usage limitation https://book.kubebuilder.io/reference/envtest.html#namespace-usage-limitation
+# 3) Timeout waiting for process kube-apiserver to stop https://github.com/kubernetes-sigs/controller-runtime/issues/1571
+test-integration: export USE_EXISTING_CLUSTER=true
+test-integration: generate fmt vet manifests ## Run Integration tests.
+	go test ./... -tags integration -ginkgo.v -ginkgo.progress -v -timeout 600s
 
 .PHONY: bundle-validate
 bundle-validate: $(OPERATOR_SDK)
@@ -209,14 +202,14 @@ bundle-custom-updates: BUNDLE_PREFIX=dev$(CURRENT_DATE)
 bundle-custom-updates: $(YQ)
 	@echo "Update metadata to avoid collision with existing APIcast Operator official public operators catalog entries"
 	@echo "using BUNDLE_PREFIX $(BUNDLE_PREFIX)"
-	$(YQ) --inplace '.metadata.name = "$(BUNDLE_PREFIX)-apicast-operator.$(VERSION)"' $(PROJECT_PATH)/bundle/manifests/apicast-operator.clusterserviceversion.yaml 
-	$(YQ) --inplace '.spec.displayName = "$(BUNDLE_PREFIX) apicast operator"' $(PROJECT_PATH)/bundle/manifests/apicast-operator.clusterserviceversion.yaml 
-	$(YQ) --inplace '.spec.provider.name = "$(BUNDLE_PREFIX)"' $(PROJECT_PATH)/bundle/manifests/apicast-operator.clusterserviceversion.yaml 
-	$(YQ) --inplace '.annotations."operators.operatorframework.io.bundle.package.v1" = "$(BUNDLE_PREFIX)-apicast-operator"' $(PROJECT_PATH)/bundle/metadata/annotations.yaml 
+	$(YQ) --inplace '.metadata.name = "$(BUNDLE_PREFIX)-apicast-operator.$(VERSION)"' $(PROJECT_PATH)/bundle/manifests/apicast-operator.clusterserviceversion.yaml
+	$(YQ) --inplace '.spec.displayName = "$(BUNDLE_PREFIX) apicast operator"' $(PROJECT_PATH)/bundle/manifests/apicast-operator.clusterserviceversion.yaml
+	$(YQ) --inplace '.spec.provider.name = "$(BUNDLE_PREFIX)"' $(PROJECT_PATH)/bundle/manifests/apicast-operator.clusterserviceversion.yaml
+	$(YQ) --inplace '.annotations."operators.operatorframework.io.bundle.package.v1" = "$(BUNDLE_PREFIX)-apicast-operator"' $(PROJECT_PATH)/bundle/metadata/annotations.yaml
 	sed -E -i 's/(operators\.operatorframework\.io\.bundle\.package\.v1=).+/\1$(BUNDLE_PREFIX)-apicast-operator/' $(PROJECT_PATH)/bundle.Dockerfile
 	@echo "Update operator image reference URL"
-	$(YQ) --inplace '.metadata.annotations.containerImage = "$(IMG)"' $(PROJECT_PATH)/bundle/manifests/apicast-operator.clusterserviceversion.yaml 
-	$(YQ) --inplace '.spec.install.spec.deployments[0].spec.template.spec.containers[0].image = "$(IMG)"' $(PROJECT_PATH)/bundle/manifests/apicast-operator.clusterserviceversion.yaml 
+	$(YQ) --inplace '.metadata.annotations.containerImage = "$(IMG)"' $(PROJECT_PATH)/bundle/manifests/apicast-operator.clusterserviceversion.yaml
+	$(YQ) --inplace '.spec.install.spec.deployments[0].spec.template.spec.containers[0].image = "$(IMG)"' $(PROJECT_PATH)/bundle/manifests/apicast-operator.clusterserviceversion.yaml
 
 .PHONY: bundle-restore
 bundle-restore:
@@ -232,7 +225,7 @@ bundle-run: $(OPERATOR_SDK)
 GOLANGCI-LINT=$(PROJECT_PATH)/bin/golangci-lint
 $(GOLANGCI-LINT):
 	mkdir -p $(PROJECT_PATH)/bin
-	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(PROJECT_PATH)/bin v1.41.1
+	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(PROJECT_PATH)/bin v1.50.1
 
 .PHONY: golangci-lint
 golangci-lint: $(GOLANGCI-LINT)
