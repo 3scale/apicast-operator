@@ -72,6 +72,7 @@ type APIcastOptions struct {
 
 	CommonLabels      map[string]string `validate:"required"`
 	PodTemplateLabels map[string]string `validate:"required"`
+	PodLabelSelector  map[string]string `validate:"required"`
 }
 
 func NewAPIcastOptions() *APIcastOptions {

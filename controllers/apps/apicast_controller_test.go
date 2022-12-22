@@ -1,22 +1,21 @@
+//go:build integration
+
 package controllers
 
 import (
+	"context"
 	"fmt"
 	"time"
 
-	appsv1alpha1 "github.com/3scale/apicast-operator/apis/apps/v1alpha1"
-	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"context"
+	appsv1alpha1 "github.com/3scale/apicast-operator/apis/apps/v1alpha1"
 )
 
 const testAPIcastEmbeddedConfigurationSecretName = "apicast-embedded-configuration"
@@ -24,56 +23,8 @@ const testAPIcastEmbeddedConfigurationSecretName = "apicast-embedded-configurati
 var _ = Describe("APIcast controller", func() {
 	var testNamespace string
 
-	BeforeEach(func() {
-		var generatedTestNamespace = "test-namespace-" + uuid.New().String()
-		// Add any setup steps that needs to be executed before each test
-		desiredTestNamespace := &v1.Namespace{
-			TypeMeta: metav1.TypeMeta{
-				APIVersion: "v1",
-				Kind:       "Namespace",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name: generatedTestNamespace,
-			},
-		}
-
-		err := testK8sClient.Create(context.Background(), desiredTestNamespace)
-		Expect(err).ToNot(HaveOccurred())
-
-		existingNamespace := &v1.Namespace{}
-		Eventually(func() bool {
-			err := testK8sClient.Get(context.Background(), types.NamespacedName{Name: generatedTestNamespace}, existingNamespace)
-			return err == nil
-		}, 5*time.Minute, 5*time.Second).Should(BeTrue())
-
-		testNamespace = existingNamespace.Name
-	})
-
-	AfterEach(func() {
-		desiredTestNamespace := &v1.Namespace{
-			TypeMeta: metav1.TypeMeta{
-				APIVersion: "v1",
-				Kind:       "Namespace",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name: testNamespace,
-			},
-		}
-		// Add any teardown steps that needs to be executed after each test
-		err := testK8sClient.Delete(context.Background(), desiredTestNamespace, client.PropagationPolicy(metav1.DeletePropagationForeground))
-
-		Expect(err).ToNot(HaveOccurred())
-
-		existingNamespace := &v1.Namespace{}
-		Eventually(func() bool {
-			err := testK8sClient.Get(context.Background(), types.NamespacedName{Name: testNamespace}, existingNamespace)
-			if err != nil && errors.IsNotFound(err) {
-				return false
-			}
-			return true
-		}, 5*time.Minute, 5*time.Second).Should(BeTrue())
-
-	})
+	BeforeEach(CreateNamespaceCallback(&testNamespace))
+	AfterEach(DeleteNamespaceCallback(&testNamespace))
 
 	Context("Run directly without existing APIcast", func() {
 		It("Should create successfully", func() {
@@ -108,7 +59,7 @@ var _ = Describe("APIcast controller", func() {
 				},
 			}
 
-			err = testK8sClient.Create(context.Background(), apicast)
+			err = testClient().Create(context.Background(), apicast)
 			Expect(err).ToNot(HaveOccurred())
 
 			// Check that the correspondig APIcast K8s Deployment has been created
@@ -116,7 +67,7 @@ var _ = Describe("APIcast controller", func() {
 			apicastDeploymentLookupKey := types.NamespacedName{Name: apicastDeploymentName, Namespace: testNamespace}
 			createdDeployment := &appsv1.Deployment{}
 			Eventually(func() bool {
-				err := testK8sClient.Get(context.Background(), apicastDeploymentLookupKey, createdDeployment)
+				err := testClient().Get(context.Background(), apicastDeploymentLookupKey, createdDeployment)
 				return err == nil
 			}, 5*time.Minute, retryInterval).Should(BeTrue())
 
@@ -155,7 +106,7 @@ var _ = Describe("APIcast controller", func() {
 					},
 				},
 			}
-			err = testK8sClient.Create(context.Background(), apicast)
+			err = testClient().Create(context.Background(), apicast)
 			Expect(err).ToNot(HaveOccurred())
 
 			// Check that the correspondig APIcast K8s Deployment has been created
@@ -163,7 +114,7 @@ var _ = Describe("APIcast controller", func() {
 			apicastDeploymentLookupKey := types.NamespacedName{Name: apicastDeploymentName, Namespace: testNamespace}
 			createdDeployment := &appsv1.Deployment{}
 			Eventually(func() bool {
-				err := testK8sClient.Get(context.Background(), apicastDeploymentLookupKey, createdDeployment)
+				err := testClient().Get(context.Background(), apicastDeploymentLookupKey, createdDeployment)
 				return err == nil
 			}, 5*time.Minute, retryInterval).Should(BeTrue())
 
@@ -172,7 +123,7 @@ var _ = Describe("APIcast controller", func() {
 			apicastIngressLookupKey := types.NamespacedName{Name: apicastIngressName, Namespace: testNamespace}
 			createdIngress := &networkingv1.Ingress{}
 			Eventually(func() bool {
-				err := testK8sClient.Get(context.Background(), apicastIngressLookupKey, createdIngress)
+				err := testClient().Get(context.Background(), apicastIngressLookupKey, createdIngress)
 				return err == nil
 			}, 5*time.Minute, retryInterval).Should(BeTrue())
 
@@ -219,6 +170,5 @@ func testCreateAPIcastEmbeddedConfigurationSecret(ctx context.Context, namespace
 		},
 	}
 
-	err := testK8sClient.Create(ctx, &embeddedConfigSecret)
-	return err
+	return testClient().Create(ctx, &embeddedConfigSecret)
 }

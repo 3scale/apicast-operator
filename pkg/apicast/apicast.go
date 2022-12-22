@@ -349,7 +349,7 @@ func (a *APIcast) Deployment() *appsv1.Deployment {
 		},
 		Spec: appsv1.DeploymentSpec{
 			Selector: &metav1.LabelSelector{
-				MatchLabels: a.options.PodTemplateLabels,
+				MatchLabels: a.options.PodLabelSelector,
 			},
 			Strategy: appsv1.DeploymentStrategy{
 				Type: appsv1.RollingUpdateDeploymentStrategyType,
@@ -413,7 +413,7 @@ func (a *APIcast) Service() *v1.Service {
 		},
 		Spec: v1.ServiceSpec{
 			Ports:    a.servicePorts(),
-			Selector: a.options.PodTemplateLabels,
+			Selector: a.options.PodLabelSelector,
 		},
 	}
 
@@ -452,7 +452,7 @@ func (a *APIcast) containerPorts() []v1.ContainerPort {
 
 func (a *APIcast) livenessProbe() *v1.Probe {
 	return &v1.Probe{
-		Handler: v1.Handler{
+		ProbeHandler: v1.ProbeHandler{
 			HTTPGet: &v1.HTTPGetAction{
 				Path: "/status/live",
 				Port: intstr.FromInt(8090),
@@ -466,7 +466,7 @@ func (a *APIcast) livenessProbe() *v1.Probe {
 
 func (a *APIcast) readinessProbe() *v1.Probe {
 	return &v1.Probe{
-		Handler: v1.Handler{
+		ProbeHandler: v1.ProbeHandler{
 			HTTPGet: &v1.HTTPGetAction{
 				Path: "/status/ready",
 				Port: intstr.FromInt(8090),

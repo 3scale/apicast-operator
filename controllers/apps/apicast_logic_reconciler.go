@@ -2,12 +2,13 @@ package controllers
 
 import (
 	"context"
-	"fmt"
 
+	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
@@ -30,16 +31,17 @@ func NewAPIcastLogicReconciler(b reconcilers.BaseReconciler, cr *appsv1alpha1.AP
 }
 
 func (r *APIcastLogicReconciler) Reconcile(ctx context.Context) (reconcile.Result, error) {
-	r.Logger().WithValues("Name", r.APIcastCR.Name, "Namespace", r.APIcastCR.Namespace)
-
-	appliedInitialization, err := r.initialize(ctx)
+	logger, err := logr.FromContext(ctx)
 	if err != nil {
-		return reconcile.Result{}, err
+		return ctrl.Result{}, err
 	}
-	if appliedInitialization {
-		// Stop the reconciliation cycle and order requeue to stop processing
-		// of reconciliation
-		return reconcile.Result{Requeue: true}, nil
+
+	res, err := r.reconcileAPIcastCR(ctx)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	if res.Requeue {
+		return res, nil
 	}
 
 	err = r.validateAPicastCR()
@@ -50,6 +52,15 @@ func (r *APIcastLogicReconciler) Reconcile(ctx context.Context) (reconcile.Resul
 	apicastFactory, err := apicast.Factory(ctx, r.APIcastCR, r.Client())
 	if err != nil {
 		return reconcile.Result{}, err
+	}
+
+	upgradeDeploymentResult, err := r.upgradeDeploymentSelector(ctx, apicastFactory)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+	if upgradeDeploymentResult.Requeue {
+		logger.Info("Upgrade in process. Requeueing request...")
+		return upgradeDeploymentResult, nil
 	}
 
 	//
@@ -81,8 +92,13 @@ func (r *APIcastLogicReconciler) Reconcile(ctx context.Context) (reconcile.Resul
 	//
 	// Gateway service
 	//
+	serviceMutators := []reconcilers.ServiceMutateFn{
+		reconcilers.ServicePortMutator,
+		reconcilers.ServiceSelectorMutator,
+	}
+
 	service := apicastFactory.Service()
-	err = r.ReconcileResource(ctx, &v1.Service{}, service, reconcilers.ServicePortMutator)
+	err = r.ReconcileResource(ctx, &v1.Service{}, service, reconcilers.ServiceMutator(serviceMutators...))
 	if err != nil {
 		return reconcile.Result{}, err
 	}
@@ -99,34 +115,29 @@ func (r *APIcastLogicReconciler) Reconcile(ctx context.Context) (reconcile.Resul
 	return reconcile.Result{}, nil
 }
 
-func (r *APIcastLogicReconciler) initialize(ctx context.Context) (bool, error) {
-	appliedSomeInitialization, err := r.applyInitialization(ctx)
+func (r *APIcastLogicReconciler) reconcileAPIcastCR(ctx context.Context) (ctrl.Result, error) {
+	logger, err := logr.FromContext(ctx)
 	if err != nil {
-		return false, err
+		return ctrl.Result{}, err
 	}
 
-	if appliedSomeInitialization {
-		r.Logger().Info(fmt.Sprintf("Updating %s", k8sutils.ObjectInfo(r.APIcastCR)))
-		err := r.Client().Update(ctx, r.APIcastCR)
-		if err != nil {
-			return false, err
-		}
-		r.Logger().Info("APIcast resource missed some fields. Updated CR which triggered a new reconciliation event")
-		return true, nil
-	}
-	return false, nil
-}
+	changed := false
 
-func (r *APIcastLogicReconciler) applyInitialization(ctx context.Context) (bool, error) {
-	appliedInitialization := false
+	tmpChanged := r.APIcastCR.UpdateOperatorVersion()
+	changed = changed || tmpChanged
 
-	changed, err := r.reconcileApicastSecretLabels(ctx)
+	tmpChanged, err = r.reconcileApicastSecretLabels(ctx)
 	if err != nil {
-		return false, err
+		return ctrl.Result{}, err
 	}
-	appliedInitialization = appliedInitialization || changed
+	changed = changed || tmpChanged
 
-	return appliedInitialization, nil
+	if changed {
+		err = r.Client().Update(ctx, r.APIcastCR)
+		logger.Info("reconciling", "error", err)
+	}
+
+	return ctrl.Result{Requeue: changed}, err
 }
 
 func (r *APIcastLogicReconciler) reconcileApicastSecretLabels(ctx context.Context) (bool, error) {
