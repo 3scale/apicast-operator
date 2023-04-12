@@ -88,11 +88,11 @@ spec:
   - api-gateway
   - openresty
   links:
-  - name: Apicast Operator
-    url: https://apicast-operator.domain
+  - name: GitHub
+    url: https://github.com/3scale/apicast-operator
+  - name: Documentation
+    url: https://github.com/3scale/apicast-operator/tree/master
   maintainers:
-  - email: msoriano+apicastoperator@redhat.com
-    name: Miguel Soriano
   - email: eastizle+apicastoperator@redhat.com
     name: Eguzki Astiz
   maturity: stable
