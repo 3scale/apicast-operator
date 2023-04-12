@@ -275,9 +275,34 @@ spec:
                 description: OpenSSLPeerVerificationEnabled controls OpenSSL peer
                   verification.
                 type: boolean
+              openTelemetry:
+                description: OpenTracingSpec contains the OpenTracing integration
+                  configuration with APIcast. Deprecated
+                properties:
+                  enabled:
+                    description: Enabled controls whether OpenTelemetry integration
+                      with APIcast is enabled. By default it is not enabled.
+                    type: boolean
+                  tracingConfigSecretKey:
+                    description: TracingConfigSecretKey if unspecified, the first
+                      key in lexicographical order will be referenced as tracing configuration.
+                      If specified, the referenced value will be used as tracing configuration.
+                    type: string
+                  tracingConfigSecretRef:
+                    description: TracingConfigSecretRef contains a Secret reference
+                      the Opentelemetry configuration. The configuration file specification
+                      is defined in the Nginx instrumentation library repo https://github.com/open-telemetry/opentelemetry-cpp-contrib/tree/main/instrumentation/nginx
+                    properties:
+                      name:
+                        description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                          TODO: Add other useful fields. apiVersion, kind, uid?'
+                        type: string
+                    type: object
+                    x-kubernetes-map-type: atomic
+                type: object
               openTracing:
                 description: OpenTracingSpec contains the OpenTracing integration
-                  configuration with APIcast.
+                  configuration with APIcast. Deprecated
                 properties:
                   enabled:
                     description: Enabled controls whether OpenTracing integration

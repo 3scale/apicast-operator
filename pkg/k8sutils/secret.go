@@ -9,7 +9,7 @@ const (
 	ApicastSecretLabel = "apicast.apps.3scale.net/watched-by=apicast"
 )
 
-func SecretStringDataFromData(secret v1.Secret) map[string]string {
+func SecretStringDataFromData(secret *v1.Secret) map[string]string {
 	stringData := map[string]string{}
 
 	for k, v := range secret.Data {

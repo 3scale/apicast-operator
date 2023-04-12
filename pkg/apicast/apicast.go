@@ -42,6 +42,11 @@ const (
 	TracingConfigMountBasePath  = "/opt/app-root/src/tracing-configs"
 )
 
+const (
+	OpentelemetryConfigurationVolumeName = "otel-volume"
+	OpentelemetryConfigMountBasePath     = "/opt/app-root/src/otel-configs"
+)
+
 type APIcast struct {
 	options *APIcastOptions
 }
@@ -97,6 +102,14 @@ func (a *APIcast) deploymentVolumeMounts() []v1.VolumeMount {
 		volumeMounts = append(volumeMounts, v1.VolumeMount{
 			Name:      tracingConfigVolumeName(a.options.TracingConfig.TracingLibrary, a.options.TracingConfig.Secret.Name),
 			MountPath: TracingConfigMountBasePath,
+		})
+	}
+
+	if a.options.Opentelemetry.Enabled {
+		volumeMounts = append(volumeMounts, v1.VolumeMount{
+			Name:      OpentelemetryConfigurationVolumeName,
+			MountPath: OpentelemetryConfigMountBasePath,
+			ReadOnly:  true,
 		})
 	}
 
@@ -179,6 +192,18 @@ func (a *APIcast) deploymentVolumes() []v1.Volume {
 							Path: tracingConfigVolumeName(a.options.TracingConfig.TracingLibrary, a.options.TracingConfig.Secret.Name),
 						},
 					},
+				},
+			},
+		})
+	}
+
+	if a.options.Opentelemetry.Enabled {
+		volumes = append(volumes, v1.Volume{
+			Name: OpentelemetryConfigurationVolumeName,
+			VolumeSource: v1.VolumeSource{
+				Secret: &v1.SecretVolumeSource{
+					SecretName: a.options.Opentelemetry.SecretName,
+					Optional:   &[]bool{false}[0],
 				},
 			},
 		})
@@ -335,6 +360,11 @@ func (a *APIcast) deploymentEnv() []v1.EnvVar {
 
 	if a.options.NoProxy != nil {
 		env = append(env, k8sutils.EnvVarFromValue("NO_PROXY", *a.options.NoProxy))
+	}
+
+	if a.options.Opentelemetry.Enabled {
+		env = append(env, k8sutils.EnvVarFromValue("OPENTELEMETRY", "1"))
+		env = append(env, k8sutils.EnvVarFromValue("OPENTELEMETRY_CONFIG", a.options.Opentelemetry.ConfigFile))
 	}
 
 	return env

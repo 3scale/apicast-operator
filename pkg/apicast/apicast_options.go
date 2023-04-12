@@ -19,6 +19,12 @@ type CustomPolicy struct {
 	Secret  *v1.Secret
 }
 
+type OpentelemetryConfig struct {
+	Enabled    bool
+	SecretName string
+	ConfigFile string
+}
+
 type TracingConfig struct {
 	Enabled        bool
 	TracingLibrary string `validate:"required"`
@@ -74,6 +80,8 @@ type APIcastOptions struct {
 	CommonLabels      map[string]string `validate:"required"`
 	PodTemplateLabels map[string]string `validate:"required"`
 	PodLabelSelector  map[string]string `validate:"required"`
+
+	Opentelemetry OpentelemetryConfig `validate:"-"`
 }
 
 func NewAPIcastOptions() *APIcastOptions {

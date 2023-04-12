@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"path"
+	"sort"
 
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -187,6 +189,13 @@ func (a *APIcastOptionsProvider) GetApicastOptions(ctx context.Context) (*APIcas
 	// Annotations from user secrets. Used to rollout apicast deployment if any secrets changes
 	a.APIcastOptions.AdditionalPodAnnotations = a.additionalPodAnnotations()
 
+	//
+	otelConfig, err := a.getOpenTelemetryConfig(ctx)
+	if err != nil {
+		return nil, err
+	}
+	a.APIcastOptions.Opentelemetry = otelConfig
+
 	return a.APIcastOptions, a.APIcastOptions.Validate()
 }
 
@@ -294,7 +303,7 @@ func (a *APIcastOptionsProvider) getGatewayEmbeddedConfigSecret(ctx context.Cont
 		return nil, err
 	}
 
-	secretStringData := k8sutils.SecretStringDataFromData(gatewayConfigSecret)
+	secretStringData := k8sutils.SecretStringDataFromData(&gatewayConfigSecret)
 	if _, ok := secretStringData[EmbeddedConfigurationSecretKey]; !ok {
 		return nil, fmt.Errorf("Required key '%s' not found in secret '%s'", EmbeddedConfigurationSecretKey, gatewayConfigSecret.Name)
 	}
@@ -326,7 +335,7 @@ func (a *APIcastOptionsProvider) getAdminPortalCredentialsSecret(ctx context.Con
 		return nil, err
 	}
 
-	secretStringData := k8sutils.SecretStringDataFromData(adminPortalCredentialsSecret)
+	secretStringData := k8sutils.SecretStringDataFromData(&adminPortalCredentialsSecret)
 	adminPortalURL, ok := secretStringData[AdminPortalURLAttributeName]
 	if !ok {
 		return nil, fmt.Errorf("Required key '%s' not found in secret '%s'", AdminPortalURLAttributeName, adminPortalCredentialsSecret.Name)
@@ -474,4 +483,60 @@ func (a *APIcastOptionsProvider) podLabelSelector(deploymentName string) map[str
 	return map[string]string{
 		"deployment": deploymentName,
 	}
+}
+
+func (a *APIcastOptionsProvider) getOpenTelemetryConfig(ctx context.Context) (OpentelemetryConfig, error) {
+	res := OpentelemetryConfig{
+		Enabled: a.APIcastCR.OpenTelemetryEnabled(),
+	}
+
+	if !res.Enabled {
+		return res, nil
+	}
+
+	// In the APIcast CR validation step it is checked that when enabled, the secret ref is not nil
+	// Adding this to avoid panics
+	if a.APIcastCR.Spec.OpenTelemetry.TracingConfigSecretRef == nil || a.APIcastCR.Spec.OpenTelemetry.TracingConfigSecretRef.Name == "" {
+		fldPath := field.NewPath("spec").Child("openTelemetry").Child("tracingConfigSecretRef")
+		errors := append(field.ErrorList{}, field.Invalid(fldPath, a.APIcastCR.Spec.OpenTelemetry.TracingConfigSecretRef, "tracing config secret name is empty"))
+		return res, errors.ToAggregate()
+	}
+
+	res.SecretName = a.APIcastCR.Spec.OpenTelemetry.TracingConfigSecretRef.Name
+
+	if a.APIcastCR.Spec.OpenTelemetry.TracingConfigSecretKey != nil &&
+		*a.APIcastCR.Spec.OpenTelemetry.TracingConfigSecretKey != "" {
+		res.ConfigFile = path.Join(OpentelemetryConfigMountBasePath, *a.APIcastCR.Spec.OpenTelemetry.TracingConfigSecretKey)
+		return res, nil
+	}
+
+	// Read secret and get first key in lexicographical order.
+	// Defining some order is required because maps do not provide order semantics and
+	// key consistency is required accross reconcile loops
+	otelSecretKey := client.ObjectKey{
+		Name:      a.APIcastCR.Spec.OpenTelemetry.TracingConfigSecretRef.Name,
+		Namespace: a.APIcastCR.Namespace,
+	}
+
+	secret := &v1.Secret{}
+	err := a.Client.Get(ctx, otelSecretKey, secret)
+	if err != nil {
+		// NotFoundError is also an error, it is required to exist
+		fldPath := field.NewPath("spec").Child("openTelemetry").Child("tracingConfigSecretRef")
+		errors := append(field.ErrorList{}, field.Invalid(fldPath, a.APIcastCR.Spec.OpenTelemetry.TracingConfigSecretRef, err.Error()))
+		return res, errors.ToAggregate()
+	}
+
+	secretKeys := helper.MapKeys(k8sutils.SecretStringDataFromData(secret))
+	if len(secretKeys) == 0 {
+		fldPath := field.NewPath("spec").Child("openTelemetry").Child("tracingConfigSecretRef")
+		errors := append(field.ErrorList{}, field.Invalid(fldPath, a.APIcastCR.Spec.OpenTelemetry.TracingConfigSecretRef, "secret is empty, no key found"))
+		return res, errors.ToAggregate()
+	}
+
+	sort.Strings(secretKeys)
+
+	res.ConfigFile = path.Join(OpentelemetryConfigMountBasePath, secretKeys[0])
+
+	return res, nil
 }
