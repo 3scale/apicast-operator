@@ -1,0 +1,17 @@
+---
+apiVersion: apps.3scale.net/v1alpha1
+kind: APIcast
+metadata:
+  name: apicast1
+spec:
+  resources: {}
+  logLevel: debug
+  deploymentEnvironment: staging
+  configurationLoadMode: lazy
+  cacheConfigurationSeconds: 0
+  embeddedConfigurationSecretRef:
+    name: apicast-config
+  openTelemetry:
+    enabled: true
+    tracingConfigSecretRef:
+      name: otel-config
