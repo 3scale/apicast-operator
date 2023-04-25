@@ -44,7 +44,7 @@ func (r *APIcastLogicReconciler) Reconcile(ctx context.Context) (reconcile.Resul
 		return res, nil
 	}
 
-	err = r.validateAPicastCR()
+	err = r.validateAPicastCR(ctx)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
@@ -229,7 +229,16 @@ func (r *APIcastLogicReconciler) reconcileIngress(ctx context.Context, desired *
 	return r.ReconcileResource(ctx, &networkingv1.Ingress{}, desired, reconcilers.IngressMutator)
 }
 
-func (r *APIcastLogicReconciler) validateAPicastCR() error {
+func (r *APIcastLogicReconciler) validateAPicastCR(ctx context.Context) error {
+	logger, err := logr.FromContext(ctx)
+	if err != nil {
+		return err
+	}
+
+	if r.APIcastCR.OpenTracingIsEnabled() {
+		logger.Info("[WARNING] opentracing use is DEPRECATED. Use Opentelemetry instead.")
+	}
+
 	errors := field.ErrorList{}
 	// internal validation
 	errors = append(errors, r.APIcastCR.Validate()...)
