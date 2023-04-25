@@ -32,7 +32,8 @@ import (
 )
 
 const (
-	APIcastOperatorVersionAnnotation = "apicast.apps.3scale.net/operator-version"
+	APIcastOperatorVersionAnnotation        = "apicast.apps.3scale.net/operator-version"
+	ReadyConditionType               string = "Ready"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -298,6 +299,16 @@ type APIcastStatus struct {
 	// +listType=map
 	// +listMapKey=type
 	Conditions []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,1,rep,name=conditions"`
+}
+
+func (r *APIcastStatus) IsReady() bool {
+	for i := range r.Conditions {
+		if r.Conditions[i].Type == ReadyConditionType {
+			return r.Conditions[i].Status == metav1.ConditionTrue
+		}
+	}
+
+	return false
 }
 
 func (r *APIcastStatus) Equals(other *APIcastStatus, logger logr.Logger) bool {

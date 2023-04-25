@@ -19,10 +19,6 @@ import (
 	"github.com/3scale/apicast-operator/pkg/k8sutils"
 )
 
-const (
-	ReadyConditionType string = "Ready"
-)
-
 func (r *APIcastReconciler) reconcileStatus(ctx context.Context, cr *appsv1alpha1.APIcast, specErr error) (ctrl.Result, error) {
 	logger, _ := logr.FromContext(ctx)
 	newStatus, err := r.calculateStatus(ctx, cr, specErr)
@@ -101,7 +97,7 @@ func (r *APIcastReconciler) deploymentImage(ctx context.Context, cr *appsv1alpha
 
 func (r *APIcastReconciler) readyCondition(ctx context.Context, cr *appsv1alpha1.APIcast, specErr error) (*metav1.Condition, error) {
 	cond := &metav1.Condition{
-		Type:    ReadyConditionType,
+		Type:    appsv1alpha1.ReadyConditionType,
 		Status:  metav1.ConditionTrue,
 		Reason:  "Ready",
 		Message: "APIcast is ready",
