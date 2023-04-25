@@ -276,8 +276,8 @@ spec:
                   verification.
                 type: boolean
               openTelemetry:
-                description: OpenTracingSpec contains the OpenTracing integration
-                  configuration with APIcast. Deprecated
+                description: OpenTelemetry contains the gateway instrumentation configuration
+                  with APIcast.
                 properties:
                   enabled:
                     description: Enabled controls whether OpenTelemetry integration

@@ -216,10 +216,9 @@ type APIcastSpec struct {
 	// +optional
 	NoProxy *string `json:"noProxy,omitempty"` // NO_PROXY
 
-	// OpenTracingSpec contains the OpenTracing integration configuration
+	// OpenTelemetry contains the gateway instrumentation configuration
 	// with APIcast.
 	// +optional
-	// Deprecated
 	OpenTelemetry *OpenTelemetrySpec `json:"openTelemetry,omitempty"`
 }
 
