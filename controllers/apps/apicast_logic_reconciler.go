@@ -155,7 +155,8 @@ func (r *APIcastLogicReconciler) getSecretUIDs(ctx context.Context) ([]string, e
 	// gateway conf secret
 	// custom policy secret(s)
 	// custom env secret(s)
-	// tracing config secret
+	// opentracing tracing config secret (deprecated)
+	// opentelemetry tracing config secret
 
 	secretKeys := []client.ObjectKey{}
 	if r.APIcastCR.Spec.HTTPSCertificateSecretRef != nil {
@@ -194,6 +195,13 @@ func (r *APIcastLogicReconciler) getSecretUIDs(ctx context.Context) ([]string, e
 	if r.APIcastCR.OpenTracingIsEnabled() && r.APIcastCR.Spec.OpenTracing.TracingConfigSecretRef != nil {
 		secretKeys = append(secretKeys, client.ObjectKey{
 			Name:      r.APIcastCR.Spec.OpenTracing.TracingConfigSecretRef.Name,
+			Namespace: r.APIcastCR.Namespace, // review when operator is also cluster scoped
+		})
+	}
+
+	if r.APIcastCR.OpenTelemetryEnabled() && r.APIcastCR.Spec.OpenTelemetry.TracingConfigSecretRef != nil {
+		secretKeys = append(secretKeys, client.ObjectKey{
+			Name:      r.APIcastCR.Spec.OpenTelemetry.TracingConfigSecretRef.Name,
 			Namespace: r.APIcastCR.Namespace, // review when operator is also cluster scoped
 		})
 	}

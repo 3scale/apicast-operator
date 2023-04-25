@@ -134,11 +134,10 @@ func (r *APIcastReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	}
 
 	// LabelSelectorPredicate only applies to the new object in update events
-	// Thus, if the kuadrant secret label is removed, reconciliation capability will be lost
-	// Thus, if the kuadrant secret label is updated (no longer matching), reconciliation capability will be lost
+	// Thus, if the secret label is removed, reconciliation capability will be lost
+	// Thus, if the secret label is updated (no longer matching), reconciliation capability will be lost
 	// If the controller would want to react when the label is removed or updated, a custom predicate
-	// would be needed. Like it is implemented in the service controller of the kuadrant controller
-	// https://github.com/Kuadrant/kuadrant-controller/blob/356fb4d7abce66ef2ad5d93bad6461ee6c254e02/controllers/service_controller.go#L349
+	// would be needed.
 	labelSelectorPredicate, err := predicate.LabelSelectorPredicate(r.SecretLabelSelector)
 	if err != nil {
 		return nil
