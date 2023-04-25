@@ -27,7 +27,6 @@ import (
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	apimachinerymetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -36,7 +35,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	appsv1alpha1 "github.com/3scale/apicast-operator/apis/apps/v1alpha1"
-	"github.com/3scale/apicast-operator/pkg/apicast"
 	"github.com/3scale/apicast-operator/pkg/reconcilers"
 )
 
@@ -71,7 +69,8 @@ func (r *APIcastReconciler) Reconcile(eventCtx context.Context, req ctrl.Request
 	// your logic here
 	log.Info("Reconciling APIcast")
 
-	instance, err := r.getAPIcast(ctx, req)
+	instance := &appsv1alpha1.APIcast{}
+	err := r.Client().Get(ctx, req.NamespacedName, instance)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			log.Info("APIcast not found")
@@ -91,38 +90,34 @@ func (r *APIcastReconciler) Reconcile(eventCtx context.Context, req ctrl.Request
 
 	baseReconciler := reconcilers.NewBaseReconciler(r.Client(), r.APIClientReader(), r.Scheme(), log)
 	logicReconciler := NewAPIcastLogicReconciler(baseReconciler, instance)
-	result, err := logicReconciler.Reconcile(ctx)
-	if err != nil {
+	specResult, specErr := logicReconciler.Reconcile(ctx)
+	if specErr == nil && specResult.Requeue {
+		log.V(1).Info("Reconciling spec not finished. Requeueing.")
+		return specResult, nil
+	}
+
+	statusResult, statusErr := r.reconcileStatus(ctx, instance, specErr)
+
+	if specErr != nil {
 		// Ignore conflicts, resource might just be outdated.
-		if errors.IsConflict(err) {
-			log.Info("Resource update conflict error. Requeuing...", "error", err)
+		if errors.IsConflict(specErr) {
+			log.Info("Resource update conflict error. Requeuing...", "error", specErr)
 			return ctrl.Result{Requeue: true}, nil
 		}
 
-		return result, err
+		return ctrl.Result{}, specErr
 	}
-	if result.Requeue {
-		log.Info("Requeuing request...")
-		return result, nil
-	}
-	log.Info("APIcast logic reconciled")
 
-	result, err = r.updateStatus(ctx, instance, &logicReconciler)
-	if err != nil {
-		// Ignore conflicts, resource might just be outdated.
-		if errors.IsConflict(err) {
-			log.Info("Resource update conflict error. Requeuing...", "error", err)
-			return ctrl.Result{Requeue: true}, nil
-		}
+	if statusErr != nil {
+		return ctrl.Result{}, statusErr
+	}
 
-		log.Error(err, "Status reconciler")
-		return result, err
+	if statusResult.Requeue {
+		log.V(1).Info("Reconciling status not finished. Requeueing.")
+		return statusResult, nil
 	}
-	if result.Requeue {
-		log.Info("Requeuing request...")
-		return result, nil
-	}
-	log.Info("APIcast status reconciled")
+
+	log.Info("Successfully reconciled")
 	return ctrl.Result{}, nil
 }
 
@@ -154,39 +149,4 @@ func (r *APIcastReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&corev1.Service{}).
 		Owns(&networkingv1.Ingress{}).
 		Complete(r)
-}
-
-func (r *APIcastReconciler) updateStatus(ctx context.Context, instance *appsv1alpha1.APIcast, reconciler *APIcastLogicReconciler) (ctrl.Result, error) {
-	apicastFactory, err := apicast.Factory(ctx, instance, r.Client())
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-
-	desiredDeployment := apicastFactory.Deployment()
-	apicastDeployment := &appsv1.Deployment{}
-	err = r.Client().Get(ctx, types.NamespacedName{Name: desiredDeployment.Name, Namespace: desiredDeployment.Namespace}, apicastDeployment)
-	if err != nil && !errors.IsNotFound(err) {
-		return ctrl.Result{}, err
-	}
-
-	if err != nil && errors.IsNotFound(err) {
-		return ctrl.Result{Requeue: true}, nil
-	}
-
-	deployedImage := apicastDeployment.Spec.Template.Spec.Containers[0].Image
-	if instance.Status.Image != deployedImage {
-		instance.Status.Image = deployedImage
-		err = r.Client().Status().Update(ctx, instance)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-		return ctrl.Result{Requeue: true}, nil
-	}
-	return ctrl.Result{}, nil
-}
-
-func (r *APIcastReconciler) getAPIcast(ctx context.Context, request ctrl.Request) (*appsv1alpha1.APIcast, error) {
-	instance := appsv1alpha1.APIcast{}
-	err := r.Client().Get(ctx, request.NamespacedName, &instance)
-	return &instance, err
 }

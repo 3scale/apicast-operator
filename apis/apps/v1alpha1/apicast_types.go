@@ -19,12 +19,15 @@ package v1alpha1
 import (
 	"fmt"
 
+	"github.com/go-logr/logr"
+	"github.com/google/go-cmp/cmp"
 	v1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	appscommon "github.com/3scale/apicast-operator/apis/apps"
+	"github.com/3scale/apicast-operator/pkg/k8sutils"
 	"github.com/3scale/apicast-operator/version"
 )
 
@@ -280,40 +283,46 @@ type OpenTracingSpec struct {
 
 // APIcastStatus defines the observed state of APIcast.
 type APIcastStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-
-	// Represents the latest available observations of a replica set's current state.
-	// +optional
-	// +patchMergeKey=type
-	// +patchStrategy=merge
-	Conditions []APIcastCondition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type"`
-
 	// The image being used in the APIcast deployment.
 	// +optional
 	Image string `json:"image,omitempty"`
+
+	// ObservedGeneration reflects the generation of the most recently observed spec.
+	// +optional
+	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
+
+	// Represents the observations of a foo's current state.
+	// Known .status.conditions.type are: "Available"
+	// +patchMergeKey=type
+	// +patchStrategy=merge
+	// +listType=map
+	// +listMapKey=type
+	Conditions []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,1,rep,name=conditions"`
 }
 
-type APIcastConditionType string
+func (r *APIcastStatus) Equals(other *APIcastStatus, logger logr.Logger) bool {
+	if r.Image != other.Image {
+		diff := cmp.Diff(r.Image, other.Image)
+		logger.V(1).Info("Image not equal", "difference", diff)
+		return false
+	}
 
-type APIcastCondition struct {
-	// Type of replica set condition.
-	Type APIcastConditionType `json:"type"`
-	// Status of the condition, one of True, False, Unknown.
-	Status v1.ConditionStatus `json:"status"`
+	if r.ObservedGeneration != other.ObservedGeneration {
+		diff := cmp.Diff(r.ObservedGeneration, other.ObservedGeneration)
+		logger.V(1).Info("ObservedGeneration not equal", "difference", diff)
+		return false
+	}
 
-	// The Reason, Message, LastHeartbeatTime and LastTransitionTime fields are
-	// optional. Unless we really use them they should directly not be used even
-	// if they are optional.
-	// The last time the condition transitioned from one status to another.
-	// +optional
-	//LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty"`
-	// The reason for the condition's last transition.
-	// +optional
-	//Reason string `json:"reason,omitempty"`
-	// A human readable message indicating details about the transition.
-	// +optional
-	//Message string `json:"message,omitempty"`
+	// Marshalling sorts by condition type
+	currentMarshaledJSON, _ := k8sutils.ConditionMarshal(r.Conditions)
+	otherMarshaledJSON, _ := k8sutils.ConditionMarshal(other.Conditions)
+	if string(currentMarshaledJSON) != string(otherMarshaledJSON) {
+		diff := cmp.Diff(string(currentMarshaledJSON), string(otherMarshaledJSON))
+		logger.V(1).Info("Conditions not equal", "difference", diff)
+		return false
+	}
+
+	return true
 }
 
 // +kubebuilder:object:root=true

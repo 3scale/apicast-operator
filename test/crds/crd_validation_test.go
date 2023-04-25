@@ -17,6 +17,11 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// Missing fields path omissions
+const (
+	lastTransitionTimePath = "/status/conditions/lastTransitionTime"
+)
+
 type testCRInfo struct {
 	crPrefix   string
 	apiVersion string
@@ -72,10 +77,18 @@ func TestCompleteCRD(t *testing.T) {
 			apiVersion: v1alpha1.GroupVersion.Version,
 		},
 	}
+
+	pathOmissions := []string{
+		lastTransitionTimePath,
+	}
+
 	for crd, elem := range crdStructMap {
 		schema := getSchemaVersioned(t, fmt.Sprintf("%s/%s", root, crd), elem.apiVersion)
 		missingEntries := schema.GetMissingEntries(elem.obj)
 		for _, missing := range missingEntries {
+			if missingFieldPathInPathOmissions(missing.Path, pathOmissions) {
+				continue
+			}
 			assert.Fail(t, "Discrepancy between CRD and Struct", "CRD: %s: Missing or incorrect schema validation at %s, expected type %s", crd, missing.Path, missing.Type)
 		}
 	}
@@ -87,4 +100,13 @@ func getSchemaVersioned(t *testing.T, crd string, version string) validation.Sch
 	schema, err := validation.NewVersioned(bytes, version)
 	assert.NoError(t, err)
 	return schema
+}
+
+func missingFieldPathInPathOmissions(path string, omissions []string) bool {
+	for _, omit := range omissions {
+		if strings.HasPrefix(path, omit) {
+			return true
+		}
+	}
+	return false
 }

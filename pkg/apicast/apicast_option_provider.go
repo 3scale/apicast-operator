@@ -34,6 +34,14 @@ type APIcastOptionsProvider struct {
 	Client         client.Client
 }
 
+func APIcastDeploymentName(cr *appsv1alpha1.APIcast) string {
+	if cr == nil {
+		return ""
+	}
+
+	return fmt.Sprintf("apicast-%s", cr.Name)
+}
+
 func NewApicastOptionsProvider(cr *appsv1alpha1.APIcast, cl client.Client) *APIcastOptionsProvider {
 	return &APIcastOptionsProvider{
 		APIcastCR:      cr,
@@ -46,9 +54,8 @@ func (a *APIcastOptionsProvider) GetApicastOptions(ctx context.Context) (*APIcas
 	a.APIcastOptions.Namespace = a.APIcastCR.Namespace
 	a.APIcastOptions.Owner = a.APIcastCR.GetOwnerReference()
 
-	apicastFullName := "apicast-" + a.APIcastCR.Name
-	a.APIcastOptions.DeploymentName = apicastFullName
-	a.APIcastOptions.ServiceName = apicastFullName
+	a.APIcastOptions.DeploymentName = APIcastDeploymentName(a.APIcastCR)
+	a.APIcastOptions.ServiceName = APIcastDeploymentName(a.APIcastCR)
 
 	a.APIcastOptions.Replicas = 1
 	if a.APIcastCR.Spec.Replicas != nil {
