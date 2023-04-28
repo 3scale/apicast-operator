@@ -289,7 +289,7 @@ spec:
                       If specified, the referenced value will be used as tracing configuration.
                     type: string
                   tracingConfigSecretRef:
-                    description: TracingConfigSecretRef contains a Secret reference
+                    description: TracingConfigSecretRef contains a Secret reference to
                       the Opentelemetry configuration. The configuration file specification
                       is defined in the Nginx instrumentation library repo https://github.com/open-telemetry/opentelemetry-cpp-contrib/tree/main/instrumentation/nginx
                     properties:
