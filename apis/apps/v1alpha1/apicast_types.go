@@ -259,9 +259,8 @@ type OpenTelemetrySpec struct {
 	// +optional
 	TracingConfigSecretRef *v1.LocalObjectReference `json:"tracingConfigSecretRef,omitempty"`
 
-	// TracingConfigSecretKey if unspecified, the first key in lexicographical order will be
-	// referenced as tracing configuration. If specified, the referenced value will be used as
-	// tracing configuration.
+	// TracingConfigSecretKey contains the key of the secret to select the configuration from.
+	// if unspecified, the first secret key in lexicographical order will be selected.
 	// +optional
 	TracingConfigSecretKey *string `json:"tracingConfigSecretKey,omitempty"`
 }
