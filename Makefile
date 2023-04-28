@@ -8,9 +8,6 @@ PROJECT_PATH := $(patsubst %/,%,$(dir $(MKFILE_PATH)))
 
 all: manager
 
-# Include last to avoid changing MAKEFILE_LIST used above
-include ./make/*.mk
-
 # Current Operator version
 VERSION ?= 0.0.1
 # Default bundle image tag
@@ -233,3 +230,6 @@ golangci-lint: $(GOLANGCI-LINT)
 .PHONY: run-lint
 run-lint: $(GOLANGCI-LINT)
 	$(GOLANGCI-LINT) run --timeout 5m
+
+# Include last to avoid changing MAKEFILE_LIST used above
+include ./make/*.mk

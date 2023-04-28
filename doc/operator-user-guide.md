@@ -12,6 +12,7 @@
     * [Enabling TLS at pod level](#enabling-tls-at-pod-level)
     * [Adding custom policies](adding-custom-policies.md)
     * [Adding custom environments](adding-custom-environments.md)
+    * [Gateway instrumentation](gateway-instrumentation.md)
 * [Reconciliation](#reconciliation)
 * [Upgrading APIcast](#upgrading-APIcast)
 * [APIcast CRD reference](apicast-crd-reference.md)
@@ -125,7 +126,7 @@ kubectl create secret tls mycertsecret --cert=server.crt --key=server.key
 **Watch for secret changes**
 
 By default, content changes in the secret will not be noticed by the apicast operator.
-The apicast operator allows monitoring the secret for changes adding the `apicast.apps.3scale.net/watched-by=apicast` label. 
+The apicast operator allows monitoring the secret for changes adding the `apicast.apps.3scale.net/watched-by=apicast` label.
 With that label in place, when the content of the secret is changed, the operator will get notified.
 Then, the operator will rollout apicast deployment to make the changes effective.
 The operator will not take *ownership* of the secret in any way.

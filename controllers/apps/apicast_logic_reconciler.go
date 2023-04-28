@@ -44,7 +44,7 @@ func (r *APIcastLogicReconciler) Reconcile(ctx context.Context) (reconcile.Resul
 		return res, nil
 	}
 
-	err = r.validateAPicastCR()
+	err = r.validateAPicastCR(ctx)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
@@ -155,7 +155,8 @@ func (r *APIcastLogicReconciler) getSecretUIDs(ctx context.Context) ([]string, e
 	// gateway conf secret
 	// custom policy secret(s)
 	// custom env secret(s)
-	// tracing config secret
+	// opentracing tracing config secret (deprecated)
+	// opentelemetry tracing config secret
 
 	secretKeys := []client.ObjectKey{}
 	if r.APIcastCR.Spec.HTTPSCertificateSecretRef != nil {
@@ -198,6 +199,13 @@ func (r *APIcastLogicReconciler) getSecretUIDs(ctx context.Context) ([]string, e
 		})
 	}
 
+	if r.APIcastCR.OpenTelemetryEnabled() && r.APIcastCR.Spec.OpenTelemetry.TracingConfigSecretRef != nil {
+		secretKeys = append(secretKeys, client.ObjectKey{
+			Name:      r.APIcastCR.Spec.OpenTelemetry.TracingConfigSecretRef.Name,
+			Namespace: r.APIcastCR.Namespace, // review when operator is also cluster scoped
+		})
+	}
+
 	uids := []string{}
 	for idx := range secretKeys {
 		secret := &v1.Secret{}
@@ -221,7 +229,16 @@ func (r *APIcastLogicReconciler) reconcileIngress(ctx context.Context, desired *
 	return r.ReconcileResource(ctx, &networkingv1.Ingress{}, desired, reconcilers.IngressMutator)
 }
 
-func (r *APIcastLogicReconciler) validateAPicastCR() error {
+func (r *APIcastLogicReconciler) validateAPicastCR(ctx context.Context) error {
+	logger, err := logr.FromContext(ctx)
+	if err != nil {
+		return err
+	}
+
+	if r.APIcastCR.OpenTracingIsEnabled() {
+		logger.Info("[WARNING] opentracing use is DEPRECATED. Use Opentelemetry instead.")
+	}
+
 	errors := field.ErrorList{}
 	// internal validation
 	errors = append(errors, r.APIcastCR.Validate()...)

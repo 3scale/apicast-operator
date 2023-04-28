@@ -19,17 +19,21 @@ package v1alpha1
 import (
 	"fmt"
 
+	"github.com/go-logr/logr"
+	"github.com/google/go-cmp/cmp"
 	v1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	appscommon "github.com/3scale/apicast-operator/apis/apps"
+	"github.com/3scale/apicast-operator/pkg/k8sutils"
 	"github.com/3scale/apicast-operator/version"
 )
 
 const (
-	APIcastOperatorVersionAnnotation = "apicast.apps.3scale.net/operator-version"
+	APIcastOperatorVersionAnnotation        = "apicast.apps.3scale.net/operator-version"
+	ReadyConditionType               string = "Ready"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -190,6 +194,7 @@ type APIcastSpec struct {
 
 	// OpenTracingSpec contains the OpenTracing integration configuration
 	// with APIcast.
+	// Deprecated
 	// +optional
 	OpenTracing *OpenTracingSpec `json:"openTracing,omitempty"`
 
@@ -214,10 +219,19 @@ type APIcastSpec struct {
 	// * character, which matches all hosts, effectively disables the proxy.
 	// +optional
 	NoProxy *string `json:"noProxy,omitempty"` // NO_PROXY
+
+	// OpenTelemetry contains the gateway instrumentation configuration
+	// with APIcast.
+	// +optional
+	OpenTelemetry *OpenTelemetrySpec `json:"openTelemetry,omitempty"`
 }
 
 func (a *APIcast) OpenTracingIsEnabled() bool {
 	return a.Spec.OpenTracing != nil && a.Spec.OpenTracing.Enabled != nil && *a.Spec.OpenTracing.Enabled
+}
+
+func (a *APIcast) OpenTelemetryEnabled() bool {
+	return a.Spec.OpenTelemetry != nil && a.Spec.OpenTelemetry.Enabled != nil && *a.Spec.OpenTelemetry.Enabled
 }
 
 type DeploymentEnvironmentType string
@@ -231,6 +245,24 @@ type APIcastExposedHost struct {
 	Host string `json:"host"`
 	// +optional
 	TLS []networkingv1.IngressTLS `json:"tls,omitempty"`
+}
+
+type OpenTelemetrySpec struct {
+	// Enabled controls whether OpenTelemetry integration with APIcast is enabled.
+	// By default it is not enabled.
+	// +optional
+	Enabled *bool `json:"enabled,omitempty"`
+
+	// TracingConfigSecretRef contains a Secret reference the Opentelemetry configuration.
+	// The configuration file specification is defined in the Nginx instrumentation library repo
+	// https://github.com/open-telemetry/opentelemetry-cpp-contrib/tree/main/instrumentation/nginx
+	// +optional
+	TracingConfigSecretRef *v1.LocalObjectReference `json:"tracingConfigSecretRef,omitempty"`
+
+	// TracingConfigSecretKey contains the key of the secret to select the configuration from.
+	// if unspecified, the first secret key in lexicographical order will be selected.
+	// +optional
+	TracingConfigSecretKey *string `json:"tracingConfigSecretKey,omitempty"`
 }
 
 type OpenTracingSpec struct {
@@ -251,40 +283,56 @@ type OpenTracingSpec struct {
 
 // APIcastStatus defines the observed state of APIcast.
 type APIcastStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-
-	// Represents the latest available observations of a replica set's current state.
-	// +optional
-	// +patchMergeKey=type
-	// +patchStrategy=merge
-	Conditions []APIcastCondition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type"`
-
 	// The image being used in the APIcast deployment.
 	// +optional
 	Image string `json:"image,omitempty"`
+
+	// ObservedGeneration reflects the generation of the most recently observed spec.
+	// +optional
+	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
+
+	// Represents the observations of a foo's current state.
+	// Known .status.conditions.type are: "Available"
+	// +patchMergeKey=type
+	// +patchStrategy=merge
+	// +listType=map
+	// +listMapKey=type
+	Conditions []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,1,rep,name=conditions"`
 }
 
-type APIcastConditionType string
+func (r *APIcastStatus) IsReady() bool {
+	for i := range r.Conditions {
+		if r.Conditions[i].Type == ReadyConditionType {
+			return r.Conditions[i].Status == metav1.ConditionTrue
+		}
+	}
 
-type APIcastCondition struct {
-	// Type of replica set condition.
-	Type APIcastConditionType `json:"type"`
-	// Status of the condition, one of True, False, Unknown.
-	Status v1.ConditionStatus `json:"status"`
+	return false
+}
 
-	// The Reason, Message, LastHeartbeatTime and LastTransitionTime fields are
-	// optional. Unless we really use them they should directly not be used even
-	// if they are optional.
-	// The last time the condition transitioned from one status to another.
-	// +optional
-	//LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty"`
-	// The reason for the condition's last transition.
-	// +optional
-	//Reason string `json:"reason,omitempty"`
-	// A human readable message indicating details about the transition.
-	// +optional
-	//Message string `json:"message,omitempty"`
+func (r *APIcastStatus) Equals(other *APIcastStatus, logger logr.Logger) bool {
+	if r.Image != other.Image {
+		diff := cmp.Diff(r.Image, other.Image)
+		logger.V(1).Info("Image not equal", "difference", diff)
+		return false
+	}
+
+	if r.ObservedGeneration != other.ObservedGeneration {
+		diff := cmp.Diff(r.ObservedGeneration, other.ObservedGeneration)
+		logger.V(1).Info("ObservedGeneration not equal", "difference", diff)
+		return false
+	}
+
+	// Marshalling sorts by condition type
+	currentMarshaledJSON, _ := k8sutils.ConditionMarshal(r.Conditions)
+	otherMarshaledJSON, _ := k8sutils.ConditionMarshal(other.Conditions)
+	if string(currentMarshaledJSON) != string(otherMarshaledJSON) {
+		diff := cmp.Diff(string(currentMarshaledJSON), string(otherMarshaledJSON))
+		logger.V(1).Info("Conditions not equal", "difference", diff)
+		return false
+	}
+
+	return true
 }
 
 // +kubebuilder:object:root=true
@@ -394,6 +442,17 @@ func (a *APIcast) Validate() field.ErrorList {
 				customTracingConfigFldPath := openTracingFldPath.Child("tracingConfigSecretRef")
 				errors = append(errors, field.Invalid(customTracingConfigFldPath, a.Spec.OpenTracing, "custom tracing library secret name is empty"))
 			}
+		}
+	}
+
+	// check opentracing config secret has a name specified when tracing config is
+	// enabled and a custom configuration secret reference has been set
+	if a.OpenTelemetryEnabled() {
+		if a.Spec.OpenTelemetry.TracingConfigSecretRef != nil &&
+			a.Spec.OpenTelemetry.TracingConfigSecretRef.Name == "" {
+			openTracingFldPath := specFldPath.Child("openTelemetry")
+			customTracingConfigFldPath := openTracingFldPath.Child("tracingConfigSecretRef")
+			errors = append(errors, field.Invalid(customTracingConfigFldPath, a.Spec.OpenTelemetry, "tracing config secret name is empty"))
 		}
 	}
 

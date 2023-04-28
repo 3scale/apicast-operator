@@ -16,6 +16,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 
 	appsv1alpha1 "github.com/3scale/apicast-operator/apis/apps/v1alpha1"
+	apicastpkg "github.com/3scale/apicast-operator/pkg/apicast"
+	"github.com/3scale/apicast-operator/pkg/k8sutils"
 )
 
 const testAPIcastEmbeddedConfigurationSecretName = "apicast-embedded-configuration"
@@ -63,12 +65,28 @@ var _ = Describe("APIcast controller", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			// Check that the correspondig APIcast K8s Deployment has been created
-			apicastDeploymentName := "apicast-" + apicastName
+			apicastDeploymentName := apicastpkg.APIcastDeploymentName(apicast)
 			apicastDeploymentLookupKey := types.NamespacedName{Name: apicastDeploymentName, Namespace: testNamespace}
-			createdDeployment := &appsv1.Deployment{}
 			Eventually(func() bool {
-				err := testClient().Get(context.Background(), apicastDeploymentLookupKey, createdDeployment)
-				return err == nil
+				deployment := &appsv1.Deployment{}
+				err := testClient().Get(context.Background(), apicastDeploymentLookupKey, deployment)
+				if err != nil {
+					return false
+				}
+
+				return k8sutils.IsStatusConditionTrue(deployment.Status.Conditions, appsv1.DeploymentAvailable)
+			}, 5*time.Minute, retryInterval).Should(BeTrue())
+
+			Eventually(func() bool {
+
+				newApicast := &appsv1alpha1.APIcast{}
+				key := types.NamespacedName{Name: apicastName, Namespace: testNamespace}
+				err := testClient().Get(context.Background(), key, newApicast)
+				if err != nil {
+					return false
+				}
+
+				return newApicast.Status.IsReady()
 			}, 5*time.Minute, retryInterval).Should(BeTrue())
 
 			elapsed := time.Since(start)

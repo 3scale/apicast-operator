@@ -41,12 +41,13 @@
 | `customPolicies` | [][CustomPolicySpec](#CustomPolicySpec) | No | N/A | List of custom policies |
 | `extendedMetrics` | bool | No | false | Enables additional information on Prometheus metrics (see [docs](https://github.com/3scale/APIcast/blob/master/doc/parameters.md#apicast_extended_metrics)) |
 | `customEnvironments` | [][CustomEnvironmentSpec](#CustomEnvironmentSpec) | No | N/A | List of custom environments |
-| `openTracing` | [OpenTracingSpec](#OpenTracingSpec) | No | N/A | contains the OpenTracing integration configuration |
+| `openTracing` | [OpenTracingSpec](#OpenTracingSpec) | No | N/A | **[DEPRECATED]** Use `openTelementry` instead. Contains the OpenTracing integration configuration |
 | `allProxy` | string | No | N/A | Specifies a HTTP(S) proxy to be used for connecting to services if a protocol-specific proxy is not specified. Authentication is not supported. Format is: `<scheme>://<host>:<port>` (see [docs](https://github.com/3scale/APIcast/blob/master/doc/parameters.md#all_proxy-all_proxy)) |
 | `httpProxy` | string | No | N/A | Specifies a HTTP(S) Proxy to be used for connecting to HTTP services. Authentication is not supported. Format is: `<scheme>://<host>:<port>` (see [docs](https://github.com/3scale/APIcast/blob/master/doc/parameters.md#http_proxy-http_proxy)) |
 | `httpsProxy` | string | No | N/A | Specifies a HTTP(S) Proxy to be used for connecting to HTTPS services. Authentication is not supported. Format is: `<scheme>://<host>:<port>` (see [docs](https://github.com/3scale/APIcast/blob/master/doc/parameters.md#https_proxy-https_proxy)) |
 | `noProxy` | string | No | N/A | Specifies a comma-separated list of hostnames and domain names for which the requests should not be proxied. Setting to a single `*` character, which matches all hosts, effectively disables the proxy (see [docs](https://github.com/3scale/APIcast/blob/master/doc/parameters.md#no_proxy-no_proxy)) |
 | `serviceCacheSize` | int | No | N/A | Specifies the number of services that APICast can store in the internal cache (see [docs](https://github.com/3scale/APIcast/blob/master/doc/parameters.md#apicast_service_cache_size)) |
+| `openTelemetry` | [OpenTelemetrySpec](#OpenTelemetrySpec) | No | N/A | contains the OpenTelemetry integration configuration |
 
 #### APIcastStatus
 
@@ -151,3 +152,18 @@ The operator will not take *ownership* of the secret in any way.
 ```
 kubectl label secret ${SOME_SECRET_NAME} apicast.apps.3scale.net/watched-by=apicast
 ```
+
+### OpenTelemetrySpec
+| **json/yaml field** | **Type** | **Required** | **Default value** | **Description** |
+| --- | --- | --- | --- | --- |
+| `enabled` | bool | No | `false` | Controls whether opentelemetry based gateway instrumentation is enabled or not. By default it is **disabled** |
+| `tracingConfigSecretRef` | *LocalObjectReference* | No | None | Secret reference with the [opentelemetry tracing configuration](https://github.com/open-telemetry/opentelemetry-cpp-contrib/tree/main/instrumentation/nginx). |
+| `tracingConfigSecretKey` | string | No | If unspecified, the first secret key in lexicographical order will be referenced as tracing configuration | The secret key used as tracing configuration |
+
+**Watch for secret changes**
+
+By default, content changes in the secret will not be noticed by the apicast operator.
+The apicast operator allows monitoring the secret for changes adding the `apicast.apps.3scale.net/watched-by=apicast` label.
+With that label in place, when the content of the secret is changed, the operator will get notified.
+Then, the operator will rollout apicast deployment to make the changes effective.
+The operator will not take *ownership* of the secret in any way.
