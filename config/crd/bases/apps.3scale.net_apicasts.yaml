@@ -277,7 +277,7 @@ spec:
                 type: boolean
               openTelemetry:
                 description: OpenTelemetry contains the gateway instrumentation configuration
-                  with APIcast.
+                  for APIcast.
                 properties:
                   enabled:
                     description: Enabled controls whether OpenTelemetry integration
