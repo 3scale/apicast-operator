@@ -11,6 +11,7 @@ require (
 	github.com/google/uuid v1.1.2
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.18.1
+	github.com/operator-framework/operator-lib v0.11.0
 	github.com/stretchr/testify v1.8.0
 	k8s.io/api v0.24.3
 	k8s.io/apimachinery v0.24.3
