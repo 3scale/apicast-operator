@@ -215,14 +215,15 @@ bundle-restore:
 .PHONY: bundle-custom-build
 bundle-custom-build: | bundle-custom-updates bundle-build bundle-restore
 
+# see issue https://github.com/operator-framework/operator-registry/issues/984 for reason for '--index-image=quay.io/operator-framework/opm:v1.23.0'
 .PHONY: bundle-run
 bundle-run: $(OPERATOR_SDK)
-	$(OPERATOR_SDK) run bundle --namespace openshift-marketplace $(BUNDLE_IMG)
+	$(OPERATOR_SDK) run bundle --namespace openshift-marketplace $(BUNDLE_IMG) --index-image=quay.io/operator-framework/opm:v1.23.0
 
 GOLANGCI-LINT=$(PROJECT_PATH)/bin/golangci-lint
 $(GOLANGCI-LINT):
 	mkdir -p $(PROJECT_PATH)/bin
-	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(PROJECT_PATH)/bin v1.50.1
+	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(PROJECT_PATH)/bin v1.51.0
 
 .PHONY: golangci-lint
 golangci-lint: $(GOLANGCI-LINT)
