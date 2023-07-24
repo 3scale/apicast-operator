@@ -34,7 +34,7 @@ commands:
 jobs:
   install-operator:
     docker:
-      - image: cimg/go:1.18
+      - image: cimg/go:1.19
     steps:
       - setup_remote_docker:
           docker_layer_caching: true
@@ -54,7 +54,7 @@ jobs:
       - image: circleci/ruby:2.5
     steps:
       - go/install:
-          version: 1.18.10
+          version: 1.19.10
       - checkout
       - run: sudo gem install license_finder --version 5.7.1
       - run: make licenses-check
@@ -109,7 +109,7 @@ jobs:
 
   run-unit-test:
     docker:
-      - image: cimg/go:1.18
+      - image: cimg/go:1.19
     steps:
       - checkout
       - run:
@@ -122,7 +122,7 @@ jobs:
       docker_layer_caching: true
     steps:
       - go/install:
-          version: 1.18.10
+          version: 1.19.10
       - checkout
       - run:
           name: Install KinD
@@ -139,7 +139,7 @@ jobs:
           no_output_timeout: 30m
   lint:
     docker:
-      - image: cimg/go:1.18
+      - image: cimg/go:1.19
     steps:
       - checkout
       - run:
@@ -149,7 +149,7 @@ jobs:
 
   bundle-validate:
     docker:
-      - image: cimg/go:1.18
+      - image: cimg/go:1.19
     steps:
       - checkout
       - run: make bundle
