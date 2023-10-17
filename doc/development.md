@@ -23,7 +23,7 @@
 * [operator-sdk] version v1.2.0
 * [docker] version 17.03+
 * [git][git_tool]
-* [go] version 1.13+
+* [go] version 1.19+
 * [kubernetes] version v1.19.0+
 * [kubectl] version v1.19.0+
 * Access to a Kubernetes v1.19.0+ cluster.

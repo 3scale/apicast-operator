@@ -2,7 +2,6 @@ package test
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -44,7 +43,7 @@ func validateCustomResources(t *testing.T, schemaRoot, samplesRoot, crd, prefix 
 	assert.NotNil(t, schema)
 	walkFunc := func(path string, info os.FileInfo, err error) error {
 		if strings.HasPrefix(info.Name(), prefix) {
-			bytes, err := ioutil.ReadFile(path)
+			bytes, err := os.ReadFile(path)
 			assert.NoError(t, err, "Error reading CR yaml from %v", path)
 			var input map[string]interface{}
 			assert.NoError(t, yaml.Unmarshal(bytes, &input))
@@ -80,7 +79,7 @@ func TestCompleteCRD(t *testing.T) {
 }
 
 func getSchemaVersioned(t *testing.T, crd string, version string) validation.Schema {
-	bytes, err := ioutil.ReadFile(crd)
+	bytes, err := os.ReadFile(crd)
 	assert.NoError(t, err, "Error reading CRD yaml from %v", crd)
 	schema, err := validation.NewVersioned(bytes, version)
 	assert.NoError(t, err)
