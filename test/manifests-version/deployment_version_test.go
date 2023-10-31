@@ -2,7 +2,8 @@ package test
 
 import (
 	"bytes"
-	"io/ioutil"
+	"os"
+	"io"
 	"path"
 	"testing"
 
@@ -15,12 +16,12 @@ import (
 func TestDeploymentVersions(t *testing.T) {
 	root := "../../config/manager/"
 	path := path.Join(root, "manager.yaml")
-	yamlBytes, err := ioutil.ReadFile(path)
+	yamlBytes, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	bytesReader := ioutil.NopCloser(bytes.NewReader(yamlBytes))
+	bytesReader := io.NopCloser(bytes.NewReader(yamlBytes))
 	yamlDocumentDecoder := utilyaml.NewDocumentDecoder(bytesReader)
 
 	// Read and discard Namespace object from the yaml file
