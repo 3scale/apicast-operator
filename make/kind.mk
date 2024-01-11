@@ -5,7 +5,7 @@
 
 KIND = $(PROJECT_PATH)/bin/kind
 $(KIND): ## Download kind locally if necessary.
-	$(call go-bin-install,$(KIND),sigs.k8s.io/kind@v0.11.1)
+	$(call go-bin-install,$(KIND),sigs.k8s.io/kind@v0.20.0)
 
 .PHONY: kind
 kind: $(KIND)

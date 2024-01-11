@@ -51,7 +51,7 @@ jobs:
 
   license-check:
     docker:
-      - image: circleci/ruby:2.5
+      - image: circleci/ruby:2.6
     steps:
       - go/install:
           version: 1.19.10
