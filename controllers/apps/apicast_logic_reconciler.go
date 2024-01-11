@@ -14,8 +14,10 @@ import (
 
 	appsv1alpha1 "github.com/3scale/apicast-operator/apis/apps/v1alpha1"
 	apicast "github.com/3scale/apicast-operator/pkg/apicast"
+
 	"github.com/3scale/apicast-operator/pkg/k8sutils"
 	"github.com/3scale/apicast-operator/pkg/reconcilers"
+	hpa "k8s.io/api/autoscaling/v2"
 )
 
 type APIcastLogicReconciler struct {
@@ -110,6 +112,33 @@ func (r *APIcastLogicReconciler) Reconcile(ctx context.Context) (reconcile.Resul
 	err = r.reconcileIngress(ctx, ingress)
 	if err != nil {
 		return reconcile.Result{}, err
+	}
+
+	// Hpa
+	if r.APIcastCR.Spec.Hpa.Enabled {
+		// If HPA is enabled and any of the fields are set, reconcile it
+		if r.APIcastCR.Spec.Hpa.MinPods != nil || r.APIcastCR.Spec.Hpa.MaxPods != 0 || r.APIcastCR.Spec.Hpa.CpuPercent != nil || r.APIcastCR.Spec.Hpa.MemoryPercent != nil {
+			err = r.ReconcileResource(ctx, &hpa.HorizontalPodAutoscaler{}, reconcilers.HpaCR(r.APIcastCR), reconcilers.HpaGenericMutator())
+			if err != nil {
+				return reconcile.Result{}, err
+			}
+		}
+		// If HPA is enabled but only the enable field is set, create the initial HPA object and do not reconcile further
+		if r.APIcastCR.Spec.Hpa.MinPods == nil || r.APIcastCR.Spec.Hpa.MaxPods == 0 || r.APIcastCR.Spec.Hpa.CpuPercent == nil || r.APIcastCR.Spec.Hpa.MemoryPercent == nil {
+			err = r.ReconcileResource(ctx, &hpa.HorizontalPodAutoscaler{}, reconcilers.HpaCR(r.APIcastCR), reconcilers.HpaCreateOnlyMutator())
+			if err != nil {
+				return reconcile.Result{}, err
+			}
+
+		}
+	} else {
+		// Check if HPA CR exists, if it does, delete it because HPA is set to false
+		hpaDesired := reconcilers.HpaCR(r.APIcastCR)
+		k8sutils.TagObjectToDelete(hpaDesired)
+		err = r.ReconcileResource(ctx, &hpa.HorizontalPodAutoscaler{}, hpaDesired, reconcilers.HpaDeleteMutator())
+		if err != nil {
+			return reconcile.Result{}, err
+		}
 	}
 
 	return reconcile.Result{}, nil

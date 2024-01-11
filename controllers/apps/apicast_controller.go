@@ -61,6 +61,7 @@ var _ reconcile.Reconciler = &APIcastReconciler{}
 // +kubebuilder:rbac:groups=apps,namespace=placeholder,resources=deployments/finalizers,verbs=update
 // +kubebuilder:rbac:groups=networking.k8s.io,namespace=placeholder,resources=ingresses,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=route.openshift.io,namespace=placeholder,resources=routes/custom-host,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=autoscaling,namespace=placeholder,resources=horizontalpodautoscaler,verbs=get;list;watch;create;update;delete
 
 func (r *APIcastReconciler) Reconcile(eventCtx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := r.Log.WithValues("apicast", req.NamespacedName)

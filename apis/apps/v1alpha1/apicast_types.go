@@ -67,6 +67,9 @@ type APIcastSpec struct {
 	// Number of replicas of the APIcast Deployment.
 	// +optional
 	Replicas *int64 `json:"replicas,omitempty"`
+	// Hpa specifies an array of defined HPA values
+	//+optional
+	Hpa HpaSpec `json:"hpa,omitempty"`
 	// Secret reference to a Kubernetes Secret containing the admin portal
 	// endpoint URL. The Secret must be located in the same namespace.
 	// +optional
@@ -298,6 +301,19 @@ type APIcastStatus struct {
 	// +listType=map
 	// +listMapKey=type
 	Conditions []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,1,rep,name=conditions"`
+}
+
+type HpaSpec struct {
+	// Enabled switch to enable/disable per component
+	Enabled bool `json:"enabled"`
+	// MinPods specifies the minimum available pods
+	MinPods *int32 `json:"minPods,omitempty"`
+	// MaxPods specifies the maximum amount of pods for HPA to scale at
+	MaxPods int32 `json:"maxPods,omitempty"`
+	// CpuPercent specifies the CPU resource usage percentage to trigger autoscaling
+	CpuPercent *int32 `json:"cpuPercent,omitempty"`
+	// MemoryValue specifies the memory resource usage in bytes to trigger autoscaling
+	MemoryPercent *int32 `json:"memoryPercent,omitempty"`
 }
 
 func (r *APIcastStatus) IsReady() bool {

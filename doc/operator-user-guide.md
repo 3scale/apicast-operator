@@ -9,6 +9,7 @@
     * [Providing the APIcast configuration through a configuration file](#Providing-the-APIcast-configuration-through-a-configuration-file)
     * [Exposing APIcast externally via a Kubernetes Ingress](#Exposing-APIcast-externally-via-a-Kubernetes-Ingress)
     * [Setting custom resource requirements](#setting-custom-resource-requirements)
+    * [Setting Horizontal Pod Autoscaling](#setting-horizontal-pod-autoscaling)
     * [Enabling TLS at pod level](#enabling-tls-at-pod-level)
     * [Adding custom policies](adding-custom-policies.md)
     * [Adding custom environments](adding-custom-environments.md)
@@ -168,6 +169,76 @@ spec:
 ```
 
 Details about the available fields in the `exposedHost` section can be found [here](apicast-crd-reference.md#APIcastExposedHost)
+
+#### Setting Horizontal Pod Autoscaling 
+Horizontal Pod Autoscaling(HPA) is available for Apicasts. There are a few different scenarios on how to enable HPA:
+
+- By setting in the Apicast CR spec.Hpa.Enabled to `true` - this will configure HPA with the default configuration, please note, operator will only create the intial HPA object with default values but will not reconcile the values within the object. This is particularly good if you want to be able to configure HPA yourself post initial configuration.
+- By setting in the Apicast CR spec.Hpa.Enabled to `true` as well as the remaining fields, the operator will then create the HPA resource with the values provided. The HPA object will be reconciled from time to time updating the values to what's specified in the Apicast CR.
+
+The default configuration will give you a HPA with 90% resources set and max and min pods set to 5 and 1. The following is an example of the 
+output HPA using the defaults. 
+
+```yaml
+kind: HorizontalPodAutoscaler
+apiVersion: autoscaling/v2
+metadata:
+  name: example-apicast
+spec:
+  scaleTargetRef:
+    kind: Deployment
+    name: apicast-example-apicast
+    apiVersion: apps/v1
+  minReplicas: 1
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 90
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 90
+```
+Here is an example of the Apicast CR set with the HPA on using the default values:
+
+```yaml
+apiVersion: apps.3scale.net/v1alpha1
+kind: APIcast
+metadata:
+  name: example-apicast
+  namespace: apicast
+spec:
+  adminPortalCredentialsRef:
+    name: <Admin portal credentials reference>
+  hpa:
+    enabled: true
+```
+
+Here is an example of the Apicast CR set with the HPA configured (by-passing the default values):
+
+```yaml
+apiVersion: apps.3scale.net/v1alpha1
+kind: APIcast
+metadata:
+  name: example-apicast
+  namespace: apicast
+spec:
+  adminPortalCredentialsRef:
+    name: <Admin portal credentials reference>
+  hpa:
+    enabled: true
+    minPods: 1
+    maxPods: 8
+    cpuPercent: 70
+    memoryPercent: 95
+```
+Removing hpa field or setting enabled to false will remove the HPA for the component. 
 
 #### Setting custom resource requirements
 

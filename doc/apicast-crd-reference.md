@@ -48,6 +48,7 @@
 | `noProxy` | string | No | N/A | Specifies a comma-separated list of hostnames and domain names for which the requests should not be proxied. Setting to a single `*` character, which matches all hosts, effectively disables the proxy (see [docs](https://github.com/3scale/APIcast/blob/master/doc/parameters.md#no_proxy-no_proxy)) |
 | `serviceCacheSize` | int | No | N/A | Specifies the number of services that APICast can store in the internal cache (see [docs](https://github.com/3scale/APIcast/blob/master/doc/parameters.md#apicast_service_cache_size)) |
 | `openTelemetry` | [OpenTelemetrySpec](#OpenTelemetrySpec) | No | N/A | contains the OpenTelemetry integration configuration |
+| `hpa` | [HorizontalPodAutoscaling](#HorizontalPodAutoscalingSpec) | No | N/A | contains the Horizontal Pod Auto Scaling configuration |
 
 #### APIcastStatus
 
@@ -167,3 +168,15 @@ The apicast operator allows monitoring the secret for changes adding the `apicas
 With that label in place, when the content of the secret is changed, the operator will get notified.
 Then, the operator will rollout apicast deployment to make the changes effective.
 The operator will not take *ownership* of the secret in any way.
+
+### HorizontalPodAutoscalingSpec
+
+Horizontal Pod Autoscaling can be set on Apicast-production,Backend-listener and the Backend-worker
+
+| **Field** | **json/yaml field**| **Type** | **Required** | **Default value** | **Description** |
+| --- | --- | --- | --- | --- | --- |
+| Enabled | `enabled` | bool | Yes | `false`| Enabled [Horizontal Pod Autoscaling](https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/) |
+| MinPods | `minPods` | int32 | No | `0` | Override default minimum pods set for autoscaling |
+| MaxPods | `maxPods` | int32 | No | `5` | Override default maximum pods set for autoscaling |
+| CpuPercent | `cpuPercent` | int32 | No | `90` | Override default cpu resource percentage set for autoscaling |
+| MemoryPercent | `memoryPercent` | int32 | No | `90` | Override default memory resource percentage set for autoscaling |
