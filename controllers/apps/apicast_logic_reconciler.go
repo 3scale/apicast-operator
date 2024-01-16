@@ -69,7 +69,7 @@ func (r *APIcastLogicReconciler) Reconcile(ctx context.Context) (reconcile.Resul
 	// Gateway deployment
 	//
 	deploymentMutators := make([]reconcilers.DeploymentMutateFn, 0)
-	if r.APIcastCR.Spec.Replicas != nil {
+	if !r.APIcastCR.Spec.Hpa {
 		deploymentMutators = append(deploymentMutators, reconcilers.DeploymentReplicasMutator)
 	}
 
@@ -114,26 +114,17 @@ func (r *APIcastLogicReconciler) Reconcile(ctx context.Context) (reconcile.Resul
 		return reconcile.Result{}, err
 	}
 
-	// Hpa
-	if r.APIcastCR.Spec.Hpa.Enabled {
-		// If HPA is enabled and any of the fields are set, reconcile it
-		if r.APIcastCR.Spec.Hpa.MinPods != nil || r.APIcastCR.Spec.Hpa.MaxPods != 0 || r.APIcastCR.Spec.Hpa.CpuPercent != nil || r.APIcastCR.Spec.Hpa.MemoryPercent != nil {
-			err = r.ReconcileResource(ctx, &hpa.HorizontalPodAutoscaler{}, reconcilers.HpaCR(r.APIcastCR), reconcilers.HpaGenericMutator())
-			if err != nil {
-				return reconcile.Result{}, err
-			}
-		}
-		// If HPA is enabled but only the enable field is set, create the initial HPA object and do not reconcile further
-		if r.APIcastCR.Spec.Hpa.MinPods == nil || r.APIcastCR.Spec.Hpa.MaxPods == 0 || r.APIcastCR.Spec.Hpa.CpuPercent == nil || r.APIcastCR.Spec.Hpa.MemoryPercent == nil {
-			err = r.ReconcileResource(ctx, &hpa.HorizontalPodAutoscaler{}, reconcilers.HpaCR(r.APIcastCR), reconcilers.HpaCreateOnlyMutator())
-			if err != nil {
-				return reconcile.Result{}, err
-			}
+	// Prepare HPA object
+	hpaDesired := reconcilers.HpaCR(r.APIcastCR)
 
+	if r.APIcastCR.Spec.Hpa {
+		// If HPA is enabled but only the enable field is set, create the initial HPA object and do not reconcile further
+		err = r.ReconcileResource(ctx, &hpa.HorizontalPodAutoscaler{}, hpaDesired, reconcilers.HpaCreateOnlyMutator())
+		if err != nil {
+			return reconcile.Result{}, err
 		}
 	} else {
 		// Check if HPA CR exists, if it does, delete it because HPA is set to false
-		hpaDesired := reconcilers.HpaCR(r.APIcastCR)
 		k8sutils.TagObjectToDelete(hpaDesired)
 		err = r.ReconcileResource(ctx, &hpa.HorizontalPodAutoscaler{}, hpaDesired, reconcilers.HpaDeleteMutator())
 		if err != nil {

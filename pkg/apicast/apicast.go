@@ -413,8 +413,12 @@ func (a *APIcast) Deployment() *appsv1.Deployment {
 					},
 				},
 			},
-			Replicas: &a.options.Replicas,
 		},
+	}
+
+	// Only configure deployment replicas when HPA is disabled, otherwise, HPA is in charge of replicas count
+	if !a.options.Hpa {
+		deployment.Spec.Replicas = &a.options.Replicas
 	}
 
 	addOwnerRefToObject(deployment, *a.options.Owner)
