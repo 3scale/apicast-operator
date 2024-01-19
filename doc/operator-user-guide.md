@@ -171,13 +171,16 @@ spec:
 Details about the available fields in the `exposedHost` section can be found [here](apicast-crd-reference.md#APIcastExposedHost)
 
 #### Setting Horizontal Pod Autoscaling 
-Horizontal Pod Autoscaling(HPA) is available for Apicasts. There are a few different scenarios on how to enable HPA:
+Horizontal Pod Autoscaling(HPA) is available for Apicasts. To enable HPA set the apicast.spec.hpa to `true`. HPA will be created with default values.
 
-- By setting in the Apicast CR spec.Hpa.Enabled to `true` - this will configure HPA with the default configuration, please note, operator will only create the intial HPA object with default values but will not reconcile the values within the object. This is particularly good if you want to be able to configure HPA yourself post initial configuration.
-- By setting in the Apicast CR spec.Hpa.Enabled to `true` as well as the remaining fields, the operator will then create the HPA resource with the values provided. The HPA object will be reconciled from time to time updating the values to what's specified in the Apicast CR.
+- replicas: min 1; max 5;
+- request resource requirements: cpu: 1000m; memory: 128Mi;
+- limits resource requirements: cpu: 1000m; memory: 128Mi;
 
-The default configuration will give you a HPA with 90% resources set and max and min pods set to 5 and 1. The following is an example of the 
-output HPA using the defaults. 
+Requests and limits values can be overwriten within the deployment itself.
+HPA object can be edited and the operator will not revert changes.
+
+The following is an example of the output HPA using the defaults. 
 
 ```yaml
 kind: HorizontalPodAutoscaler
@@ -216,29 +219,9 @@ metadata:
 spec:
   adminPortalCredentialsRef:
     name: <Admin portal credentials reference>
-  hpa:
-    enabled: true
+  hpa: true
 ```
-
-Here is an example of the Apicast CR set with the HPA configured (by-passing the default values):
-
-```yaml
-apiVersion: apps.3scale.net/v1alpha1
-kind: APIcast
-metadata:
-  name: example-apicast
-  namespace: apicast
-spec:
-  adminPortalCredentialsRef:
-    name: <Admin portal credentials reference>
-  hpa:
-    enabled: true
-    minPods: 1
-    maxPods: 8
-    cpuPercent: 70
-    memoryPercent: 95
-```
-Removing hpa field or setting enabled to false will remove the HPA for the component. 
+Removing hpa field or setting enabled to false will remove the HPA for the component and the specified within spec replicas and resource requirements will be applied, if not specified, the operator will set it's default values. 
 
 #### Setting custom resource requirements
 
