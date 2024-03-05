@@ -177,7 +177,6 @@ Horizontal Pod Autoscaling(HPA) is available for Apicasts. To enable HPA set the
 - request resource requirements: cpu: 1000m; memory: 128Mi;
 - limits resource requirements: cpu: 1000m; memory: 128Mi;
 
-Requests and limits values can be overwriten within the deployment itself.
 HPA object can be edited and the operator will not revert changes.
 
 The following is an example of the output HPA using the defaults. 
