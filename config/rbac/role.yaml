@@ -62,12 +62,14 @@ rules:
 - apiGroups:
   - autoscaling
   resources:
-  - horizontalpodautoscaler
+  - horizontalpodautoscalers
   verbs:
   - create
   - delete
   - get
+  - list
   - update
+  - watch
 - apiGroups:
   - ""
   resources:

@@ -28,8 +28,8 @@ func HpaDeleteMutator() MutateFn {
 func HpaCR(cr *appsv1alpha1.APIcast) *hpa.HorizontalPodAutoscaler {
 	minPods := helper.Int32Ptr(1)
 	maxPods := int32(5)
-	cpuPercent := helper.Int32Ptr(90)
-	memoryPercent := helper.Int32Ptr(90)
+	cpuPercent := helper.Int32Ptr(85)
+	memoryPercent := helper.Int32Ptr(85)
 
 	return &hpa.HorizontalPodAutoscaler{
 		ObjectMeta: metav1.ObjectMeta{

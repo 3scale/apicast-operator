@@ -200,13 +200,13 @@ spec:
         name: memory
         target:
           type: Utilization
-          averageUtilization: 90
+          averageUtilization: 85
     - type: Resource
       resource:
         name: cpu
         target:
           type: Utilization
-          averageUtilization: 90
+          averageUtilization: 85
 ```
 Here is an example of the Apicast CR set with the HPA on using the default values:
 
