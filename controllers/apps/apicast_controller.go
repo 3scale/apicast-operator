@@ -20,22 +20,20 @@ import (
 	"context"
 	"encoding/json"
 
+	appsv1alpha1 "github.com/3scale/apicast-operator/apis/apps/v1alpha1"
+	"github.com/3scale/apicast-operator/pkg/reconcilers"
 	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	apimachinerymetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
-
-	appsv1alpha1 "github.com/3scale/apicast-operator/apis/apps/v1alpha1"
-	"github.com/3scale/apicast-operator/pkg/reconcilers"
 )
 
 // APIcastReconciler reconciles a APIcast object
@@ -142,8 +140,13 @@ func (r *APIcastReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&appsv1alpha1.APIcast{}).
 		Watches(
-			&source.Kind{Type: &v1.Secret{}},
-			handler.EnqueueRequestsFromMapFunc(secretToApicastEventMapper.Map),
+			&corev1.Secret{},
+			handler.EnqueueRequestsFromMapFunc(
+				func(ctx context.Context, obj client.Object) []reconcile.Request {
+					secret := &corev1.Secret{}
+					reqs := secretToApicastEventMapper.Map(secret)
+					return reqs
+				}),
 			builder.WithPredicates(labelSelectorPredicate),
 		).
 		Owns(&appsv1.Deployment{}).
