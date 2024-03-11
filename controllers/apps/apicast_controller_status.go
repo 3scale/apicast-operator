@@ -71,6 +71,8 @@ func (r *APIcastReconciler) calculateStatus(ctx context.Context, cr *appsv1alpha
 
 	meta.SetStatusCondition(&newStatus.Conditions, *availableCond)
 
+	r.reconcileHpaWarningMessage(&newStatus.Conditions, cr)
+
 	image, err := r.deploymentImage(ctx, cr)
 	if err != nil {
 		return nil, err
@@ -93,6 +95,28 @@ func (r *APIcastReconciler) deploymentImage(ctx context.Context, cr *appsv1alpha
 	}
 
 	return deployment.Spec.Template.Spec.Containers[0].Image, nil
+}
+
+func (r *APIcastReconciler) reconcileHpaWarningMessage(conditions *[]metav1.Condition, cr *appsv1alpha1.APIcast) {
+	cond := &metav1.Condition{
+		Type:    appsv1alpha1.WarningConditionType,
+		Status:  metav1.ConditionTrue,
+		Reason:  "HPA",
+		Message: "HorizontalPodAutoscaling (Hpa) enabled overrides values applied to request, limits and replicas",
+	}
+
+	// check if condition is already present
+	foundCondition := meta.FindStatusCondition(*conditions, "Warning")
+
+	// If hpa is enabled but the condition is not found, add it
+	if cr.Spec.Hpa && foundCondition == nil {
+		meta.SetStatusCondition(conditions, *cond)
+	}
+
+	// if hpa is disabled and condition is found, remove it
+	if !cr.Spec.Hpa && foundCondition != nil {
+		meta.RemoveStatusCondition(conditions, "Warning")
+	}
 }
 
 func (r *APIcastReconciler) readyCondition(ctx context.Context, cr *appsv1alpha1.APIcast, specErr error) (*metav1.Condition, error) {

@@ -44,6 +44,7 @@ type APIcastOptions struct {
 	AdminPortalCredentialsSecret *v1.Secret              `validate:"required_without=GatewayConfigurationSecret"`
 	GatewayConfigurationSecret   *v1.Secret              `validate:"required_without=AdminPortalCredentialsSecret"`
 	ResourceRequirements         v1.ResourceRequirements `validate:"-"`
+	Hpa                          bool
 
 	DeploymentEnvironment               *string
 	DNSResolverAddress                  *string
@@ -93,15 +94,26 @@ func (a *APIcastOptions) Validate() error {
 	return validate.Struct(a)
 }
 
-func DefaultResourceRequirements() v1.ResourceRequirements {
+func DefaultResourceRequirements(hpa bool) v1.ResourceRequirements {
+	cpuLimits := resource.MustParse("1")
+	memoryLimits := resource.MustParse("128Mi")
+
+	cpuRequests := resource.MustParse("500m")
+	memoryRequests := resource.MustParse("64Mi")
+
+	if hpa {
+		cpuRequests = cpuLimits
+		memoryRequests = memoryLimits
+	}
+
 	return v1.ResourceRequirements{
 		Limits: v1.ResourceList{
-			v1.ResourceCPU:    resource.MustParse("1"),
-			v1.ResourceMemory: resource.MustParse("128Mi"),
+			v1.ResourceCPU:    cpuLimits,
+			v1.ResourceMemory: memoryLimits,
 		},
 		Requests: v1.ResourceList{
-			v1.ResourceCPU:    resource.MustParse("500m"),
-			v1.ResourceMemory: resource.MustParse("64Mi"),
+			v1.ResourceCPU:    cpuRequests,
+			v1.ResourceMemory: memoryRequests,
 		},
 	}
 }

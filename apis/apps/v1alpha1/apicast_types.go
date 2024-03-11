@@ -34,6 +34,7 @@ import (
 const (
 	APIcastOperatorVersionAnnotation        = "apicast.apps.3scale.net/operator-version"
 	ReadyConditionType               string = "Ready"
+	WarningConditionType             string = "Warning"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -67,6 +68,9 @@ type APIcastSpec struct {
 	// Number of replicas of the APIcast Deployment.
 	// +optional
 	Replicas *int64 `json:"replicas,omitempty"`
+	// Enables/disables HPA
+	//+optional
+	Hpa bool `json:"hpa,omitempty"`
 	// Secret reference to a Kubernetes Secret containing the admin portal
 	// endpoint URL. The Secret must be located in the same namespace.
 	// +optional

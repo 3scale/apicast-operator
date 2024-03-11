@@ -8,3 +8,7 @@ func GetEnvVar(key, def string) string {
 	}
 	return def
 }
+
+func Int32Ptr(i int32) *int32 {
+	return &i
+}

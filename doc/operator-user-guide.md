@@ -9,6 +9,7 @@
     * [Providing the APIcast configuration through a configuration file](#Providing-the-APIcast-configuration-through-a-configuration-file)
     * [Exposing APIcast externally via a Kubernetes Ingress](#Exposing-APIcast-externally-via-a-Kubernetes-Ingress)
     * [Setting custom resource requirements](#setting-custom-resource-requirements)
+    * [Setting Horizontal Pod Autoscaling](#setting-horizontal-pod-autoscaling)
     * [Enabling TLS at pod level](#enabling-tls-at-pod-level)
     * [Adding custom policies](adding-custom-policies.md)
     * [Adding custom environments](adding-custom-environments.md)
@@ -168,6 +169,58 @@ spec:
 ```
 
 Details about the available fields in the `exposedHost` section can be found [here](apicast-crd-reference.md#APIcastExposedHost)
+
+#### Setting Horizontal Pod Autoscaling 
+Horizontal Pod Autoscaling(HPA) is available for Apicasts. To enable HPA set the apicast.spec.hpa to `true`. HPA will be created with default values.
+
+- replicas: min 1; max 5;
+- request resource requirements: cpu: 1000m; memory: 128Mi;
+- limits resource requirements: cpu: 1000m; memory: 128Mi;
+
+HPA object can be edited and the operator will not revert changes.
+
+The following is an example of the output HPA using the defaults. 
+
+```yaml
+kind: HorizontalPodAutoscaler
+apiVersion: autoscaling/v2
+metadata:
+  name: example-apicast
+spec:
+  scaleTargetRef:
+    kind: Deployment
+    name: apicast-example-apicast
+    apiVersion: apps/v1
+  minReplicas: 1
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 85
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 85
+```
+Here is an example of the Apicast CR set with the HPA on using the default values:
+
+```yaml
+apiVersion: apps.3scale.net/v1alpha1
+kind: APIcast
+metadata:
+  name: example-apicast
+  namespace: apicast
+spec:
+  adminPortalCredentialsRef:
+    name: <Admin portal credentials reference>
+  hpa: true
+```
+Removing hpa field or setting enabled to false will remove the HPA for the component and the specified within spec replicas and resource requirements will be applied, if not specified, the operator will set it's default values. 
 
 #### Setting custom resource requirements
 

@@ -215,6 +215,17 @@ spec:
           - patch
           - update
         - apiGroups:
+          - autoscaling
+          resources:
+          - horizontalpodautoscalers
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - update
+          - watch
+        - apiGroups:
           - ""
           resources:
           - configmaps
