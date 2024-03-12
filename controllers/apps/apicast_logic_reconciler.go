@@ -14,8 +14,10 @@ import (
 
 	appsv1alpha1 "github.com/3scale/apicast-operator/apis/apps/v1alpha1"
 	apicast "github.com/3scale/apicast-operator/pkg/apicast"
+
 	"github.com/3scale/apicast-operator/pkg/k8sutils"
 	"github.com/3scale/apicast-operator/pkg/reconcilers"
+	hpa "k8s.io/api/autoscaling/v2"
 )
 
 type APIcastLogicReconciler struct {
@@ -67,7 +69,7 @@ func (r *APIcastLogicReconciler) Reconcile(ctx context.Context) (reconcile.Resul
 	// Gateway deployment
 	//
 	deploymentMutators := make([]reconcilers.DeploymentMutateFn, 0)
-	if r.APIcastCR.Spec.Replicas != nil {
+	if !r.APIcastCR.Spec.Hpa {
 		deploymentMutators = append(deploymentMutators, reconcilers.DeploymentReplicasMutator)
 	}
 
@@ -110,6 +112,24 @@ func (r *APIcastLogicReconciler) Reconcile(ctx context.Context) (reconcile.Resul
 	err = r.reconcileIngress(ctx, ingress)
 	if err != nil {
 		return reconcile.Result{}, err
+	}
+
+	// Prepare HPA object
+	hpaDesired := reconcilers.HpaCR(r.APIcastCR)
+
+	if r.APIcastCR.Spec.Hpa {
+		// If HPA is enabled but only the enable field is set, create the initial HPA object and do not reconcile further
+		err = r.ReconcileResource(ctx, &hpa.HorizontalPodAutoscaler{}, hpaDesired, reconcilers.HpaCreateOnlyMutator())
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+	} else {
+		// Check if HPA CR exists, if it does, delete it because HPA is set to false
+		k8sutils.TagObjectToDelete(hpaDesired)
+		err = r.ReconcileResource(ctx, &hpa.HorizontalPodAutoscaler{}, hpaDesired, reconcilers.HpaDeleteMutator())
+		if err != nil {
+			return reconcile.Result{}, err
+		}
 	}
 
 	return reconcile.Result{}, nil

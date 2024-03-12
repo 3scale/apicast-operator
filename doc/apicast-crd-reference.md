@@ -48,6 +48,7 @@
 | `noProxy` | string | No | N/A | Specifies a comma-separated list of hostnames and domain names for which the requests should not be proxied. Setting to a single `*` character, which matches all hosts, effectively disables the proxy (see [docs](https://github.com/3scale/APIcast/blob/master/doc/parameters.md#no_proxy-no_proxy)) |
 | `serviceCacheSize` | int | No | N/A | Specifies the number of services that APICast can store in the internal cache (see [docs](https://github.com/3scale/APIcast/blob/master/doc/parameters.md#apicast_service_cache_size)) |
 | `openTelemetry` | [OpenTelemetrySpec](#OpenTelemetrySpec) | No | N/A | contains the OpenTelemetry integration configuration |
+| `hpa` | bool | No | N/A | When this parameter is set to true, Horizontal Pod Autoscaling will be enabled with default values, spec.replicas and resources limits and requests will be ignored |
 
 #### APIcastStatus
 
