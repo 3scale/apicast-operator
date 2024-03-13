@@ -4,6 +4,12 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [0.8.0] - 2024-03-12
+
+### Added
+
+* Horizontal Pod Autoscaling support [#207](https://github.com/3scale/apicast-operator/pull/207)
+
 ## [0.7.0] - 2022-10-11
 
 ### Fixed
