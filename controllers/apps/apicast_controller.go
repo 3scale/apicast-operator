@@ -30,7 +30,6 @@ import (
 	apimachinerymetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -122,6 +121,7 @@ func (r *APIcastReconciler) Reconcile(eventCtx context.Context, req ctrl.Request
 
 func (r *APIcastReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	secretToApicastEventMapper := &SecretToApicastEventMapper{
+		Context:   context.TODO(),
 		K8sClient: r.Client(),
 		Logger:    r.Log.WithName("secretToApicastEventMapper"),
 		Namespace: r.WatchedNamespace,
@@ -141,12 +141,7 @@ func (r *APIcastReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&appsv1alpha1.APIcast{}).
 		Watches(
 			&corev1.Secret{},
-			handler.EnqueueRequestsFromMapFunc(
-				func(ctx context.Context, obj client.Object) []reconcile.Request {
-					secret := &corev1.Secret{}
-					reqs := secretToApicastEventMapper.Map(secret)
-					return reqs
-				}),
+			handler.EnqueueRequestsFromMapFunc(secretToApicastEventMapper.Map),
 			builder.WithPredicates(labelSelectorPredicate),
 		).
 		Owns(&appsv1.Deployment{}).

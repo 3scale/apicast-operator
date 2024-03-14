@@ -19,15 +19,13 @@ package main
 import (
 	"flag"
 	"fmt"
-	"os"
-	"runtime"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
-
 	apimachinerymetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apimachineryruntime "k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
+	"os"
+	"runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -79,38 +77,27 @@ func main() {
 		os.Exit(1)
 	}
 
-	var mgr ctrl.Manager
 	// If a watch namespace is detected (i.e. operator is namespace scoped), then pass the NS to cache.Options.DefaultNamespaces
-	// If no watch namespace is detected (i.e. operator is cluster scoped), then don't specify cache.Options.DefaultNamespaces
+	// If no watch namespace is detected (i.e. operator is cluster scoped), then pass an empty Cache object
+	var managerCache = cache.Options{}
 	if namespace != "" {
-		mgr, err = ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-			Cache: cache.Options{
-				DefaultNamespaces: map[string]cache.Config{
-					namespace: {},
-				},
+		managerCache = cache.Options{
+			DefaultNamespaces: map[string]cache.Config{
+				namespace: {},
 			},
-			Scheme:           scheme,
-			Metrics:          metricsserver.Options{BindAddress: metricsAddr},
-			WebhookServer:    webhook.NewServer(webhook.Options{Port: 9443}),
-			LeaderElection:   enableLeaderElection,
-			LeaderElectionID: "988b4062.3scale.net",
-		})
-		if err != nil {
-			setupLog.Error(err, "unable to start namespace scoped manager")
-			os.Exit(1)
 		}
-	} else {
-		mgr, err = ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-			Scheme:           scheme,
-			Metrics:          metricsserver.Options{BindAddress: metricsAddr},
-			WebhookServer:    webhook.NewServer(webhook.Options{Port: 9443}),
-			LeaderElection:   enableLeaderElection,
-			LeaderElectionID: "988b4062.3scale.net",
-		})
-		if err != nil {
-			setupLog.Error(err, "unable to start cluster scoped manager")
-			os.Exit(1)
-		}
+	}
+
+	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
+		Cache:            managerCache,
+		Scheme:           scheme,
+		Metrics:          metricsserver.Options{BindAddress: metricsAddr},
+		LeaderElection:   enableLeaderElection,
+		LeaderElectionID: "988b4062.3scale.net",
+	})
+	if err != nil {
+		setupLog.Error(err, "unable to start manager")
+		os.Exit(1)
 	}
 
 	secretLabelSelector, err := apimachinerymetav1.ParseToLabelSelector(k8sutils.ApicastSecretLabel)

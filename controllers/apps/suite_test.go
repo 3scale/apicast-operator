@@ -52,50 +52,44 @@ func TestAPIs(t *testing.T) {
 }
 
 var _ = BeforeSuite(func() {
-	done := make(chan interface{})
+	// Set controller-runtime output to GinkgoWriter
+	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
+
+	By("bootstrapping test environment")
+	testEnv = &envtest.Environment{
+		CRDDirectoryPaths:     []string{filepath.Join("..", "..", "config", "crd", "bases")},
+		ErrorIfCRDPathMissing: true,
+	}
+
+	var err error
+	cfg, err = testEnv.Start()
+	Expect(err).ToNot(HaveOccurred())
+	Expect(cfg).ToNot(BeNil())
+
+	err = appsv1alpha1.AddToScheme(scheme.Scheme)
+	Expect(err).NotTo(HaveOccurred())
+
+	// +kubebuilder:scaffold:scheme
+
+	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
+	Expect(err).NotTo(HaveOccurred())
+	Expect(k8sClient).NotTo(BeNil())
+
+	mgr, err := ctrl.NewManager(cfg, ctrl.Options{
+		Scheme: scheme.Scheme,
+	})
+	Expect(err).ToNot(HaveOccurred())
+	err = (&APIcastReconciler{
+		BaseControllerReconciler: reconcilers.NewBaseControllerReconciler(mgr.GetClient(), mgr.GetAPIReader(), mgr.GetScheme()),
+		Log:                      ctrl.Log.WithName("controllers").WithName("APIcast"),
+	}).SetupWithManager(mgr)
+	Expect(err).ToNot(HaveOccurred())
+
 	go func() {
-		// Set controller-runtime output to GinkgoWriter
-		logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
-
-		By("bootstrapping test environment")
-		testEnv = &envtest.Environment{
-			CRDDirectoryPaths:     []string{filepath.Join("..", "..", "config", "crd", "bases")},
-			ErrorIfCRDPathMissing: true,
-		}
-
-		var err error
-		cfg, err = testEnv.Start()
+		defer GinkgoRecover()
+		err = mgr.Start(ctrl.SetupSignalHandler())
 		Expect(err).ToNot(HaveOccurred())
-		Expect(cfg).ToNot(BeNil())
-
-		err = appsv1alpha1.AddToScheme(scheme.Scheme)
-		Expect(err).NotTo(HaveOccurred())
-
-		// +kubebuilder:scaffold:scheme
-
-		k8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
-		Expect(err).NotTo(HaveOccurred())
-		Expect(k8sClient).NotTo(BeNil())
-
-		mgr, err := ctrl.NewManager(cfg, ctrl.Options{
-			Scheme: scheme.Scheme,
-		})
-		Expect(err).ToNot(HaveOccurred())
-		err = (&APIcastReconciler{
-			BaseControllerReconciler: reconcilers.NewBaseControllerReconciler(mgr.GetClient(), mgr.GetAPIReader(), mgr.GetScheme()),
-			Log:                      ctrl.Log.WithName("controllers").WithName("APIcast"),
-		}).SetupWithManager(mgr)
-		Expect(err).ToNot(HaveOccurred())
-
-		go func() {
-			defer GinkgoRecover()
-			err = mgr.Start(ctrl.SetupSignalHandler())
-			Expect(err).ToNot(HaveOccurred())
-		}()
-
-		close(done)
 	}()
-	Eventually(done, 60).Should(BeClosed())
 })
 
 var _ = AfterSuite(func() {
