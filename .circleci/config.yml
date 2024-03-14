@@ -54,7 +54,7 @@ jobs:
       - image: circleci/ruby:2.6
     steps:
       - go/install:
-          version: 1.20
+          version: '1.20.14'
       - checkout
       - run: sudo gem install license_finder --version 5.7.1
       - run: make licenses-check
@@ -122,7 +122,7 @@ jobs:
       docker_layer_caching: true
     steps:
       - go/install:
-          version: 1.20
+          version: '1.20.14'
       - checkout
       - run:
           name: Install KinD
