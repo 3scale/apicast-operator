@@ -20,10 +20,11 @@ import (
 	"context"
 	"encoding/json"
 
+	appsv1alpha1 "github.com/3scale/apicast-operator/apis/apps/v1alpha1"
+	"github.com/3scale/apicast-operator/pkg/reconcilers"
 	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	apimachinerymetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -32,10 +33,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
-
-	appsv1alpha1 "github.com/3scale/apicast-operator/apis/apps/v1alpha1"
-	"github.com/3scale/apicast-operator/pkg/reconcilers"
 )
 
 // APIcastReconciler reconciles a APIcast object
@@ -124,6 +121,7 @@ func (r *APIcastReconciler) Reconcile(eventCtx context.Context, req ctrl.Request
 
 func (r *APIcastReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	secretToApicastEventMapper := &SecretToApicastEventMapper{
+		Context:   context.TODO(),
 		K8sClient: r.Client(),
 		Logger:    r.Log.WithName("secretToApicastEventMapper"),
 		Namespace: r.WatchedNamespace,
@@ -142,7 +140,7 @@ func (r *APIcastReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&appsv1alpha1.APIcast{}).
 		Watches(
-			&source.Kind{Type: &v1.Secret{}},
+			&corev1.Secret{},
 			handler.EnqueueRequestsFromMapFunc(secretToApicastEventMapper.Map),
 			builder.WithPredicates(labelSelectorPredicate),
 		).
