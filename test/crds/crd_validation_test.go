@@ -4,7 +4,6 @@ package test
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -34,7 +33,7 @@ func TestSampleCustomResources(t *testing.T) {
 		"../../doc/cr_samples",
 	}
 	crdCrMap := map[string]testCRInfo{
-		"apps.3scale.net_apicasts.yaml": testCRInfo{
+		"apps.3scale.net_apicasts.yaml": {
 			crPrefix:   "apps_v1alpha1_apicast",
 			apiVersion: v1alpha1.GroupVersion.Version,
 		},
@@ -51,7 +50,7 @@ func validateCustomResources(t *testing.T, schemaRoot, samplesRoot, crd, prefix 
 	assert.NotNil(t, schema)
 	walkFunc := func(path string, info os.FileInfo, err error) error {
 		if strings.HasPrefix(info.Name(), prefix) {
-			bytes, err := ioutil.ReadFile(path)
+			bytes, err := os.ReadFile(path)
 			assert.NoError(t, err, "Error reading CR yaml from %v", path)
 			var input map[string]interface{}
 			assert.NoError(t, yaml.Unmarshal(bytes, &input))
@@ -72,7 +71,7 @@ func TestCompleteCRD(t *testing.T) {
 	root := "../../bundle/manifests"
 
 	crdStructMap := map[string]testCRDInfo{
-		"apps.3scale.net_apicasts.yaml": testCRDInfo{
+		"apps.3scale.net_apicasts.yaml": {
 			obj:        &v1alpha1.APIcast{},
 			apiVersion: v1alpha1.GroupVersion.Version,
 		},
@@ -95,7 +94,7 @@ func TestCompleteCRD(t *testing.T) {
 }
 
 func getSchemaVersioned(t *testing.T, crd string, version string) validation.Schema {
-	bytes, err := ioutil.ReadFile(crd)
+	bytes, err := os.ReadFile(crd)
 	assert.NoError(t, err, "Error reading CRD yaml from %v", crd)
 	schema, err := validation.NewVersioned(bytes, version)
 	assert.NoError(t, err)

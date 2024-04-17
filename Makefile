@@ -184,7 +184,7 @@ test-unit: generate fmt vet manifests ## Run Unit tests.
 # 3) Timeout waiting for process kube-apiserver to stop https://github.com/kubernetes-sigs/controller-runtime/issues/1571
 test-integration: export USE_EXISTING_CLUSTER=true
 test-integration: generate fmt vet manifests ## Run Integration tests.
-	go test ./... -tags integration -ginkgo.v -ginkgo.progress -v -timeout 600s
+	go test ./... -tags integration -ginkgo.v -v -timeout 600s
 
 .PHONY: bundle-validate
 bundle-validate: $(OPERATOR_SDK)
@@ -222,7 +222,7 @@ bundle-run: $(OPERATOR_SDK)
 GOLANGCI-LINT=$(PROJECT_PATH)/bin/golangci-lint
 $(GOLANGCI-LINT):
 	mkdir -p $(PROJECT_PATH)/bin
-	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(PROJECT_PATH)/bin v1.50.1
+	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(PROJECT_PATH)/bin v1.52.2
 
 .PHONY: golangci-lint
 golangci-lint: $(GOLANGCI-LINT)

@@ -13,12 +13,13 @@ import (
 
 // SecretToApicastEventMapper is an EventHandler that maps secret object to apicast CR's
 type SecretToApicastEventMapper struct {
+	Context   context.Context
 	K8sClient client.Client
 	Logger    logr.Logger
 	Namespace string
 }
 
-func (s *SecretToApicastEventMapper) Map(obj client.Object) []reconcile.Request {
+func (s *SecretToApicastEventMapper) Map(ctx context.Context, obj client.Object) []reconcile.Request {
 	apicastList := &appsv1alpha1.APIcastList{}
 
 	// filter by Secret UID
@@ -29,7 +30,7 @@ func (s *SecretToApicastEventMapper) Map(obj client.Object) []reconcile.Request 
 		opts = append(opts, client.InNamespace(s.Namespace))
 	}
 
-	err := s.K8sClient.List(context.Background(), apicastList, opts...)
+	err := s.K8sClient.List(ctx, apicastList, opts...)
 	if err != nil {
 		s.Logger.Error(err, "reading apicast list")
 		return nil
