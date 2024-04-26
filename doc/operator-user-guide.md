@@ -220,7 +220,12 @@ spec:
     name: <Admin portal credentials reference>
   hpa: true
 ```
-Removing hpa field or setting enabled to false will remove the HPA for the component and the specified within spec replicas and resource requirements will be applied, if not specified, the operator will set it's default values. 
+Removing hpa field or setting enabled to false will remove the HPA for the component and the specified within spec 
+replicas will be applied, if not specified, the operator will set its default values. 
+
+You can still scale vertically by setting the resource requirements for Apicast. As HPA scales on 85% of requests
+values having extra resources set aside for limits is unnecessary i.e. set your requests equal to your limits when scaling
+vertically.
 
 #### Setting custom resource requirements
 

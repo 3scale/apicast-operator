@@ -102,7 +102,7 @@ func (r *APIcastReconciler) reconcileHpaWarningMessage(conditions *[]metav1.Cond
 		Type:    appsv1alpha1.WarningConditionType,
 		Status:  metav1.ConditionTrue,
 		Reason:  "HPA",
-		Message: "HorizontalPodAutoscaling (Hpa) enabled overrides values applied to request, limits and replicas",
+		Message: "HorizontalPodAutoscaling (Hpa) enabled overrides values applied to replicas",
 	}
 
 	// check if condition is already present
