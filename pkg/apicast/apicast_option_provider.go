@@ -138,8 +138,8 @@ func (a *APIcastOptionsProvider) GetApicastOptions(ctx context.Context) (*APIcas
 	// Resource requirements
 	resourceRequirements := DefaultResourceRequirements(a.APIcastCR.Spec.Hpa)
 
-	// Only accept the values of the Resources configuration from APICast CR when the HPA is disabled
-	if !a.APIcastCR.Spec.Hpa && a.APIcastCR.Spec.Resources != nil {
+	// Apply Resources configuration from APICast CR if available
+	if a.APIcastCR.Spec.Resources != nil {
 		resourceRequirements = *a.APIcastCR.Spec.Resources
 	}
 	a.APIcastOptions.ResourceRequirements = resourceRequirements
