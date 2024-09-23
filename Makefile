@@ -9,7 +9,7 @@ PROJECT_PATH := $(patsubst %/,%,$(dir $(MKFILE_PATH)))
 all: manager
 
 # Current Operator version
-VERSION ?= 0.0.1
+VERSION ?= 0.8.0
 # Default bundle image tag
 BUNDLE_IMG ?= controller-bundle:$(VERSION)
 # Options for 'bundle-build'
