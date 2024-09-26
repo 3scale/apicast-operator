@@ -9,7 +9,7 @@ import (
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	appsv1alpha1 "github.com/3scale/apicast-operator/apis/apps/v1alpha1"
@@ -178,49 +178,56 @@ func (r *APIcastLogicReconciler) getSecretUIDs(ctx context.Context) ([]string, e
 	// opentracing tracing config secret (deprecated)
 	// opentelemetry tracing config secret
 
-	secretKeys := []client.ObjectKey{}
-	if r.APIcastCR.Spec.HTTPSCertificateSecretRef != nil {
-		secretKeys = append(secretKeys, client.ObjectKey{
+	client := r.Client()
+	apicastNamespace := r.APIcastCR.Namespace
+
+	secretKeys := []k8sclient.ObjectKey{}
+	if r.APIcastCR.Spec.HTTPSCertificateSecretRef != nil && k8sutils.IsSecretWatchedByApicast(client, r.APIcastCR.Spec.HTTPSCertificateSecretRef.Name, apicastNamespace) {
+		secretKeys = append(secretKeys, k8sclient.ObjectKey{
 			Name:      r.APIcastCR.Spec.HTTPSCertificateSecretRef.Name,
 			Namespace: r.APIcastCR.Namespace, // review when operator is also cluster scoped
 		})
 	}
-	if r.APIcastCR.Spec.AdminPortalCredentialsRef != nil {
-		secretKeys = append(secretKeys, client.ObjectKey{
+	if r.APIcastCR.Spec.AdminPortalCredentialsRef != nil && k8sutils.IsSecretWatchedByApicast(client, r.APIcastCR.Spec.AdminPortalCredentialsRef.Name, apicastNamespace) {
+		secretKeys = append(secretKeys, k8sclient.ObjectKey{
 			Name:      r.APIcastCR.Spec.AdminPortalCredentialsRef.Name,
 			Namespace: r.APIcastCR.Namespace, // review when operator is also cluster scoped
 		})
 	}
-	if r.APIcastCR.Spec.EmbeddedConfigurationSecretRef != nil {
-		secretKeys = append(secretKeys, client.ObjectKey{
+	if r.APIcastCR.Spec.EmbeddedConfigurationSecretRef != nil && k8sutils.IsSecretWatchedByApicast(client, r.APIcastCR.Spec.EmbeddedConfigurationSecretRef.Name, apicastNamespace) {
+		secretKeys = append(secretKeys, k8sclient.ObjectKey{
 			Name:      r.APIcastCR.Spec.EmbeddedConfigurationSecretRef.Name,
 			Namespace: r.APIcastCR.Namespace, // review when operator is also cluster scoped
 		})
 	}
 
 	for idx := range r.APIcastCR.Spec.CustomPolicies {
-		secretKeys = append(secretKeys, client.ObjectKey{
-			Name:      r.APIcastCR.Spec.CustomPolicies[idx].SecretRef.Name, // CR validation ensures not nil
-			Namespace: r.APIcastCR.Namespace,                               // review when operator is also cluster scoped
-		})
+		if k8sutils.IsSecretWatchedByApicast(client, r.APIcastCR.Spec.CustomPolicies[idx].SecretRef.Name, apicastNamespace) {
+			secretKeys = append(secretKeys, k8sclient.ObjectKey{
+				Name:      r.APIcastCR.Spec.CustomPolicies[idx].SecretRef.Name, // CR validation ensures not nil
+				Namespace: r.APIcastCR.Namespace,                               // review when operator is also cluster scoped
+			})
+		}
 	}
 
 	for idx := range r.APIcastCR.Spec.CustomEnvironments {
-		secretKeys = append(secretKeys, client.ObjectKey{
-			Name:      r.APIcastCR.Spec.CustomEnvironments[idx].SecretRef.Name, // CR validation ensures not nil
-			Namespace: r.APIcastCR.Namespace,                                   // review when operator is also cluster scoped
-		})
+		if k8sutils.IsSecretWatchedByApicast(client, r.APIcastCR.Spec.CustomEnvironments[idx].SecretRef.Name, apicastNamespace) {
+			secretKeys = append(secretKeys, k8sclient.ObjectKey{
+				Name:      r.APIcastCR.Spec.CustomEnvironments[idx].SecretRef.Name, // CR validation ensures not nil
+				Namespace: r.APIcastCR.Namespace,                                   // review when operator is also cluster scoped
+			})
+		}
 	}
 
-	if r.APIcastCR.OpenTracingIsEnabled() && r.APIcastCR.Spec.OpenTracing.TracingConfigSecretRef != nil {
-		secretKeys = append(secretKeys, client.ObjectKey{
+	if r.APIcastCR.OpenTracingIsEnabled() && r.APIcastCR.Spec.OpenTracing.TracingConfigSecretRef != nil && k8sutils.IsSecretWatchedByApicast(client, r.APIcastCR.Spec.OpenTracing.TracingConfigSecretRef.Name, apicastNamespace) {
+		secretKeys = append(secretKeys, k8sclient.ObjectKey{
 			Name:      r.APIcastCR.Spec.OpenTracing.TracingConfigSecretRef.Name,
 			Namespace: r.APIcastCR.Namespace, // review when operator is also cluster scoped
 		})
 	}
 
-	if r.APIcastCR.OpenTelemetryEnabled() && r.APIcastCR.Spec.OpenTelemetry.TracingConfigSecretRef != nil {
-		secretKeys = append(secretKeys, client.ObjectKey{
+	if r.APIcastCR.OpenTelemetryEnabled() && r.APIcastCR.Spec.OpenTelemetry.TracingConfigSecretRef != nil && k8sutils.IsSecretWatchedByApicast(client, r.APIcastCR.Spec.OpenTelemetry.TracingConfigSecretRef.Name, apicastNamespace) {
+		secretKeys = append(secretKeys, k8sclient.ObjectKey{
 			Name:      r.APIcastCR.Spec.OpenTelemetry.TracingConfigSecretRef.Name,
 			Namespace: r.APIcastCR.Namespace, // review when operator is also cluster scoped
 		})

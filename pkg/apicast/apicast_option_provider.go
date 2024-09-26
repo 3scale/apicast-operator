@@ -255,36 +255,43 @@ func (a *APIcastOptionsProvider) additionalPodAnnotations() map[string]string {
 	// custom env secret(s)
 	// tracing config secret
 
+	client := a.Client
+	apicastNamespace := a.APIcastCR.Namespace
+
 	annotations := map[string]string{}
 
-	if a.APIcastOptions.AdminPortalCredentialsSecret != nil {
+	if a.APIcastOptions.AdminPortalCredentialsSecret != nil && k8sutils.IsSecretWatchedByApicast(client, a.APIcastOptions.AdminPortalCredentialsSecret.Name, apicastNamespace) {
 		annotations[AdmPortalSecretResverAnnotation] = a.APIcastOptions.AdminPortalCredentialsSecret.ResourceVersion
 	}
 
-	if a.APIcastOptions.GatewayConfigurationSecret != nil {
+	if a.APIcastOptions.GatewayConfigurationSecret != nil && k8sutils.IsSecretWatchedByApicast(client, a.APIcastOptions.GatewayConfigurationSecret.Name, apicastNamespace) {
 		annotations[GatewayConfigurationSecretResverAnnotation] = a.APIcastOptions.GatewayConfigurationSecret.ResourceVersion
 	}
 
-	if a.APIcastOptions.HTTPSCertificateSecret != nil {
+	if a.APIcastOptions.HTTPSCertificateSecret != nil && k8sutils.IsSecretWatchedByApicast(client, a.APIcastOptions.GatewayConfigurationSecret.Name, apicastNamespace) {
 		annotations[HttpsCertSecretResverAnnotation] = a.APIcastOptions.HTTPSCertificateSecret.ResourceVersion
 	}
 
-	if a.APIcastOptions.TracingConfig.Enabled && a.APIcastOptions.TracingConfig.Secret != nil {
+	if a.APIcastOptions.TracingConfig.Enabled && a.APIcastOptions.TracingConfig.Secret != nil && k8sutils.IsSecretWatchedByApicast(client, a.APIcastOptions.GatewayConfigurationSecret.Name, apicastNamespace) {
 		annotations[OpenTracingSecretResverAnnotation] = a.APIcastOptions.TracingConfig.Secret.ResourceVersion
 	}
 
 	for idx := range a.APIcastOptions.CustomEnvironments {
-		// Secrets must exist
+		// Secrets must exist and have the watched-by label
 		// Annotation key includes the name of the secret
-		annotationKey := fmt.Sprintf("%s%s", CustomEnvSecretResverAnnotationPrefix, a.APIcastOptions.CustomEnvironments[idx].Name)
-		annotations[annotationKey] = a.APIcastOptions.CustomEnvironments[idx].ResourceVersion
+		if k8sutils.IsSecretWatchedByApicast(client, a.APIcastOptions.CustomEnvironments[idx].Name, apicastNamespace) {
+			annotationKey := fmt.Sprintf("%s%s", CustomEnvSecretResverAnnotationPrefix, a.APIcastOptions.CustomEnvironments[idx].Name)
+			annotations[annotationKey] = a.APIcastOptions.CustomEnvironments[idx].ResourceVersion
+		}
 	}
 
 	for idx := range a.APIcastOptions.CustomPolicies {
-		// Secrets must exist
+		// Secrets must exist and have the watched-by label
 		// Annotation key includes the name of the secret
-		annotationKey := fmt.Sprintf("%s%s", CustomPoliciesSecretResverAnnotationPrefix, a.APIcastOptions.CustomPolicies[idx].Secret.Name)
-		annotations[annotationKey] = a.APIcastOptions.CustomPolicies[idx].Secret.ResourceVersion
+		if k8sutils.IsSecretWatchedByApicast(client, a.APIcastOptions.CustomPolicies[idx].Secret.Name, apicastNamespace) {
+			annotationKey := fmt.Sprintf("%s%s", CustomPoliciesSecretResverAnnotationPrefix, a.APIcastOptions.CustomPolicies[idx].Secret.Name)
+			annotations[annotationKey] = a.APIcastOptions.CustomPolicies[idx].Secret.ResourceVersion
+		}
 	}
 
 	return annotations
