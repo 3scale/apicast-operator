@@ -51,7 +51,7 @@ jobs:
 
   license-check:
     docker:
-      - image: circleci/ruby:2.5
+      - image: circleci/ruby:2.6
     steps:
       - go/install:
           version: 1.19.10
@@ -61,7 +61,7 @@ jobs:
 
   tag-operator-image-master:
     machine:
-      image: ubuntu-2004:202201-02
+      image: ubuntu-2404:current
       docker_layer_caching: true
     steps:
       - attach-workspace
@@ -89,7 +89,7 @@ jobs:
 
   tag-operator-image-release:
     machine:
-      image: ubuntu-2004:202201-02
+      image: ubuntu-2404:current
       docker_layer_caching: true
     steps:
       - attach-workspace
@@ -118,7 +118,7 @@ jobs:
             make test-unit
   run-integration-test:
     machine:
-      image: ubuntu-2004:202201-02
+      image: ubuntu-2404:current
       docker_layer_caching: true
     steps:
       - go/install:
