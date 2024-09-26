@@ -20,22 +20,23 @@ metadata:
     capabilities: Full Lifecycle
     categories: Integration & Delivery
     certified: "false"
-    containerImage: quay.io/3scale/apicast-operator:master
+    containerImage: quay.io/vmogilev_rhmi/apicast-operator:v0.8.0
     createdAt: "2019-10-27T22:40:00Z"
-    description: APIcast is an API gateway built on top of NGINX. It is part of the Red Hat 3scale API Management Platform
+    description: APIcast is an API gateway built on top of NGINX. It is part of the  Red Hat 3scale API Management Platform
     olm.properties: '[{"type": "olm.maxOpenShiftVersion", "value": "4.17"}]'
     operators.openshift.io/infrastructure-features: '["Disconnected"]'
-    operators.operatorframework.io/builder: operator-sdk-v1.2.0
+    operators.operatorframework.io/builder: operator-sdk-v1.21.0
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v2
-    repository: https://github.com/3scale/apicast-operator
+    repository: quay.io/vmogilev_rhmi/apicast-operator
     support: Red Hat
   labels:
     operatorframework.io/arch.amd64: supported
     operatorframework.io/arch.ppc64le: supported
     operatorframework.io/arch.s390x: supported
-  name: apicast-operator.v0.0.1
+  name: apicast-community-operator.v0.8.0
   namespace: placeholder
 spec:
+  #replaces: apicast-community-operator.v0.7.1
   apiservicedefinitions: {}
   customresourcedefinitions:
     owned:
@@ -56,10 +57,10 @@ spec:
 
     ### Upgrading your installation
     The APIcast Operator understands how to run and upgrade between a set of APIcast versions.
-    See [the upgrade guide](https://github.com/3scale/apicast-operator) for more information.
+    See [the upgrade guide](https://github.com/3scale/apicast-operator/blob/v0.8.0/doc/operator-user-guide.md#upgrading-APIcast) for more information.
 
     ### Documentation
-    Documentation can be found on our [website](https://github.com/3scale/apicast-operator).
+    Documentation can be found on our [website](https://github.com/3scale/apicast-operator/tree/v0.8.0).
 
     ### Getting help
     If you encounter any issues while using operator, you can create an issue on our [website](https://github.com/3scale/apicast-operator) for bugs, enhancements, or other requests.
@@ -76,7 +77,7 @@ spec:
 
     ### License
     APIcast Operator is licensed under the [Apache 2.0 license](https://github.com/3scale/apicast-operator/blob/master/LICENSE)
-  displayName: APIcast (development latest)
+  displayName: APIcast
   icon:
   - base64data: PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyB3aWR0aD0iMTAwcHgiIGhlaWdodD0iNTBweCIgdmlld0JveD0iMCAwIDEwMCA1MCIgdmVyc2lvbj0iMS4xIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIj4KICAgIDwhLS0gR2VuZXJhdG9yOiBTa2V0Y2ggNTQuMSAoNzY0OTApIC0gaHR0cHM6Ly9za2V0Y2hhcHAuY29tIC0tPgogICAgPHRpdGxlPkdyb3VwIDI8L3RpdGxlPgogICAgPGRlc2M+Q3JlYXRlZCB3aXRoIFNrZXRjaC48L2Rlc2M+CiAgICA8ZyBpZD0iUGFnZS0xIiBzdHJva2U9Im5vbmUiIHN0cm9rZS13aWR0aD0iMSIgZmlsbD0ibm9uZSIgZmlsbC1ydWxlPSJldmVub2RkIj4KICAgICAgICA8ZyBpZD0iR3JvdXAtMiI+CiAgICAgICAgICAgIDxyZWN0IGlkPSJSZWN0YW5nbGUiIGZpbGw9IiNGRkZGRkYiIHg9IjAiIHk9IjAiIHdpZHRoPSIxMDAiIGhlaWdodD0iNTAiPjwvcmVjdD4KICAgICAgICAgICAgPGcgaWQ9Ikdyb3VwIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSgxOS45NDY4MDksIDAuMDAwMDAwKSIgZmlsbD0iI0ZGNzMxNCIgZmlsbC1ydWxlPSJub256ZXJvIj4KICAgICAgICAgICAgICAgIDxnIGlkPSJsb2dvLW1hcmsiPgogICAgICAgICAgICAgICAgICAgIDxwYXRoIGQ9Ik0wLDkuMDUyNjMxNjEgQzAsNCA0LjIyMzY5MTg1LDAgOS4zMTM3ODE4MywwIEMxNC41MTIxNzE1LDAgMTguNjI3NTYzOCw0LjEwNTI2MzA2IDE4LjYyNzU2MzgsOS4wNTI2MzE2MSBDMTguNjI3NTYzOCwxNC4xMDUyNjMxIDE0LjQwMzg3MiwxOC4xMDUyNjMxIDkuMzEzNzgxODMsMTguMTA1MjYzMSBDNC4yMjM2OTE4NSwxOC4xMDUyNjMxIDAsMTQuMTA1MjYzMSAwLDkuMDUyNjMxNjEgTTQ4LjYyNjYwNTQsMTEuODk0NzM2OSBDNDguNjI2NjA1NCw4Ljg0MjEwNTMyIDUxLjIyNTgwMDEsNi4zMTU3ODkzNSA1NC4zNjY0OTQyLDYuMzE1Nzg5MzUgQzU3LjUwNzE4OCw2LjMxNTc4OTM1IDYwLjEwNjM4Myw4Ljg0MjEwNTMyIDYwLjEwNjM4MywxMS44OTQ3MzY5IEM2MC4xMDYzODMsMTQuOTQ3MzY4NCA1Ny41MDcxODgsMTcuNDczNjg0NCA1NC4zNjY0OTQyLDE3LjQ3MzY4NDQgQzUxLjExNzUwMDQsMTcuNDczNjg0NCA0OC42MjY2MDU0LDE1LjA1MjYzMTYgNDguNjI2NjA1NCwxMS44OTQ3MzY5IE0zMi45MjMxMzYsMzguMTA1MjYzMSBDMzIuOTIzMTM2LDMxLjU3ODk0NzMgMzguNDQ2NDI1MiwyNi4yMTA1MjYzIDQ1LjE2MTAxMiwyNi4yMTA1MjYzIEM1MS44NzU1OTg5LDI2LjIxMDUyNjMgNTcuMzk4ODg4MiwzMS41Nzg5NDczIDU3LjM5ODg4ODIsMzguMTA1MjYzMSBDNTcuMzk4ODg4Miw0NC42MzE1NzkgNTEuODc1NTk4OSw1MCA0NS4xNjEwMTIsNTAgQzM4LjQ0NjQyNTIsNTAgMzIuOTIzMTM2LDQ0LjczNjg0MTkgMzIuOTIzMTM2LDM4LjEwNTI2MzEiIGlkPSJTaGFwZSI+PC9wYXRoPgogICAgICAgICAgICAgICAgPC9nPgogICAgICAgICAgICA8L2c+CiAgICAgICAgPC9nPgogICAgPC9nPgo8L3N2Zz4=
     mediatype: image/svg+xml
@@ -95,14 +96,7 @@ spec:
             metadata:
               labels:
                 app: apicast
-                com.company: Red_Hat
                 control-plane: controller-manager
-                rht.comp: 3scale_apicast
-                rht.comp_ver: "2.15"
-                rht.prod_name: Red_Hat_Integration
-                rht.prod_ver: master
-                rht.subcomp: apicast_operator
-                rht.subcomp_t: infrastructure
             spec:
               containers:
               - args:
@@ -116,8 +110,8 @@ spec:
                     fieldRef:
                       fieldPath: metadata.annotations['olm.targetNamespaces']
                 - name: RELATED_IMAGE_APICAST
-                  value: quay.io/3scale/apicast:latest
-                image: quay.io/3scale/apicast-operator:master
+                  value: quay.io/3scale/apicast:v3.15.0
+                image: quay.io/vmogilev_rhmi/apicast-operator:v0.8.0
                 name: manager
                 ports:
                 - containerPort: 8080
@@ -300,7 +294,7 @@ spec:
   - name: GitHub
     url: https://github.com/3scale/apicast-operator
   - name: Documentation
-    url: https://github.com/3scale/apicast-operator/tree/master
+    url: https://github.com/3scale/apicast-operator/tree/v0.8.0
   maintainers:
   - email: eastizle+apicastoperator@redhat.com
     name: Eguzki Astiz
@@ -308,4 +302,4 @@ spec:
   minKubeVersion: 1.19.0
   provider:
     name: Red Hat
-  version: 0.0.1
+  version: 0.8.0

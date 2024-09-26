@@ -19,7 +19,7 @@ metadata:
     operatorframework.io/arch.amd64: supported
     operatorframework.io/arch.ppc64le: supported
     operatorframework.io/arch.s390x: supported
-  name: apicast-operator.vX.Y.Z
+  name: apicast-operator.v0.0.0
   namespace: placeholder
 spec:
   apiservicedefinitions: {}

@@ -21,13 +21,13 @@ spec:
     metadata:
       labels:
         control-plane: controller-manager
-        com.company: Red_Hat
-        rht.prod_name: Red_Hat_Integration
-        rht.prod_ver: master
-        rht.comp: 3scale_apicast
-        rht.comp_ver: 2.15
-        rht.subcomp: apicast_operator
-        rht.subcomp_t: infrastructure
+#        com.company: Red_Hat
+#        rht.prod_name: Red_Hat_Integration
+#        rht.prod_ver: master
+#        rht.comp: 3scale_apicast
+#        rht.comp_ver: 2.15
+#        rht.subcomp: apicast_operator
+#        rht.subcomp_t: infrastructure
     spec:
       serviceAccountName: apicast-operator
       containers:
@@ -50,5 +50,5 @@ spec:
             fieldRef:
               fieldPath: metadata.namespace
         - name: RELATED_IMAGE_APICAST
-          value: "quay.io/3scale/apicast:latest"
+          value: "quay.io/3scale/apicast:v3.15.0"
       terminationGracePeriodSeconds: 10
