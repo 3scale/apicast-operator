@@ -182,6 +182,9 @@ func testCreateAPIcastEmbeddedConfigurationSecret(ctx context.Context, namespace
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      testAPIcastEmbeddedConfigurationSecretName,
 			Namespace: namespace,
+			Labels: map[string]string{
+				"apicast.apps.3scale.net/watched-by": "apicast",
+			},
 		},
 		StringData: map[string]string{
 			"config.json": embeddedConfigurationContent,

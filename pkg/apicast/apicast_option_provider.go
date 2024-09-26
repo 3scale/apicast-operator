@@ -268,11 +268,11 @@ func (a *APIcastOptionsProvider) additionalPodAnnotations() map[string]string {
 		annotations[GatewayConfigurationSecretResverAnnotation] = a.APIcastOptions.GatewayConfigurationSecret.ResourceVersion
 	}
 
-	if a.APIcastOptions.HTTPSCertificateSecret != nil && k8sutils.IsSecretWatchedByApicast(client, a.APIcastOptions.GatewayConfigurationSecret.Name, apicastNamespace) {
+	if a.APIcastOptions.HTTPSCertificateSecret != nil && k8sutils.IsSecretWatchedByApicast(client, a.APIcastOptions.HTTPSCertificateSecret.Name, apicastNamespace) {
 		annotations[HttpsCertSecretResverAnnotation] = a.APIcastOptions.HTTPSCertificateSecret.ResourceVersion
 	}
 
-	if a.APIcastOptions.TracingConfig.Enabled && a.APIcastOptions.TracingConfig.Secret != nil && k8sutils.IsSecretWatchedByApicast(client, a.APIcastOptions.GatewayConfigurationSecret.Name, apicastNamespace) {
+	if a.APIcastOptions.TracingConfig.Enabled && a.APIcastOptions.TracingConfig.Secret != nil && k8sutils.IsSecretWatchedByApicast(client, a.APIcastOptions.TracingConfig.Secret.Name, apicastNamespace) {
 		annotations[OpenTracingSecretResverAnnotation] = a.APIcastOptions.TracingConfig.Secret.ResourceVersion
 	}
 

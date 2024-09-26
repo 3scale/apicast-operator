@@ -173,6 +173,9 @@ func testCreateAPIcastOtelConfigurationSecret(ctx context.Context, namespace str
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      testAPIcastOtelSecretName,
 			Namespace: namespace,
+			Labels: map[string]string{
+				"apicast.apps.3scale.net/watched-by": "apicast",
+			},
 		},
 		StringData: map[string]string{
 			"otel.json": testAPIcastOtelConfig(),
