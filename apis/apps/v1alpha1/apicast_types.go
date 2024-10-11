@@ -543,12 +543,12 @@ func (a *APIcast) GetApicastSecretRefs() []*v1.LocalObjectReference {
 	}
 
 	customEnvironmentSecretRefs := a.GetCustomEnvironmentsSecretRefs()
-	if customEnvironmentSecretRefs != nil && len(customEnvironmentSecretRefs) > 0 {
+	if len(customEnvironmentSecretRefs) > 0 {
 		secretRefs = append(secretRefs, customEnvironmentSecretRefs...)
 	}
 
 	customPoliciesSecretRefs := a.GetCustomPoliciesSecretRefs()
-	if customPoliciesSecretRefs != nil && len(customPoliciesSecretRefs) > 0 {
+	if len(customPoliciesSecretRefs) > 0 {
 		secretRefs = append(secretRefs, customPoliciesSecretRefs...)
 	}
 
