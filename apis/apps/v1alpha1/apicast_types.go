@@ -466,3 +466,91 @@ func (a *APIcast) Validate() field.ErrorList {
 func init() {
 	SchemeBuilder.Register(&APIcast{}, &APIcastList{})
 }
+
+func (a *APIcast) GetAdminPortalCredentialsSecretRef() *v1.LocalObjectReference {
+	return a.Spec.AdminPortalCredentialsRef
+}
+
+func (a *APIcast) GetEmbeddedConfigurationSecretRef() *v1.LocalObjectReference {
+	return a.Spec.EmbeddedConfigurationSecretRef
+}
+
+func (a *APIcast) GetOpenTelemetrySecretRef() *v1.LocalObjectReference {
+	if a.Spec.OpenTelemetry == nil {
+		return nil
+	}
+	return a.Spec.OpenTelemetry.TracingConfigSecretRef
+}
+
+func (a *APIcast) GetOpenTracingSecretRef() *v1.LocalObjectReference {
+	if a.Spec.OpenTracing == nil {
+		return nil
+	}
+	return a.Spec.OpenTracing.TracingConfigSecretRef
+}
+
+func (a *APIcast) GetCustomEnvironmentsSecretRefs() []*v1.LocalObjectReference {
+	if a.Spec.CustomEnvironments == nil {
+		return nil
+	}
+
+	secretRefs := []*v1.LocalObjectReference{}
+	for _, env := range a.Spec.CustomEnvironments {
+		if env.SecretRef != nil {
+			secretRefs = append(secretRefs, env.SecretRef)
+		}
+	}
+
+	return secretRefs
+}
+
+func (a *APIcast) GetCustomPoliciesSecretRefs() []*v1.LocalObjectReference {
+	if a.Spec.CustomPolicies == nil {
+		return nil
+	}
+
+	secretRefs := []*v1.LocalObjectReference{}
+	for _, policy := range a.Spec.CustomPolicies {
+		if policy.SecretRef != nil {
+			secretRefs = append(secretRefs, policy.SecretRef)
+		}
+	}
+
+	return secretRefs
+}
+
+func (a *APIcast) GetApicastSecretRefs() []*v1.LocalObjectReference {
+	secretRefs := []*v1.LocalObjectReference{}
+
+	adminPortalCredentialsSecretRef := a.GetAdminPortalCredentialsSecretRef()
+	if adminPortalCredentialsSecretRef != nil {
+		secretRefs = append(secretRefs, adminPortalCredentialsSecretRef)
+	}
+
+	embeddedConfigurationSecretRef := a.GetEmbeddedConfigurationSecretRef()
+	if embeddedConfigurationSecretRef != nil {
+		secretRefs = append(secretRefs, embeddedConfigurationSecretRef)
+	}
+
+	openTelemetrySecretRef := a.GetOpenTelemetrySecretRef()
+	if openTelemetrySecretRef != nil {
+		secretRefs = append(secretRefs, openTelemetrySecretRef)
+	}
+
+	opentracingSecretRef := a.GetOpenTracingSecretRef()
+	if opentracingSecretRef != nil {
+		secretRefs = append(secretRefs, opentracingSecretRef)
+	}
+
+	customEnvironmentSecretRefs := a.GetCustomEnvironmentsSecretRefs()
+	if customEnvironmentSecretRefs != nil && len(customEnvironmentSecretRefs) > 0 {
+		secretRefs = append(secretRefs, customEnvironmentSecretRefs...)
+	}
+
+	customPoliciesSecretRefs := a.GetCustomPoliciesSecretRefs()
+	if customPoliciesSecretRefs != nil && len(customPoliciesSecretRefs) > 0 {
+		secretRefs = append(secretRefs, customPoliciesSecretRefs...)
+	}
+
+	return secretRefs
+}

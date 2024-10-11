@@ -62,7 +62,9 @@ var _ = Describe("APIcast v0.6.0 deployment upgrade procedure", func() {
 
 			// v0.6.0 deployment selector
 			fmt.Fprintf(GinkgoWriter, "create old deployment for namespace '%s'\n", testNamespace)
-			apicastDeployment := apicastFactory.Deployment().DeepCopy()
+			apicastDeployment, err := apicastFactory.Deployment(context.TODO(), testClient())
+			Expect(err).ToNot(HaveOccurred())
+			apicastDeployment = apicastDeployment.DeepCopy()
 			apicastDeployment.OwnerReferences = nil
 			apicastDeployment.Spec.Selector.MatchLabels["rht.comp_ver"] = "v0.6.0"
 			apicastDeployment.Spec.Template.Labels["rht.comp_ver"] = "v0.6.0"
@@ -95,7 +97,8 @@ var _ = Describe("APIcast v0.6.0 deployment upgrade procedure", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			// deployment selector should be the current one
-			newApicastDeployment := apicastFactory.Deployment()
+			newApicastDeployment, err := apicastFactory.Deployment(context.TODO(), testClient())
+			Expect(err).ToNot(HaveOccurred())
 			Eventually(func() bool {
 				existingDeployment := &appsv1.Deployment{}
 				err := testClient().Get(context.TODO(), client.ObjectKey{
