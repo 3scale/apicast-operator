@@ -439,7 +439,10 @@ func (a *APIcast) Deployment(ctx context.Context, k8sclient client.Client) (*app
 
 func (a *APIcast) computeWatchedSecretAnnotations(ctx context.Context, k8sclient client.Client) (map[string]string, error) {
 	// First get the initial annotations
-	uncheckedAnnotations := a.getWatchedSecretAnnotations()
+	uncheckedAnnotations, err := a.getWatchedSecretAnnotations(ctx, k8sclient)
+	if err != nil {
+		return nil, err
+	}
 
 	// Then get the deployment (if it exists) to compare the existing annotations
 	deployment := &appsv1.Deployment{}
@@ -447,7 +450,7 @@ func (a *APIcast) computeWatchedSecretAnnotations(ctx context.Context, k8sclient
 		Name:      a.options.DeploymentName,
 		Namespace: a.options.Namespace,
 	}
-	err := k8sclient.Get(ctx, deploymentKey, deployment)
+	err = k8sclient.Get(ctx, deploymentKey, deployment)
 	if err != nil && !apierrors.IsNotFound(err) {
 		return nil, err
 	}
@@ -493,13 +496,14 @@ func (a *APIcast) computeWatchedSecretAnnotations(ctx context.Context, k8sclient
 	return uncheckedAnnotations, nil // No difference with existing annotations so can return uncheckedAnnotations
 }
 
-func (a *APIcast) getWatchedSecretAnnotations() map[string]string {
-	// https certificate secret
+func (a *APIcast) getWatchedSecretAnnotations(ctx context.Context, k8sclient client.Client) (map[string]string, error) {
 	// admin portal secret
 	// gateway conf secret
+	// https certificate secret
+	// tracing config secret
+	// telemetry config secret
 	// custom policy secret(s)
 	// custom env secret(s)
-	// tracing config secret
 
 	annotations := map[string]string{}
 
@@ -517,6 +521,21 @@ func (a *APIcast) getWatchedSecretAnnotations() map[string]string {
 
 	if a.options.TracingConfig.Enabled && a.options.TracingConfig.Secret != nil && k8sutils.IsSecretWatchedByApicast(a.options.TracingConfig.Secret) {
 		annotations[OpenTracingSecretResverAnnotation] = a.options.TracingConfig.Secret.ResourceVersion
+	}
+
+	if a.options.Opentelemetry.Enabled && a.options.Opentelemetry.SecretName != "" {
+		telemetryConfigSecret := &v1.Secret{}
+		telemetryConfigSecretKey := client.ObjectKey{
+			Name:      a.options.Opentelemetry.SecretName,
+			Namespace: a.options.Namespace,
+		}
+		err := k8sclient.Get(ctx, telemetryConfigSecretKey, telemetryConfigSecret)
+		if err != nil {
+			return nil, err
+		}
+		if k8sutils.IsSecretWatchedByApicast(telemetryConfigSecret) {
+			annotations[OpenTelemetrySecretResverAnnotation] = telemetryConfigSecret.ResourceVersion
+		}
 	}
 
 	for idx := range a.options.CustomEnvironments {
@@ -537,7 +556,7 @@ func (a *APIcast) getWatchedSecretAnnotations() map[string]string {
 		}
 	}
 
-	return annotations
+	return annotations, nil
 }
 
 func (a *APIcast) podAnnotations(watchedSecretAnnotations map[string]string) map[string]string {
@@ -746,6 +765,8 @@ func (a *APIcast) hasSecretHashChanged(ctx context.Context, k8sclient client.Cli
 		secretToCheckKey.Name = a.options.HTTPSCertificateSecret.Name
 	case deploymentAnnotation == OpenTracingSecretResverAnnotation:
 		secretToCheckKey.Name = a.options.TracingConfig.Secret.Name
+	case deploymentAnnotation == OpenTelemetrySecretResverAnnotation:
+		secretToCheckKey.Name = a.options.Opentelemetry.SecretName
 	case strings.HasPrefix(deploymentAnnotation, CustomEnvSecretResverAnnotationPrefix):
 		secretToCheckKey.Name = strings.TrimPrefix(deploymentAnnotation, CustomEnvSecretResverAnnotationPrefix)
 	case strings.HasPrefix(deploymentAnnotation, CustomPoliciesSecretResverAnnotationPrefix):

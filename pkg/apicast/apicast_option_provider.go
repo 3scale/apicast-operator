@@ -23,6 +23,7 @@ const (
 	GatewayConfigurationSecretResverAnnotation = "apicast.apps.3scale.net/gateway-configuration-secret-resource-version"
 	HttpsCertSecretResverAnnotation            = "apicast.apps.3scale.net/https-cert-secret-resource-version"
 	OpenTracingSecretResverAnnotation          = "apicast.apps.3scale.net/opentracing-secret-resource-version"
+	OpenTelemetrySecretResverAnnotation        = "apicast.apps.3scale.net/opentelemetry-secret-resource-version"
 	CustomEnvSecretResverAnnotationPrefix      = "apicast.apps.3scale.net/customenv-secret-resource-version-"
 	CustomPoliciesSecretResverAnnotationPrefix = "apicast.apps.3scale.net/custompolicy-secret-resource-version-"
 	APPLABEL                                   = "apicast"
