@@ -14,6 +14,7 @@ import (
 	"github.com/3scale/apicast-operator/pkg/helper"
 	"github.com/3scale/apicast-operator/pkg/k8sutils"
 
+	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
@@ -750,6 +751,8 @@ func HashSecret(data map[string][]byte) string {
 }
 
 func (a *APIcast) hasSecretHashChanged(ctx context.Context, k8sclient client.Client, deploymentAnnotation string, hashedSecret *v1.Secret) bool {
+	logger, _ := logr.FromContext(ctx)
+
 	secretToCheck := &v1.Secret{}
 	secretToCheckKey := client.ObjectKey{
 		Namespace: a.options.Namespace,
@@ -778,14 +781,17 @@ func (a *APIcast) hasSecretHashChanged(ctx context.Context, k8sclient client.Cli
 	// Get latest version of the secret to check
 	err := k8sclient.Get(ctx, secretToCheckKey, secretToCheck)
 	if err != nil {
+		logger.Error(err, fmt.Sprintf("failed to get secret %s", secretToCheckKey.Name))
 		return false
 	}
 
 	// Compare the hash of the latest version of the secret's data to the reference in the hashed secret
 	if HashSecret(secretToCheck.Data) != k8sutils.SecretStringDataFromData(hashedSecret)[secretToCheckKey.Name] {
+		logger.V(1).Info(fmt.Sprintf("%s secret .data has changed - updating the resourceVersion in deployment's annotation", secretToCheckKey.Name))
 		return true
 	}
 
+	logger.V(1).Info(fmt.Sprintf("%s secret .data has not changed since last checked", secretToCheckKey.Name))
 	return false
 }
 

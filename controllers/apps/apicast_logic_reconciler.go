@@ -103,6 +103,7 @@ func (r *APIcastLogicReconciler) Reconcile(ctx context.Context) (reconcile.Resul
 	}
 	secret, err := apicastFactory.HashedSecret(ctx, r.Client(), r.APIcastCR.GetApicastSecretRefs())
 	if err != nil {
+		logger.Error(err, "failed to create hashed-secret-data secret")
 		return reconcile.Result{}, err
 	}
 	err = r.ReconcileResource(ctx, &v1.Secret{}, secret, reconcilers.SecretMutator(secretMutators...))
