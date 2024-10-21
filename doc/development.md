@@ -17,6 +17,7 @@
   * [Push an operator bundle into an external container repository](#push-an-operator-bundle-into-an-external-container-repository)
 * [Licenses management](#licenses-management)
   * [Manually adding a new license](#manually-adding-a-new-license)
+* [Adding new watched secrets](#adding-new-watched-secrets)
 
 ## Prerequisites
 
@@ -214,3 +215,16 @@ license_finder approval add github.com/golang/glog --decisions-file=doc/dependen
 [go]:https://golang.org/
 [kubernetes]:https://kubernetes.io/
 [kubectl]:https://kubernetes.io/docs/tasks/tools/install-kubectl/
+
+## Adding new watched secrets
+After adding a new secret to the APIcast CRD make sure to also update the following files if you want the apicast-operator to watch the new secret:
+1. [apis/apps/v1alpha1/apicast_types.go](../apis/apps/v1alpha1/apicast_types.go)
+   - Add a new `GetXYZSecretRef()` function that returns the secret ref
+2. [apis/apps/v1alpha1/apicast_types.go](../apis/apps/v1alpha1/apicast_types.go)
+   - Update the `GetApicastSecretRefs()` to call the new `GetXYZSecretRef()` function from step 1
+3. [pkg/apicast/apicast.go](../pkg/apicast/apicast.go) 
+   - Add the new secret to the `getWatchedSecretAnnotations()` function
+4. [pkg/apicast/apicast.go](../pkg/apicast/apicast.go)
+   - Add the new secret to the switch in the `hasSecretHashChanged()` function
+5. [pkg/apicast/apicast_option_provider.go](../pkg/apicast/apicast_option_provider.go)
+   - Add a new const called `XYZSecretResverAnnotation` that can be referenced throughout the code
