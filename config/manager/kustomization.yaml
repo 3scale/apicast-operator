@@ -6,4 +6,4 @@ kind: Kustomization
 images:
 - name: controller
   newName: quay.io/3scale/apicast-operator
-  newTag: master
+  newTag: v0.8.0
