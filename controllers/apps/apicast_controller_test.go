@@ -5,6 +5,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -20,7 +21,10 @@ import (
 	"github.com/3scale/apicast-operator/pkg/k8sutils"
 )
 
-const testAPIcastEmbeddedConfigurationSecretName = "apicast-embedded-configuration"
+const (
+	testCustomEnvironmentSecretName            = "custom-env-1"
+	testAPIcastEmbeddedConfigurationSecretName = "apicast-embedded-configuration"
+)
 
 var _ = Describe("APIcast controller", func() {
 	var testNamespace string
@@ -43,8 +47,24 @@ var _ = Describe("APIcast controller", func() {
 
 			start := time.Now()
 
+			// Create a custom environment secret
+			err := testCreateCustomEnvironmentSecret(context.Background(), testNamespace)
+			Expect(err).ToNot(HaveOccurred())
+
+			// Get the newly created custom environment secret for later
+			customEnvSecret := &v1.Secret{}
+			customEnvSecretLookupKey := types.NamespacedName{Name: testCustomEnvironmentSecretName, Namespace: testNamespace}
+			err = testClient().Get(context.Background(), customEnvSecretLookupKey, customEnvSecret)
+			Expect(err).ToNot(HaveOccurred())
+
 			// Create an APIcast embedded configuration secret
-			err := testCreateAPIcastEmbeddedConfigurationSecret(context.Background(), testNamespace)
+			err = testCreateAPIcastEmbeddedConfigurationSecret(context.Background(), testNamespace)
+			Expect(err).ToNot(HaveOccurred())
+
+			// Get the newly created embedded configuration secret for later
+			configSecret := &v1.Secret{}
+			configSecretLookupKey := types.NamespacedName{Name: testAPIcastEmbeddedConfigurationSecretName, Namespace: testNamespace}
+			err = testClient().Get(context.Background(), configSecretLookupKey, configSecret)
 			Expect(err).ToNot(HaveOccurred())
 
 			// Create an APIcast
@@ -58,13 +78,52 @@ var _ = Describe("APIcast controller", func() {
 					EmbeddedConfigurationSecretRef: &v1.LocalObjectReference{
 						Name: testAPIcastEmbeddedConfigurationSecretName,
 					},
+					CustomEnvironments: []appsv1alpha1.CustomEnvironmentSpec{
+						{
+							SecretRef: &v1.LocalObjectReference{
+								Name: testCustomEnvironmentSecretName,
+							},
+						},
+					},
 				},
 			}
 
 			err = testClient().Create(context.Background(), apicast)
 			Expect(err).ToNot(HaveOccurred())
 
-			// Check that the correspondig APIcast K8s Deployment has been created
+			// Check that the APIcast labels contain the secret UIDs
+			Eventually(func() bool {
+				reconciledApicast := &appsv1alpha1.APIcast{}
+				reconciledApicastKey := types.NamespacedName{Name: apicastName, Namespace: testNamespace}
+				err = testClient().Get(context.Background(), reconciledApicastKey, reconciledApicast)
+				if err != nil {
+					return false
+				}
+
+				expectedLabels := map[string]string{
+					fmt.Sprintf("%s%s", APIcastSecretLabelPrefix, string(configSecret.GetUID())):    "false",
+					fmt.Sprintf("%s%s", APIcastSecretLabelPrefix, string(customEnvSecret.GetUID())): "true",
+				}
+
+				// Then verify that the hash matches the hashed config secret
+				return reflect.DeepEqual(reconciledApicast.Labels, expectedLabels)
+			}, 1*time.Minute, retryInterval).Should(BeTrue())
+
+			// Check that the corresponding APIcast hashed Secret has been created and is accurate
+			hashedSecretLookupKey := types.NamespacedName{Name: apicastpkg.HashedSecretName, Namespace: testNamespace}
+			Eventually(func() bool {
+				// First get the master hashed secret
+				hashedSecret := &v1.Secret{}
+				err := testClient().Get(context.Background(), hashedSecretLookupKey, hashedSecret)
+				if err != nil {
+					return false
+				}
+
+				// Then verify that the hash matches the hashed custom environment secret
+				return k8sutils.SecretStringDataFromData(hashedSecret)[testCustomEnvironmentSecretName] == apicastpkg.HashSecret(customEnvSecret.Data)
+			}, 1*time.Minute, retryInterval).Should(BeTrue())
+
+			// Check that the corresponding APIcast K8s Deployment has been created
 			apicastDeploymentName := apicastpkg.APIcastDeploymentName(apicast)
 			apicastDeploymentLookupKey := types.NamespacedName{Name: apicastDeploymentName, Namespace: testNamespace}
 			Eventually(func() bool {
@@ -189,4 +248,46 @@ func testCreateAPIcastEmbeddedConfigurationSecret(ctx context.Context, namespace
 	}
 
 	return testClient().Create(ctx, &embeddedConfigSecret)
+}
+
+func testCustomEnvironmentContent() string {
+	return `
+    local cjson = require('cjson')
+    local PolicyChain = require('apicast.policy_chain')
+    local policy_chain = context.policy_chain
+    
+    local logging_policy_config = cjson.decode([[
+    {
+      "enable_access_logs": false,
+      "custom_logging": "\"{{request}}\" to service {{service.name}} and {{service.id}}"
+    }
+    ]])
+    
+    policy_chain:insert( PolicyChain.load_policy('logging', 'builtin', logging_policy_config), 1)
+    
+    return {
+      policy_chain = policy_chain,
+      port = { metrics = 9421 },
+    }
+`
+}
+
+func testCreateCustomEnvironmentSecret(ctx context.Context, namespace string) error {
+	customEnvironmentSecret := v1.Secret{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "v1",
+			Kind:       "Secret",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      testCustomEnvironmentSecretName,
+			Namespace: namespace,
+			Labels: map[string]string{
+				"apicast.apps.3scale.net/watched-by": "apicast",
+			},
+		},
+		StringData: map[string]string{
+			"custom_env.lua": testCustomEnvironmentContent(),
+		},
+	}
+	return testClient().Create(ctx, &customEnvironmentSecret)
 }

@@ -37,7 +37,6 @@ type APIcastOptions struct {
 	Owner                        *metav1.OwnerReference `validate:"required"`
 	ServiceName                  string                 `validate:"required"`
 	Replicas                     int32
-	AdditionalPodAnnotations     map[string]string       `validate:"required"`
 	ServiceAccountName           string                  `validate:"required"`
 	Image                        string                  `validate:"required"`
 	ExposedHost                  ExposedHost             `validate:"-"`

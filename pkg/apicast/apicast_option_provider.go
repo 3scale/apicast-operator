@@ -23,6 +23,7 @@ const (
 	GatewayConfigurationSecretResverAnnotation = "apicast.apps.3scale.net/gateway-configuration-secret-resource-version"
 	HttpsCertSecretResverAnnotation            = "apicast.apps.3scale.net/https-cert-secret-resource-version"
 	OpenTracingSecretResverAnnotation          = "apicast.apps.3scale.net/opentracing-secret-resource-version"
+	OpenTelemetrySecretResverAnnotation        = "apicast.apps.3scale.net/opentelemetry-secret-resource-version"
 	CustomEnvSecretResverAnnotationPrefix      = "apicast.apps.3scale.net/customenv-secret-resource-version-"
 	CustomPoliciesSecretResverAnnotationPrefix = "apicast.apps.3scale.net/custompolicy-secret-resource-version-"
 	APPLABEL                                   = "apicast"
@@ -197,9 +198,6 @@ func (a *APIcastOptionsProvider) GetApicastOptions(ctx context.Context) (*APIcas
 	}
 	a.APIcastOptions.TracingConfig = tracingOptions
 
-	// Annotations from user secrets. Used to rollout apicast deployment if any secrets changes
-	a.APIcastOptions.AdditionalPodAnnotations = a.additionalPodAnnotations()
-
 	//
 	otelConfig, err := a.getOpenTelemetryConfig(ctx)
 	if err != nil {
@@ -245,49 +243,6 @@ func (a *APIcastOptionsProvider) getTracingConfigOptions(ctx context.Context) (T
 	}
 
 	return res, nil
-}
-
-func (a *APIcastOptionsProvider) additionalPodAnnotations() map[string]string {
-	// https certificate secret
-	// admin portal secret
-	// gateway conf secret
-	// custom policy secret(s)
-	// custom env secret(s)
-	// tracing config secret
-
-	annotations := map[string]string{}
-
-	if a.APIcastOptions.AdminPortalCredentialsSecret != nil {
-		annotations[AdmPortalSecretResverAnnotation] = a.APIcastOptions.AdminPortalCredentialsSecret.ResourceVersion
-	}
-
-	if a.APIcastOptions.GatewayConfigurationSecret != nil {
-		annotations[GatewayConfigurationSecretResverAnnotation] = a.APIcastOptions.GatewayConfigurationSecret.ResourceVersion
-	}
-
-	if a.APIcastOptions.HTTPSCertificateSecret != nil {
-		annotations[HttpsCertSecretResverAnnotation] = a.APIcastOptions.HTTPSCertificateSecret.ResourceVersion
-	}
-
-	if a.APIcastOptions.TracingConfig.Enabled && a.APIcastOptions.TracingConfig.Secret != nil {
-		annotations[OpenTracingSecretResverAnnotation] = a.APIcastOptions.TracingConfig.Secret.ResourceVersion
-	}
-
-	for idx := range a.APIcastOptions.CustomEnvironments {
-		// Secrets must exist
-		// Annotation key includes the name of the secret
-		annotationKey := fmt.Sprintf("%s%s", CustomEnvSecretResverAnnotationPrefix, a.APIcastOptions.CustomEnvironments[idx].Name)
-		annotations[annotationKey] = a.APIcastOptions.CustomEnvironments[idx].ResourceVersion
-	}
-
-	for idx := range a.APIcastOptions.CustomPolicies {
-		// Secrets must exist
-		// Annotation key includes the name of the secret
-		annotationKey := fmt.Sprintf("%s%s", CustomPoliciesSecretResverAnnotationPrefix, a.APIcastOptions.CustomPolicies[idx].Secret.Name)
-		annotations[annotationKey] = a.APIcastOptions.CustomPolicies[idx].Secret.ResourceVersion
-	}
-
-	return annotations
 }
 
 func (a *APIcastOptionsProvider) getGatewayEmbeddedConfigSecret(ctx context.Context) (*v1.Secret, error) {

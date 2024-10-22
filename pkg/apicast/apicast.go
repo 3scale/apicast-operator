@@ -2,8 +2,11 @@ package apicast
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"path"
+	"reflect"
 	"strconv"
 	"strings"
 
@@ -11,10 +14,11 @@ import (
 	"github.com/3scale/apicast-operator/pkg/helper"
 	"github.com/3scale/apicast-operator/pkg/k8sutils"
 
+	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
-
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -45,6 +49,10 @@ const (
 const (
 	OpentelemetryConfigurationVolumeName = "otel-volume"
 	OpentelemetryConfigMountBasePath     = "/opt/app-root/src/otel-configs"
+)
+
+const (
+	HashedSecretName = "hashed-secret-data"
 )
 
 type APIcast struct {
@@ -370,7 +378,12 @@ func (a *APIcast) deploymentEnv() []v1.EnvVar {
 	return env
 }
 
-func (a *APIcast) Deployment() *appsv1.Deployment {
+func (a *APIcast) Deployment(ctx context.Context, k8sclient client.Client) (*appsv1.Deployment, error) {
+	watchedSecretAnnotations, err := a.computeWatchedSecretAnnotations(ctx, k8sclient)
+	if err != nil {
+		return nil, err
+	}
+
 	deployment := &appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "apps/v1",
@@ -391,7 +404,7 @@ func (a *APIcast) Deployment() *appsv1.Deployment {
 			Template: v1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels:      a.options.PodTemplateLabels,
-					Annotations: a.podAnnotations(),
+					Annotations: a.podAnnotations(watchedSecretAnnotations),
 				},
 				Spec: v1.PodSpec{
 					ServiceAccountName: a.options.ServiceAccountName,
@@ -422,16 +435,138 @@ func (a *APIcast) Deployment() *appsv1.Deployment {
 	}
 
 	addOwnerRefToObject(deployment, *a.options.Owner)
-	return deployment
+	return deployment, nil
 }
 
-func (a *APIcast) podAnnotations() map[string]string {
+func (a *APIcast) computeWatchedSecretAnnotations(ctx context.Context, k8sclient client.Client) (map[string]string, error) {
+	// First get the initial annotations
+	uncheckedAnnotations, err := a.getWatchedSecretAnnotations(ctx, k8sclient)
+	if err != nil {
+		return nil, err
+	}
+
+	// Then get the deployment (if it exists) to compare the existing annotations
+	deployment := &appsv1.Deployment{}
+	deploymentKey := client.ObjectKey{
+		Name:      a.options.DeploymentName,
+		Namespace: a.options.Namespace,
+	}
+	err = k8sclient.Get(ctx, deploymentKey, deployment)
+	if err != nil && !apierrors.IsNotFound(err) {
+		return nil, err
+	}
+	// If the deployment doesn't exist yet then just return the uncheckedAnnotations because there's nothing to compare to
+	if apierrors.IsNotFound(err) {
+		return uncheckedAnnotations, nil
+	}
+
+	// Next get the master hashed secret (if it exists) to compare the secret hashes
+	hashedSecret := &v1.Secret{}
+	hashedSecretKey := client.ObjectKey{
+		Name:      HashedSecretName,
+		Namespace: a.options.Namespace,
+	}
+	err = k8sclient.Get(ctx, hashedSecretKey, hashedSecret)
+	if err != nil && !apierrors.IsNotFound(err) {
+		return nil, err
+	}
+	// If the master hashed secret doesn't exist yet then just return the uncheckedAnnotations because there's nothing to compare to
+	if apierrors.IsNotFound(err) {
+		return uncheckedAnnotations, nil
+	}
+
+	existingPodAnnotations := deployment.Spec.Template.Annotations
+
+	// First check if the annotations match, if they do then there's no need to check the hash
+	if !reflect.DeepEqual(existingPodAnnotations, uncheckedAnnotations) {
+		reconciledAnnotations := map[string]string{}
+
+		// Loop through the annotations to see if the secret data has actually changed
+		for key, resourceVersion := range uncheckedAnnotations {
+			if existingPodAnnotations[key] == "" {
+				reconciledAnnotations[key] = resourceVersion // If this is the first time adding the annotation then use the new resourceVersion
+			} else if existingPodAnnotations[key] != resourceVersion && a.hasSecretHashChanged(ctx, k8sclient, key, hashedSecret) {
+				reconciledAnnotations[key] = resourceVersion // Else if the resourceVersions don't match and the hash has changed then use the new resourceVersion
+			} else {
+				reconciledAnnotations[key] = existingPodAnnotations[key] // Otherwise keep the existing resourceVersion
+			}
+		}
+
+		return reconciledAnnotations, nil
+	}
+	return uncheckedAnnotations, nil // No difference with existing annotations so can return uncheckedAnnotations
+}
+
+func (a *APIcast) getWatchedSecretAnnotations(ctx context.Context, k8sclient client.Client) (map[string]string, error) {
+	// admin portal secret
+	// gateway conf secret
+	// https certificate secret
+	// tracing config secret
+	// telemetry config secret
+	// custom policy secret(s)
+	// custom env secret(s)
+
+	annotations := map[string]string{}
+
+	if a.options.AdminPortalCredentialsSecret != nil && k8sutils.IsSecretWatchedByApicast(a.options.AdminPortalCredentialsSecret) {
+		annotations[AdmPortalSecretResverAnnotation] = a.options.AdminPortalCredentialsSecret.ResourceVersion
+	}
+
+	if a.options.GatewayConfigurationSecret != nil && k8sutils.IsSecretWatchedByApicast(a.options.GatewayConfigurationSecret) {
+		annotations[GatewayConfigurationSecretResverAnnotation] = a.options.GatewayConfigurationSecret.ResourceVersion
+	}
+
+	if a.options.HTTPSCertificateSecret != nil && k8sutils.IsSecretWatchedByApicast(a.options.HTTPSCertificateSecret) {
+		annotations[HttpsCertSecretResverAnnotation] = a.options.HTTPSCertificateSecret.ResourceVersion
+	}
+
+	if a.options.TracingConfig.Enabled && a.options.TracingConfig.Secret != nil && k8sutils.IsSecretWatchedByApicast(a.options.TracingConfig.Secret) {
+		annotations[OpenTracingSecretResverAnnotation] = a.options.TracingConfig.Secret.ResourceVersion
+	}
+
+	if a.options.Opentelemetry.Enabled && a.options.Opentelemetry.SecretName != "" {
+		telemetryConfigSecret := &v1.Secret{}
+		telemetryConfigSecretKey := client.ObjectKey{
+			Name:      a.options.Opentelemetry.SecretName,
+			Namespace: a.options.Namespace,
+		}
+		err := k8sclient.Get(ctx, telemetryConfigSecretKey, telemetryConfigSecret)
+		if err != nil {
+			return nil, err
+		}
+		if k8sutils.IsSecretWatchedByApicast(telemetryConfigSecret) {
+			annotations[OpenTelemetrySecretResverAnnotation] = telemetryConfigSecret.ResourceVersion
+		}
+	}
+
+	for idx := range a.options.CustomEnvironments {
+		// Secrets must exist and have the watched-by label
+		// Annotation key includes the name of the secret
+		if k8sutils.IsSecretWatchedByApicast(a.options.CustomEnvironments[idx]) {
+			annotationKey := fmt.Sprintf("%s%s", CustomEnvSecretResverAnnotationPrefix, a.options.CustomEnvironments[idx].Name)
+			annotations[annotationKey] = a.options.CustomEnvironments[idx].ResourceVersion
+		}
+	}
+
+	for idx := range a.options.CustomPolicies {
+		// Secrets must exist and have the watched-by label
+		// Annotation key includes the name of the secret
+		if k8sutils.IsSecretWatchedByApicast(a.options.CustomPolicies[idx].Secret) {
+			annotationKey := fmt.Sprintf("%s%s", CustomPoliciesSecretResverAnnotationPrefix, a.options.CustomPolicies[idx].Secret.Name)
+			annotations[annotationKey] = a.options.CustomPolicies[idx].Secret.ResourceVersion
+		}
+	}
+
+	return annotations, nil
+}
+
+func (a *APIcast) podAnnotations(watchedSecretAnnotations map[string]string) map[string]string {
 	annotations := map[string]string{
 		"prometheus.io/scrape": "true",
 		"prometheus.io/port":   "9421",
 	}
 
-	for key, val := range a.options.AdditionalPodAnnotations {
+	for key, val := range watchedSecretAnnotations {
 		annotations[key] = val
 	}
 
@@ -557,6 +692,107 @@ func (a *APIcast) Ingress() *networkingv1.Ingress {
 
 	addOwnerRefToObject(ingress, *a.options.Owner)
 	return ingress
+}
+
+func (a *APIcast) HashedSecret(ctx context.Context, k8sclient client.Client, secretRefs []*v1.LocalObjectReference) (*v1.Secret, error) {
+	hashedSecretData, err := a.computeHashedSecretData(ctx, k8sclient, secretRefs)
+	if err != nil {
+		return nil, err
+	}
+
+	return &v1.Secret{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "v1",
+			Kind:       "Secret",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      HashedSecretName,
+			Namespace: a.options.Namespace,
+			Labels:    a.options.CommonLabels,
+		},
+		StringData: hashedSecretData,
+		Type:       v1.SecretTypeOpaque,
+	}, nil
+}
+
+func (a *APIcast) computeHashedSecretData(ctx context.Context, k8sclient client.Client, secretRefs []*v1.LocalObjectReference) (map[string]string, error) {
+	data := make(map[string]string)
+
+	for _, secretRef := range secretRefs {
+		secret := &v1.Secret{}
+		key := client.ObjectKey{
+			Name:      secretRef.Name,
+			Namespace: a.options.Namespace,
+		}
+		err := k8sclient.Get(ctx, key, secret)
+		if err != nil {
+			return nil, err
+		}
+
+		if k8sutils.IsSecretWatchedByApicast(secret) {
+			data[secretRef.Name] = HashSecret(secret.Data)
+		}
+	}
+
+	return data, nil
+}
+
+func HashSecret(data map[string][]byte) string {
+	hash := sha256.New()
+
+	for key, value := range data {
+		combinedKeyValue := append([]byte(key), value...)
+		hash.Write(combinedKeyValue)
+	}
+
+	hashBytes := hash.Sum(nil)
+
+	return hex.EncodeToString(hashBytes)
+}
+
+func (a *APIcast) hasSecretHashChanged(ctx context.Context, k8sclient client.Client, deploymentAnnotation string, hashedSecret *v1.Secret) bool {
+	logger, _ := logr.FromContext(ctx)
+
+	secretToCheck := &v1.Secret{}
+	secretToCheckKey := client.ObjectKey{
+		Namespace: a.options.Namespace,
+	}
+
+	// Assign the name of the secret to check
+	switch {
+	case deploymentAnnotation == AdmPortalSecretResverAnnotation:
+		secretToCheckKey.Name = a.options.AdminPortalCredentialsSecret.Name
+	case deploymentAnnotation == GatewayConfigurationSecretResverAnnotation:
+		secretToCheckKey.Name = a.options.GatewayConfigurationSecret.Name
+	case deploymentAnnotation == HttpsCertSecretResverAnnotation:
+		secretToCheckKey.Name = a.options.HTTPSCertificateSecret.Name
+	case deploymentAnnotation == OpenTracingSecretResverAnnotation:
+		secretToCheckKey.Name = a.options.TracingConfig.Secret.Name
+	case deploymentAnnotation == OpenTelemetrySecretResverAnnotation:
+		secretToCheckKey.Name = a.options.Opentelemetry.SecretName
+	case strings.HasPrefix(deploymentAnnotation, CustomEnvSecretResverAnnotationPrefix):
+		secretToCheckKey.Name = strings.TrimPrefix(deploymentAnnotation, CustomEnvSecretResverAnnotationPrefix)
+	case strings.HasPrefix(deploymentAnnotation, CustomPoliciesSecretResverAnnotationPrefix):
+		secretToCheckKey.Name = strings.TrimPrefix(deploymentAnnotation, CustomPoliciesSecretResverAnnotationPrefix)
+	default:
+		return false
+	}
+
+	// Get latest version of the secret to check
+	err := k8sclient.Get(ctx, secretToCheckKey, secretToCheck)
+	if err != nil {
+		logger.Error(err, fmt.Sprintf("failed to get secret %s", secretToCheckKey.Name))
+		return false
+	}
+
+	// Compare the hash of the latest version of the secret's data to the reference in the hashed secret
+	if HashSecret(secretToCheck.Data) != k8sutils.SecretStringDataFromData(hashedSecret)[secretToCheckKey.Name] {
+		logger.V(1).Info(fmt.Sprintf("%s secret .data has changed - updating the resourceVersion in deployment's annotation", secretToCheckKey.Name))
+		return true
+	}
+
+	logger.V(1).Info(fmt.Sprintf("%s secret .data has not changed since last checked", secretToCheckKey.Name))
+	return false
 }
 
 func addOwnerRefToObject(o metav1.Object, owner metav1.OwnerReference) {

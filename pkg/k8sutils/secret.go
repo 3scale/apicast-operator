@@ -17,3 +17,19 @@ func SecretStringDataFromData(secret *v1.Secret) map[string]string {
 	}
 	return stringData
 }
+
+func IsSecretWatchedByApicast(secret *v1.Secret) bool {
+	if secret == nil {
+		return false
+	}
+
+	existingLabels := secret.Labels
+
+	if existingLabels != nil {
+		if _, ok := existingLabels["apicast.apps.3scale.net/watched-by"]; ok {
+			return true
+		}
+	}
+
+	return false
+}

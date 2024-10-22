@@ -41,7 +41,10 @@ func (r *APIcastLogicReconciler) upgradeDeploymentSelector(ctx context.Context, 
 		return ctrl.Result{}, err
 	}
 
-	expectedDeployment := apicastFactory.Deployment()
+	expectedDeployment, err := apicastFactory.Deployment(ctx, r.Client())
+	if err != nil {
+		return ctrl.Result{}, err
+	}
 	existingDeployment := &appsv1.Deployment{}
 	err = r.Client().Get(ctx, client.ObjectKeyFromObject(expectedDeployment), existingDeployment)
 	if err != nil && !errors.IsNotFound(err) {

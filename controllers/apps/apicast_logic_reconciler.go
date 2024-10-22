@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"
@@ -85,8 +86,27 @@ func (r *APIcastLogicReconciler) Reconcile(ctx context.Context) (reconcile.Resul
 		reconcilers.DeploymentTemplateLabelsMutator,
 	)
 
-	deployment := apicastFactory.Deployment()
+	deployment, err := apicastFactory.Deployment(ctx, r.Client())
+	if err != nil {
+		return reconcile.Result{}, err
+	}
 	err = r.ReconcileResource(ctx, &appsv1.Deployment{}, deployment, reconcilers.DeploymentMutator(deploymentMutators...))
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+
+	//
+	// Hashed Secret
+	//
+	secretMutators := []reconcilers.SecretMutateFn{
+		reconcilers.SecretStringDataMutator,
+	}
+	secret, err := apicastFactory.HashedSecret(ctx, r.Client(), r.APIcastCR.GetApicastSecretRefs())
+	if err != nil {
+		logger.Error(err, "failed to create hashed-secret-data secret")
+		return reconcile.Result{}, err
+	}
+	err = r.ReconcileResource(ctx, &v1.Secret{}, secret, reconcilers.SecretMutator(secretMutators...))
 	if err != nil {
 		return reconcile.Result{}, err
 	}
@@ -169,7 +189,7 @@ func (r *APIcastLogicReconciler) reconcileApicastSecretLabels(ctx context.Contex
 	return replaceAPIcastSecretLabels(r.APIcastCR, secretUIDs), nil
 }
 
-func (r *APIcastLogicReconciler) getSecretUIDs(ctx context.Context) ([]string, error) {
+func (r *APIcastLogicReconciler) getSecretUIDs(ctx context.Context) (map[string]string, error) {
 	// https certificate secret
 	// admin portal secret
 	// gateway conf secret
@@ -226,19 +246,21 @@ func (r *APIcastLogicReconciler) getSecretUIDs(ctx context.Context) ([]string, e
 		})
 	}
 
-	uids := []string{}
+	uidMap := map[string]string{}
 	for idx := range secretKeys {
 		secret := &v1.Secret{}
 		secretKey := secretKeys[idx]
 		err := r.Client().Get(ctx, secretKey, secret)
-		r.Logger().V(1).Info("read secret", "objectKey", secretKey, "error", err)
+		r.Logger().V(1).Info("reading secret", "objectKey", secretKey, "error", err)
 		if err != nil {
 			return nil, err
 		}
-		uids = append(uids, string(secret.GetUID()))
+
+		watchedByVal := fmt.Sprintf("%t", k8sutils.IsSecretWatchedByApicast(secret))
+		uidMap[string(secret.GetUID())] = watchedByVal
 	}
 
-	return uids, nil
+	return uidMap, nil
 }
 
 func (r *APIcastLogicReconciler) reconcileIngress(ctx context.Context, desired *networkingv1.Ingress) error {

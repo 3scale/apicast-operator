@@ -10,14 +10,13 @@ import (
 
 const (
 	APIcastSecretLabelPrefix = "secret.apicast.apps.3scale.net/"
-	APIcastSecretLabelValue  = "true"
 )
 
 func apicastSecretLabelKey(uid string) string {
 	return fmt.Sprintf("%s%s", APIcastSecretLabelPrefix, uid)
 }
 
-func replaceAPIcastSecretLabels(apicast *appsv1alpha1.APIcast, desiredSecretUIDs []string) bool {
+func replaceAPIcastSecretLabels(apicast *appsv1alpha1.APIcast, desiredSecretUIDs map[string]string) bool {
 	existingLabels := apicast.GetLabels()
 
 	if existingLabels == nil {
@@ -27,18 +26,18 @@ func replaceAPIcastSecretLabels(apicast *appsv1alpha1.APIcast, desiredSecretUIDs
 	existingSecretLabels := map[string]string{}
 
 	// existing Secret UIDs not included in desiredAPIUIDs are deleted
-	for k := range existingLabels {
-		if strings.HasPrefix(k, APIcastSecretLabelPrefix) {
-			existingSecretLabels[k] = APIcastSecretLabelValue
+	for key, value := range existingLabels {
+		if strings.HasPrefix(key, APIcastSecretLabelPrefix) {
+			existingSecretLabels[key] = value
 			// it is safe to remove keys while looping in range
-			delete(existingLabels, k)
+			delete(existingLabels, key)
 		}
 	}
 
 	desiredSecretLabels := map[string]string{}
-	for _, uid := range desiredSecretUIDs {
-		desiredSecretLabels[apicastSecretLabelKey(uid)] = APIcastSecretLabelValue
-		existingLabels[apicastSecretLabelKey(uid)] = APIcastSecretLabelValue
+	for uid, watchedByStatus := range desiredSecretUIDs {
+		desiredSecretLabels[apicastSecretLabelKey(uid)] = watchedByStatus
+		existingLabels[apicastSecretLabelKey(uid)] = watchedByStatus
 	}
 
 	apicast.SetLabels(existingLabels)
