@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"path"
 	"reflect"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -740,7 +741,14 @@ func (a *APIcast) computeHashedSecretData(ctx context.Context, k8sclient client.
 func HashSecret(data map[string][]byte) string {
 	hash := sha256.New()
 
-	for key, value := range data {
+	sortedKeys := make([]string, 0, len(data))
+	for k := range data {
+		sortedKeys = append(sortedKeys, k)
+	}
+	sort.Strings(sortedKeys)
+
+	for _, key := range sortedKeys {
+		value := data[key]
 		combinedKeyValue := append([]byte(key), value...)
 		hash.Write(combinedKeyValue)
 	}

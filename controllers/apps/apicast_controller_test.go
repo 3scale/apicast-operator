@@ -286,7 +286,8 @@ func testCreateCustomEnvironmentSecret(ctx context.Context, namespace string) er
 			},
 		},
 		StringData: map[string]string{
-			"custom_env.lua": testCustomEnvironmentContent(),
+			"custom_env.lua":  testCustomEnvironmentContent(),
+			"custom_env2.lua": testCustomEnvironmentContent(),
 		},
 	}
 	return testClient().Create(ctx, &customEnvironmentSecret)
