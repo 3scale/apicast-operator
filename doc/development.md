@@ -222,9 +222,11 @@ After adding a new secret to the APIcast CRD make sure to also update the follow
    - Add a new `GetXYZSecretRef()` function that returns the secret ref
 2. [apis/apps/v1alpha1/apicast_types.go](../apis/apps/v1alpha1/apicast_types.go)
    - Update the `GetApicastSecretRefs()` to call the new `GetXYZSecretRef()` function from step 1
-3. [pkg/apicast/apicast.go](../pkg/apicast/apicast.go) 
+3. [controllers/apps/apicast_logic_reconciler.go](../controllers/apps/apicast_logic_reconciler.go)
+   - Add the new secret to the `getSecretUIDs()` function
+4. [pkg/apicast/apicast.go](../pkg/apicast/apicast.go) 
    - Add the new secret to the `getWatchedSecretAnnotations()` function
-4. [pkg/apicast/apicast.go](../pkg/apicast/apicast.go)
+5. [pkg/apicast/apicast.go](../pkg/apicast/apicast.go)
    - Add the new secret to the switch in the `hasSecretHashChanged()` function
-5. [pkg/apicast/apicast_option_provider.go](../pkg/apicast/apicast_option_provider.go)
+6. [pkg/apicast/apicast_option_provider.go](../pkg/apicast/apicast_option_provider.go)
    - Add a new const called `XYZSecretResverAnnotation` that can be referenced throughout the code
