@@ -34,7 +34,7 @@ commands:
 jobs:
   install-operator:
     docker:
-      - image: cimg/go:1.20
+      - image: quay.io/3scale/operators-ci-images:v1.20
     steps:
       - setup_remote_docker:
           docker_layer_caching: true
@@ -51,12 +51,30 @@ jobs:
 
   license-check:
     docker:
-      - image: circleci/ruby:2.6
+      - image: quay.io/3scale/operators-ci-images:v1.20
     steps:
-      - go/install:
-          version: '1.20.14'
+      - run:
+          name: Installing ruby
+          command: |
+            # Determine if sudo is neccessary
+            SUDO=""
+            if [[ $EUID -ne 0 ]]; then
+            SUDO=sudo
+            fi
+            # Install ruby
+            $SUDO apt-get update --allow-releaseinfo-change && $SUDO apt-get install -y ruby-full
+      - run:
+          name: Installing License tool
+          command: |
+            # Determine if sudo is neccessary
+            SUDO=""
+            if [[ $EUID -ne 0 ]]; then
+            SUDO=sudo
+            fi
+            # Install ruby
+            $SUDO gem install license_finder --version 5.7.1
       - checkout
-      - run: sudo gem install license_finder --version 5.7.1
+      - run: make download
       - run: make licenses-check
 
   tag-operator-image-master:
@@ -109,13 +127,14 @@ jobs:
 
   run-unit-test:
     docker:
-      - image: cimg/go:1.20
+      - image: quay.io/3scale/operators-ci-images:v1.20
     steps:
       - checkout
       - run:
           name: run unit tests
           command: |
             make test-unit
+
   run-integration-test:
     machine:
       image: ubuntu-2404:current
@@ -137,9 +156,10 @@ jobs:
           command: |
             make test-integration
           no_output_timeout: 30m
+
   lint:
     docker:
-      - image: cimg/go:1.20
+      - image: quay.io/3scale/operators-ci-images:v1.20
     steps:
       - checkout
       - run:
@@ -149,7 +169,7 @@ jobs:
 
   bundle-validate:
     docker:
-      - image: cimg/go:1.20
+      - image: quay.io/3scale/operators-ci-images:v1.20
     steps:
       - checkout
       - run: make bundle
