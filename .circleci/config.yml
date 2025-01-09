@@ -1,5 +1,8 @@
 version: 2.1
 
+orbs:
+  go: circleci/go@1.7.1
+
 commands:
   attach-workspace:
     steps:
@@ -75,10 +78,10 @@ jobs:
       - run: make licenses-check
 
   tag-operator-image-master:
-    docker:
-      - image: quay.io/3scale/operators-ci-images:v1.20
+    machine:
+      image: ubuntu-2404:current
+      docker_layer_caching: true
     steps:
-      - setup_remote_docker
       - attach-workspace
       - run:
           name: Unpack docker image
@@ -103,10 +106,10 @@ jobs:
               docker push quay.io/3scale/apicast-operator:latest
 
   tag-operator-image-release:
-    docker:
-      - image: quay.io/3scale/operators-ci-images:v1.20
+    machine:
+      image: ubuntu-2404:current
+      docker_layer_caching: true
     steps:
-      - setup_remote_docker
       - attach-workspace
       - run:
           name: Unpack docker image
@@ -133,10 +136,12 @@ jobs:
             make test-unit
 
   run-integration-test:
-    docker:
-      - image: quay.io/3scale/operators-ci-images:machine-executor-go1.20
+    machine:
+      image: ubuntu-2404:current
+      docker_layer_caching: true
     steps:
-      - setup_remote_docker
+      - go/install:
+          version: '1.20.14'
       - checkout
       - run:
           name: Install KinD
