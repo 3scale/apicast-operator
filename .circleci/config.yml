@@ -134,7 +134,7 @@ jobs:
 
   run-integration-test:
     docker:
-      - image: quay.io/3scale/operators-ci-images:v1.20
+      - image: quay.io/3scale/operators-ci-images:machine-executor-go1.20
     steps:
       - setup_remote_docker
       - checkout
