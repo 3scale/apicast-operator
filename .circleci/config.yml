@@ -141,7 +141,7 @@ jobs:
       docker_layer_caching: true
     steps:
       - go/install:
-          version: '1.20.14'
+          version: '1.22.8'
       - checkout
       - run:
           name: Install KinD
