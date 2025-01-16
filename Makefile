@@ -43,7 +43,7 @@ CURRENT_DATE=$(shell date +%s)
 # download controller-gen if necessary
 CONTROLLER_GEN=$(PROJECT_PATH)/bin/controller-gen
 $(CONTROLLER_GEN):
-	$(call go-bin-install,$(CONTROLLER_GEN),sigs.k8s.io/controller-tools/cmd/controller-gen@v0.9.2)
+	$(call go-bin-install,$(CONTROLLER_GEN),sigs.k8s.io/controller-tools/cmd/controller-gen@v0.14.0)
 
 .PHONY: controller-gen
 controller-gen: $(CONTROLLER_GEN)
@@ -222,7 +222,7 @@ bundle-run: $(OPERATOR_SDK)
 GOLANGCI-LINT=$(PROJECT_PATH)/bin/golangci-lint
 $(GOLANGCI-LINT):
 	mkdir -p $(PROJECT_PATH)/bin
-	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(PROJECT_PATH)/bin v1.52.2
+	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(PROJECT_PATH)/bin v1.56.0
 
 .PHONY: golangci-lint
 golangci-lint: $(GOLANGCI-LINT)

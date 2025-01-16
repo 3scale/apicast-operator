@@ -34,7 +34,7 @@ commands:
 jobs:
   install-operator:
     docker:
-      - image: quay.io/3scale/operators-ci-images:v1.20
+      - image: quay.io/3scale/operators-ci-images:v1.22
     steps:
       - setup_remote_docker:
           docker_layer_caching: true
@@ -51,7 +51,7 @@ jobs:
 
   license-check:
     docker:
-      - image: quay.io/3scale/operators-ci-images:v1.20
+      - image: quay.io/3scale/operators-ci-images:v1.22
     steps:
       - run:
           name: Installing ruby
@@ -127,7 +127,7 @@ jobs:
 
   run-unit-test:
     docker:
-      - image: quay.io/3scale/operators-ci-images:v1.20
+      - image: quay.io/3scale/operators-ci-images:v1.22
     steps:
       - checkout
       - run:
@@ -141,7 +141,7 @@ jobs:
       docker_layer_caching: true
     steps:
       - go/install:
-          version: '1.20.14'
+          version: '1.22.8'
       - checkout
       - run:
           name: Install KinD
@@ -159,7 +159,7 @@ jobs:
 
   lint:
     docker:
-      - image: quay.io/3scale/operators-ci-images:v1.20
+      - image: quay.io/3scale/operators-ci-images:v1.22
     steps:
       - checkout
       - run:
@@ -169,7 +169,7 @@ jobs:
 
   bundle-validate:
     docker:
-      - image: quay.io/3scale/operators-ci-images:v1.20
+      - image: quay.io/3scale/operators-ci-images:v1.22
     steps:
       - checkout
       - run: make bundle
