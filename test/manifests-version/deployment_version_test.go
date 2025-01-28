@@ -55,7 +55,7 @@ func TestDeploymentVersions(t *testing.T) {
 		t.Errorf("Parsed object is not a Deployment object")
 	}
 
-	if deployment.Spec.Template.Labels["rht.comp_ver"] != version.ThreescaleRelease {
-		t.Errorf("rht.comp_ver differ: expected: %s; found: %s", version.ThreescaleRelease, deployment.Spec.Template.Labels["rht.comp_ver"])
+	if deployment.Spec.Template.Labels["rht.comp_ver"] != version.ThreescaleVersionMajorMinor() {
+		t.Errorf("rht.comp_ver differ: expected: %s; found: %s", version.ThreescaleVersionMajorMinor(), deployment.Spec.Template.Labels["rht.comp_ver"])
 	}
 }

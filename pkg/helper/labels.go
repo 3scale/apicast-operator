@@ -18,7 +18,7 @@ func MeteringLabels(componentType ComponentType) map[string]string {
 		// It should be updated on release branch
 		"rht.prod_ver":  "master",
 		"rht.comp":      "3scale_apicast",
-		"rht.comp_ver":  version.ThreescaleRelease,
+		"rht.comp_ver":  version.ThreescaleVersionMajorMinor(),
 		"rht.subcomp":   "apicast",
 		"rht.subcomp_t": string(componentType),
 	}

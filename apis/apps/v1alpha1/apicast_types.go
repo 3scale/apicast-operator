@@ -32,9 +32,10 @@ import (
 )
 
 const (
-	APIcastOperatorVersionAnnotation        = "apicast.apps.3scale.net/operator-version"
-	ReadyConditionType               string = "Ready"
-	WarningConditionType             string = "Warning"
+	APIcastOperatorVersionAnnotation          = "apicast.apps.3scale.net/operator-version"
+	APIcastThreescaleVersionAnnotation        = "apicast.apps.3scale.net/apicast-threescale-version"
+	ReadyConditionType                 string = "Ready"
+	WarningConditionType               string = "Warning"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -383,6 +384,11 @@ func (a *APIcast) UpdateOperatorVersion() bool {
 
 	if v, ok := a.Annotations[APIcastOperatorVersionAnnotation]; !ok || v != version.Version {
 		a.Annotations[APIcastOperatorVersionAnnotation] = version.Version
+		changed = true
+	}
+
+	if v, ok := a.Annotations[APIcastThreescaleVersionAnnotation]; !ok || v != version.ThreescaleVersionMajorMinorPatch() {
+		a.Annotations[APIcastThreescaleVersionAnnotation] = version.ThreescaleVersionMajorMinorPatch()
 		changed = true
 	}
 
