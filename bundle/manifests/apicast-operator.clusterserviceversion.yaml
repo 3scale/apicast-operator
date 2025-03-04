@@ -23,7 +23,7 @@ metadata:
     containerImage: quay.io/3scale/apicast-operator:master
     createdAt: "2019-10-27T22:40:00Z"
     description: APIcast is an API gateway built on top of NGINX. It is part of the Red Hat 3scale API Management Platform
-    olm.properties: '[{"type": "olm.maxOpenShiftVersion", "value": "4.17"}]'
+    olm.properties: '[{"type": "olm.maxOpenShiftVersion", "value": "4.18"}]'
     operators.openshift.io/infrastructure-features: '["Disconnected"]'
     operators.operatorframework.io/builder: operator-sdk-v1.2.0
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v2
