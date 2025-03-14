@@ -253,6 +253,11 @@ func (in *APIcastSpec) DeepCopyInto(out *APIcastSpec) {
 		*out = new(v1.LocalObjectReference)
 		**out = **in
 	}
+	if in.CACertificateSecretRef != nil {
+		in, out := &in.CACertificateSecretRef, &out.CACertificateSecretRef
+		*out = new(v1.LocalObjectReference)
+		**out = **in
+	}
 	if in.Workers != nil {
 		in, out := &in.Workers, &out.Workers
 		*out = new(int32)

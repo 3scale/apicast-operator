@@ -177,6 +177,9 @@ type APIcastSpec struct {
 	// HTTPSCertificateSecretRef references secret containing the X.509 certificate in the PEM format and the X.509 certificate secret key.
 	// +optional
 	HTTPSCertificateSecretRef *v1.LocalObjectReference `json:"httpsCertificateSecretRef,omitempty"`
+	// CACertificateSecretRef references secret containing the X.509 CA certificate in the PEM format.
+	// +optional
+	CACertificateSecretRef *v1.LocalObjectReference `json:"caCertificateSecretRef,omitempty"`
 	// Workers defines the number of APIcast's worker processes per pod.
 	// +optional
 	// +kubebuilder:validation:Minimum=1

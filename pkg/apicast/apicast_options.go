@@ -66,6 +66,7 @@ type APIcastOptions struct {
 	HTTPSPort                           *int32
 	HTTPSVerifyDepth                    *int64
 	HTTPSCertificateSecret              *v1.Secret
+	CACertificateSecret                 *v1.Secret
 	Workers                             *int32
 	Timezone                            *string
 	CustomPolicies                      []CustomPolicy
