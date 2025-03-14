@@ -36,6 +36,7 @@
 | `httpsPort` | int | No | 8443 only when `httpsCertificateSecretRef` is provided | Controls on which port APIcast should start listening for HTTPS connections. Do not use `8080` as HTTPS port (see [docs](https://github.com/3scale/APIcast/blob/master/doc/parameters.md#apicast_https_port)) |
 | `httpsVerifyDepth` | int | No | N/A | Defines the maximum length of the client certificate chain. (see [docs](https://github.com/3scale/APIcast/blob/master/doc/parameters.md#apicast_https_verify_depth)) |
 | `httpsCertificateSecretRef` | LocalObjectReference | No | APIcast has a default certificate used when `httpsPort` is provided | References secret containing the X.509 certificate in the PEM format and the X.509 certificate secret key |
+| `caCertificateSecretRef` | LocalObjectReference | No | N/A | References secret containing the X.509 CA certificate |
 | `workers` | integer | No | Automatically computed. Check [apicast doc](https://github.com/3scale/APIcast/blob/master/doc/parameters.md#apicast_workers) for further info. | Defines the number of worker processes |
 | `timezone` | string | No | N/A | The local timezone of the APIcast deployment pods. Its value must be a compatible value with the tz database | Defines the number of worker processes |
 | `customPolicies` | [][CustomPolicySpec](#CustomPolicySpec) | No | N/A | List of custom policies |
