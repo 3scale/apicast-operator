@@ -102,6 +102,10 @@ func (a *APIcastOptionsProvider) GetApicastOptions(ctx context.Context) (*APIcas
 		a.APIcastOptions.DeploymentEnvironment = &res
 	}
 
+	if a.APIcastCR.Spec.TopologySpreadConstraints != nil {
+		a.APIcastOptions.TopologySpreadConstraints = a.APIcastCR.Spec.TopologySpreadConstraints
+	}
+
 	a.APIcastOptions.DNSResolverAddress = a.APIcastCR.Spec.DNSResolverAddress
 	a.APIcastOptions.EnabledServices = a.APIcastCR.Spec.EnabledServices
 	a.APIcastOptions.ConfigurationLoadMode = a.APIcastCR.Spec.ConfigurationLoadMode

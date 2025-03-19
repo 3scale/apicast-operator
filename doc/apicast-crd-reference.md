@@ -49,6 +49,7 @@
 | `serviceCacheSize` | int | No | N/A | Specifies the number of services that APICast can store in the internal cache (see [docs](https://github.com/3scale/APIcast/blob/master/doc/parameters.md#apicast_service_cache_size)) |
 | `openTelemetry` | [OpenTelemetrySpec](#OpenTelemetrySpec) | No | N/A | contains the OpenTelemetry integration configuration |
 | `hpa` | bool | No | N/A | When this parameter is set to true, Horizontal Pod Autoscaling will be enabled with default values, spec.replicas and resources limits and requests will be ignored |
+| `topologySpreadConstraints` | \[\][v1.TopologySpreadConstraint](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#topologyspreadconstraint-v1-core) | No | `nil` | Specifies how to spread matching pods among the given topology |
 
 #### APIcastStatus
 

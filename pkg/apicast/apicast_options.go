@@ -81,7 +81,9 @@ type APIcastOptions struct {
 	PodTemplateLabels map[string]string `validate:"required"`
 	PodLabelSelector  map[string]string `validate:"required"`
 
-	Opentelemetry OpentelemetryConfig `validate:"-"`
+	Opentelemetry             OpentelemetryConfig           `validate:"-"`
+	PriorityClassName         string                        `validate:"-"`
+	TopologySpreadConstraints []v1.TopologySpreadConstraint `validate:"-"`
 }
 
 func NewAPIcastOptions() *APIcastOptions {

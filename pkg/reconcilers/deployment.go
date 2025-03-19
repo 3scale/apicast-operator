@@ -160,3 +160,15 @@ func DeploymentTemplateLabelsMutator(desired, existing *appsv1.Deployment) bool 
 
 	return update
 }
+
+// DeploymentConfigTopologySpreadConstraintsMutator ensures TopologySpreadConstraints is reconciled
+func DeploymentConfigTopologySpreadConstraintsMutator(desired, existing *appsv1.Deployment) bool {
+	updated := false
+
+	if !reflect.DeepEqual(existing.Spec.Template.Spec.TopologySpreadConstraints, desired.Spec.Template.Spec.TopologySpreadConstraints) {
+		updated = true
+		existing.Spec.Template.Spec.TopologySpreadConstraints = desired.Spec.Template.Spec.TopologySpreadConstraints
+	}
+
+	return updated
+}
