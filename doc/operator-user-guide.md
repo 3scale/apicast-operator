@@ -311,6 +311,29 @@ $ echo quit | openssl s_client -showcerts -connect 127.0.0.1:8443 2>/dev/null | 
 
 The downloaded certificate should match provided certificate.
 
+#### Setting custom TopologySpreadConstraints
+
+TopologySpreadConstraints specifies how to spread matching pods among the given topology.  See [here](https://docs.openshift.com/container-platform/4.13/nodes/scheduling/nodes-scheduler-pod-topology-spread-constraints.html) for more information.
+
+It be can be customized through APICast CR `topologySpreadConstraints` attribute for each Deployment.
+
+Example:
+```yaml
+apiVersion: apps.3scale.net/v1alpha1
+kind: APIManager
+metadata:
+  name: example-apimanager
+spec:
+  ...
+  topologySpreadConstraints:
+  - maxSkew: 1
+    topologyKey: topology.kubernetes.io/zone
+    whenUnsatisfiable: ScheduleAnyway
+    labelSelector:
+      matchLabels:
+        app: apicast-api-management
+```
+
 ### Reconciliation
 After an APIcast self-managed gateway solution has been installed, APIcast
 operator enables updating a given set of parameters from the custom resource

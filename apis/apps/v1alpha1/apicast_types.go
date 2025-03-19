@@ -229,6 +229,8 @@ type APIcastSpec struct {
 	// with APIcast.
 	// +optional
 	OpenTelemetry *OpenTelemetrySpec `json:"openTelemetry,omitempty"`
+	// +optional
+	TopologySpreadConstraints []v1.TopologySpreadConstraint `json:"topologySpreadConstraints,omitempty"`
 }
 
 func (a *APIcast) OpenTracingIsEnabled() bool {

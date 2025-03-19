@@ -84,6 +84,7 @@ func (r *APIcastLogicReconciler) Reconcile(ctx context.Context) (reconcile.Resul
 		reconcilers.DeploymentVolumeMountsMutator,
 		reconcilers.DeploymentPortsMutator,
 		reconcilers.DeploymentTemplateLabelsMutator,
+		reconcilers.DeploymentConfigTopologySpreadConstraintsMutator,
 	)
 
 	deployment, err := apicastFactory.Deployment(ctx, r.Client())
