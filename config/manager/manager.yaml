@@ -50,5 +50,5 @@ spec:
             fieldRef:
               fieldPath: metadata.namespace
         - name: RELATED_IMAGE_APICAST
-          value: "quay.io/3scale/apicast:latest"
+          value: "quay.io/3scale/apicast:v3.15.1"
       terminationGracePeriodSeconds: 10

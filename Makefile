@@ -9,20 +9,16 @@ PROJECT_PATH := $(patsubst %/,%,$(dir $(MKFILE_PATH)))
 all: manager
 
 # Current Operator version
-VERSION ?= 0.0.1
+VERSION ?= 0.9.0
 # Default bundle image tag
 BUNDLE_IMG ?= controller-bundle:$(VERSION)
 # Options for 'bundle-build'
-ifneq ($(origin CHANNELS), undefined)
-BUNDLE_CHANNELS := --channels=$(CHANNELS)
-endif
-ifneq ($(origin DEFAULT_CHANNEL), undefined)
-BUNDLE_DEFAULT_CHANNEL := --default-channel=$(DEFAULT_CHANNEL)
-endif
+BUNDLE_CHANNELS := --channels="alpha,stable"
+BUNDLE_DEFAULT_CHANNEL := --default-channel=stable
 BUNDLE_METADATA_OPTS ?= $(BUNDLE_CHANNELS) $(BUNDLE_DEFAULT_CHANNEL)
 
 # Image URL to use all building/pushing image targets
-IMG ?= quay.io/3scale/apicast-operator:master
+IMG ?= quay.io/3scale/apicast-operator:v0.9.0
 
 CRD_OPTIONS ?= "crd:crdVersions=v1"
 
