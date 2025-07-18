@@ -157,7 +157,7 @@ func (a *APIcast) deploymentVolumes() []v1.Volume {
 				Secret: &v1.SecretVolumeSource{
 					SecretName: a.options.GatewayConfigurationSecret.Name,
 					Items: []v1.KeyToPath{
-						v1.KeyToPath{
+						{
 							Key:  EmbeddedConfigurationSecretKey,
 							Path: EmbeddedConfigurationSecretKey,
 						},
@@ -224,7 +224,7 @@ func (a *APIcast) deploymentVolumes() []v1.Volume {
 				Secret: &v1.SecretVolumeSource{
 					SecretName: a.options.TracingConfig.Secret.Name,
 					Items: []v1.KeyToPath{
-						v1.KeyToPath{
+						{
 							Key:  TracingConfigSecretKey,
 							Path: tracingConfigVolumeName(a.options.TracingConfig.TracingLibrary, a.options.TracingConfig.Secret.Name),
 						},
@@ -444,7 +444,7 @@ func (a *APIcast) Deployment(ctx context.Context, k8sclient client.Client) (*app
 					ServiceAccountName: a.options.ServiceAccountName,
 					Volumes:            a.deploymentVolumes(),
 					Containers: []v1.Container{
-						v1.Container{
+						{
 							Name:            a.options.DeploymentName,
 							Ports:           a.containerPorts(),
 							Image:           a.options.Image,
@@ -630,8 +630,8 @@ func (a *APIcast) Service() *v1.Service {
 
 func (a *APIcast) servicePorts() []v1.ServicePort {
 	servicePorts := []v1.ServicePort{
-		v1.ServicePort{Name: "proxy", Port: appsv1alpha1.DefaultHTTPPort, Protocol: v1.ProtocolTCP, TargetPort: intstr.FromString("proxy")},
-		v1.ServicePort{Name: "management", Port: DefaultManagementPort, Protocol: v1.ProtocolTCP, TargetPort: intstr.FromString("management")},
+		{Name: "proxy", Port: appsv1alpha1.DefaultHTTPPort, Protocol: v1.ProtocolTCP, TargetPort: intstr.FromString("proxy")},
+		{Name: "management", Port: DefaultManagementPort, Protocol: v1.ProtocolTCP, TargetPort: intstr.FromString("management")},
 	}
 
 	if a.options.HTTPSPort != nil {
@@ -644,9 +644,9 @@ func (a *APIcast) servicePorts() []v1.ServicePort {
 
 func (a *APIcast) containerPorts() []v1.ContainerPort {
 	ports := []v1.ContainerPort{
-		v1.ContainerPort{Name: "proxy", ContainerPort: appsv1alpha1.DefaultHTTPPort, Protocol: v1.ProtocolTCP},
-		v1.ContainerPort{Name: "management", ContainerPort: DefaultManagementPort, Protocol: v1.ProtocolTCP},
-		v1.ContainerPort{Name: "metrics", ContainerPort: DefaultMetricsPort, Protocol: v1.ProtocolTCP},
+		{Name: "proxy", ContainerPort: appsv1alpha1.DefaultHTTPPort, Protocol: v1.ProtocolTCP},
+		{Name: "management", ContainerPort: DefaultManagementPort, Protocol: v1.ProtocolTCP},
+		{Name: "metrics", ContainerPort: DefaultMetricsPort, Protocol: v1.ProtocolTCP},
 	}
 
 	if a.options.HTTPSPort != nil {
@@ -686,6 +686,11 @@ func (a *APIcast) readinessProbe() *v1.Probe {
 }
 
 func (a *APIcast) Ingress() *networkingv1.Ingress {
+	var classNameToSet *string
+	desiredClassName := a.options.ExposedHost.IngressClassName
+	if desiredClassName != "" {
+		classNameToSet = &desiredClassName
+	}
 	ingressPathType := networkingv1.PathTypeImplementationSpecific
 	ingress := &networkingv1.Ingress{
 		TypeMeta: metav1.TypeMeta{
@@ -698,7 +703,8 @@ func (a *APIcast) Ingress() *networkingv1.Ingress {
 			Labels:    a.options.CommonLabels,
 		},
 		Spec: networkingv1.IngressSpec{
-			TLS: a.options.ExposedHost.TLS,
+			IngressClassName: classNameToSet,
+			TLS:              a.options.ExposedHost.TLS,
 			Rules: []networkingv1.IngressRule{
 				{
 					Host: a.options.ExposedHost.Host,

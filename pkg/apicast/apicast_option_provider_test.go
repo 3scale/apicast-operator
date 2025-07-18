@@ -11,6 +11,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	v1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -295,5 +296,87 @@ func TestCaCertificateOption(t *testing.T) {
 	if !reflect.DeepEqual(opts.CACertificateSecret, cacertSecret) {
 		t.Fatalf("cacert secret mismatch: %s",
 			cmp.Diff(cacertSecret, opts.CACertificateSecret))
+	}
+}
+
+func TestExposedHostOption(t *testing.T) {
+	namespace := "my-ns"
+	apicastConfigSecretName := "my-secret"
+	embeddedConfigSecret := GetTestSecret(namespace, apicastConfigSecretName,
+		map[string]string{"config.json": "{}"},
+	)
+	cases := []struct {
+		testName    string
+		exposedHost *appsv1alpha1.APIcastExposedHost
+		expected    ExposedHost
+	}{
+		{
+			"empty host",
+			&appsv1alpha1.APIcastExposedHost{},
+			ExposedHost{},
+		},
+		{
+			"with host",
+			&appsv1alpha1.APIcastExposedHost{Host: "example"},
+			ExposedHost{Host: "example"},
+		},
+		{
+			"with ingressClassName",
+			&appsv1alpha1.APIcastExposedHost{
+				Host:             "example",
+				IngressClassName: "default",
+			},
+			ExposedHost{
+				Host:             "example",
+				IngressClassName: "default",
+			},
+		},
+		{
+			"with TLS",
+			&appsv1alpha1.APIcastExposedHost{
+				Host: "example",
+				TLS: []networkingv1.IngressTLS{
+					{Hosts: []string{"example"}},
+				},
+			},
+			ExposedHost{
+				Host: "example",
+				TLS: []networkingv1.IngressTLS{
+					{Hosts: []string{"example"}},
+				},
+			},
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.testName, func(subT *testing.T) {
+			apicastCR := &appsv1alpha1.APIcast{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "instance1", Namespace: namespace,
+				},
+				Spec: appsv1alpha1.APIcastSpec{
+					EmbeddedConfigurationSecretRef: &v1.LocalObjectReference{
+						Name: apicastConfigSecretName,
+					},
+					ExposedHost: tc.exposedHost,
+				},
+			}
+
+			objs := []runtime.Object{embeddedConfigSecret}
+			cl := fake.NewClientBuilder().WithRuntimeObjects(objs...).Build()
+			optsProvider := NewApicastOptionsProvider(apicastCR, cl)
+			opts, err := optsProvider.GetApicastOptions(context.TODO())
+			if err != nil {
+				t.Fatalf("get options should not fail: %s", err)
+			}
+
+			if opts == nil {
+				t.Fatal("options should not be nil")
+			}
+
+			if !reflect.DeepEqual(opts.ExposedHost, tc.expected) {
+				t.Fatalf("cacert secret mismatch: %s",
+					cmp.Diff(tc.expected, opts.ExposedHost))
+			}
+		})
 	}
 }
