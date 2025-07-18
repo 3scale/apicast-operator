@@ -42,6 +42,8 @@ const (
 const (
 	HTTPSCertificatesMountPath  = "/var/run/secrets/apicast"
 	HTTPSCertificatesVolumeName = "https-certificates"
+	CACertificatesSecretKey     = "ca-bundle.crt"
+	CACertificatesVolumeName    = "ca-certificate"
 	CustomPoliciesMountBasePath = "/opt/app-root/src/policies"
 	CustomEnvsMountBasePath     = "/opt/app-root/src/custom-environments"
 	TracingConfigMountBasePath  = "/opt/app-root/src/tracing-configs"
@@ -86,6 +88,15 @@ func (a *APIcast) deploymentVolumeMounts() []v1.VolumeMount {
 	if a.options.HTTPSCertificateSecret != nil {
 		volumeMounts = append(volumeMounts, v1.VolumeMount{
 			Name:      HTTPSCertificatesVolumeName,
+			MountPath: HTTPSCertificatesMountPath,
+			ReadOnly:  true,
+		})
+	}
+
+	// Use the same mount path with https certificate
+	if a.options.CACertificateSecret != nil {
+		volumeMounts = append(volumeMounts, v1.VolumeMount{
+			Name:      CACertificatesVolumeName,
 			MountPath: HTTPSCertificatesMountPath,
 			ReadOnly:  true,
 		})
@@ -162,6 +173,23 @@ func (a *APIcast) deploymentVolumes() []v1.Volume {
 			VolumeSource: v1.VolumeSource{
 				Secret: &v1.SecretVolumeSource{
 					SecretName: a.options.HTTPSCertificateSecret.Name,
+				},
+			},
+		})
+	}
+
+	if a.options.CACertificateSecret != nil {
+		volumes = append(volumes, v1.Volume{
+			Name: CACertificatesVolumeName,
+			VolumeSource: v1.VolumeSource{
+				Secret: &v1.SecretVolumeSource{
+					SecretName: a.options.CACertificateSecret.Name,
+					Items: []v1.KeyToPath{
+						{
+							Key:  CACertificatesSecretKey,
+							Path: "ca-bundle.crt", // Map the secret key to the ca-bundle.crt file in the container
+						},
+					},
 				},
 			},
 		})
@@ -322,6 +350,11 @@ func (a *APIcast) deploymentEnv() []v1.EnvVar {
 		env = append(env,
 			k8sutils.EnvVarFromValue("APICAST_HTTPS_CERTIFICATE", fmt.Sprintf("%s/%s", HTTPSCertificatesMountPath, v1.TLSCertKey)),
 			k8sutils.EnvVarFromValue("APICAST_HTTPS_CERTIFICATE_KEY", fmt.Sprintf("%s/%s", HTTPSCertificatesMountPath, v1.TLSPrivateKeyKey)))
+	}
+
+	if a.options.CACertificateSecret != nil {
+		env = append(env,
+			k8sutils.EnvVarFromValue("SSL_CERT_FILE", path.Join(HTTPSCertificatesMountPath, "ca-bundle.crt")))
 	}
 
 	if a.options.Workers != nil {

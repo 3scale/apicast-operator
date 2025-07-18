@@ -182,3 +182,118 @@ func TestOpentelemetryOptions(t *testing.T) {
 		}
 	})
 }
+
+func TestInvalidCaCertificateOption(t *testing.T) {
+	namespace := "my-ns"
+	apicastConfigSecretName := "my-secret"
+	embeddedConfigSecret := GetTestSecret(namespace, apicastConfigSecretName,
+		map[string]string{"config.json": "{}"},
+	)
+
+	invalid_cacertSecret := GetTestSecret(namespace, "cacert",
+		map[string]string{
+			"a.crt": "{}",
+		},
+	)
+	cases := []struct {
+		testName      string
+		secretRef     *v1.LocalObjectReference
+		secret        *v1.Secret
+		expectedError string
+	}{
+		{
+			"Secret ref not set",
+			&v1.LocalObjectReference{},
+			nil,
+			"spec.caCertificateSecretRef.name: Required value: secret name not provided",
+		},
+		{
+			"Secret ref provided but secret does not exist",
+			&v1.LocalObjectReference{Name: "cacert"},
+			nil,
+			"secrets \"cacert\" not found",
+		},
+		{
+			"Secret key not provided",
+			&v1.LocalObjectReference{Name: "cacert"},
+			invalid_cacertSecret,
+			"Required value: Required secret key, ca-bundle.crt not found",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.testName, func(subT *testing.T) {
+			apicastCR := &appsv1alpha1.APIcast{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "instance1", Namespace: namespace,
+				},
+				Spec: appsv1alpha1.APIcastSpec{
+					EmbeddedConfigurationSecretRef: &v1.LocalObjectReference{
+						Name: apicastConfigSecretName,
+					},
+					CACertificateSecretRef: tc.secretRef,
+				},
+			}
+
+			objs := []runtime.Object{embeddedConfigSecret}
+			if tc.secret != nil {
+				objs = append(objs, tc.secret)
+			}
+			cl := fake.NewClientBuilder().WithRuntimeObjects(objs...).Build()
+			optsProvider := NewApicastOptionsProvider(apicastCR, cl)
+			_, err := optsProvider.GetApicastOptions(context.TODO())
+			if err == nil {
+				subT.Fatal("get options should fail")
+			}
+
+			if !strings.Contains(err.Error(), tc.expectedError) {
+				subT.Fatalf("error unexpected: %s", err)
+			}
+		})
+	}
+}
+
+func TestCaCertificateOption(t *testing.T) {
+	namespace := "my-ns"
+	apicastConfigSecretName := "my-secret"
+	embeddedConfigSecret := GetTestSecret(namespace, apicastConfigSecretName,
+		map[string]string{"config.json": "{}"},
+	)
+
+	cacertSecret := GetTestSecret(namespace, "cacert",
+		map[string]string{
+			"ca-bundle.crt": "{}",
+		},
+	)
+
+	apicastCR := &appsv1alpha1.APIcast{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "instance1", Namespace: namespace,
+		},
+		Spec: appsv1alpha1.APIcastSpec{
+			EmbeddedConfigurationSecretRef: &v1.LocalObjectReference{
+				Name: apicastConfigSecretName,
+			},
+			CACertificateSecretRef: &v1.LocalObjectReference{
+				Name: "cacert",
+			},
+		},
+	}
+
+	objs := []runtime.Object{embeddedConfigSecret, cacertSecret}
+	cl := fake.NewClientBuilder().WithRuntimeObjects(objs...).Build()
+	optsProvider := NewApicastOptionsProvider(apicastCR, cl)
+	opts, err := optsProvider.GetApicastOptions(context.TODO())
+	if err != nil {
+		t.Fatalf("get options should not fail: %s", err)
+	}
+
+	if opts == nil {
+		t.Fatal("options should not be nil")
+	}
+
+	if !reflect.DeepEqual(opts.CACertificateSecret, cacertSecret) {
+		t.Fatalf("cacert secret mismatch: %s",
+			cmp.Diff(cacertSecret, opts.CACertificateSecret))
+	}
+}

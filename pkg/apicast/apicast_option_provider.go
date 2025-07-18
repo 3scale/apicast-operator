@@ -136,6 +136,12 @@ func (a *APIcastOptionsProvider) GetApicastOptions(ctx context.Context) (*APIcas
 	}
 	a.APIcastOptions.HTTPSCertificateSecret = httpsCertificateSecret
 
+	caCertificateSecret, err := a.getCACertificateSecret(ctx)
+	if err != nil {
+		return nil, err
+	}
+	a.APIcastOptions.CACertificateSecret = caCertificateSecret
+
 	// Resource requirements
 	resourceRequirements := DefaultResourceRequirements(a.APIcastCR.Spec.Hpa)
 
@@ -264,7 +270,6 @@ func (a *APIcastOptionsProvider) getGatewayEmbeddedConfigSecret(ctx context.Cont
 
 	gatewayConfigSecret := v1.Secret{}
 	err := a.Client.Get(ctx, gatewayConfigSecretNamespacedName, &gatewayConfigSecret)
-
 	if err != nil {
 		return nil, err
 	}
@@ -296,7 +301,6 @@ func (a *APIcastOptionsProvider) getAdminPortalCredentialsSecret(ctx context.Con
 
 	adminPortalCredentialsSecret := v1.Secret{}
 	err := a.Client.Get(ctx, adminPortalCredentialsNamespacedName, &adminPortalCredentialsSecret)
-
 	if err != nil {
 		return nil, err
 	}
@@ -344,7 +348,6 @@ func (a *APIcastOptionsProvider) getHTTPSCertificateSecret(ctx context.Context) 
 
 	secret := &v1.Secret{}
 	err := a.Client.Get(ctx, namespacedName, secret)
-
 	if err != nil {
 		// NotFoundError is also an error, it is required to exist
 		return nil, err
@@ -368,10 +371,46 @@ func (a *APIcastOptionsProvider) getHTTPSCertificateSecret(ctx context.Context) 
 	return secret, err
 }
 
+func (a *APIcastOptionsProvider) getCACertificateSecret(ctx context.Context) (*v1.Secret, error) {
+	if a.APIcastCR.Spec.CACertificateSecretRef == nil {
+		return nil, nil
+	}
+
+	errors := field.ErrorList{}
+	specFldPath := field.NewPath("spec")
+	caCertificateSecretRefFldPath := specFldPath.Child("caCertificateSecretRef")
+	secretNameFldPath := caCertificateSecretRefFldPath.Child("name")
+
+	ns := a.APIcastCR.Namespace
+
+	if a.APIcastCR.Spec.CACertificateSecretRef.Name == "" {
+		errors = append(errors, field.Required(secretNameFldPath, "secret name not provided"))
+		return nil, errors.ToAggregate()
+	}
+
+	namespacedName := types.NamespacedName{
+		Name:      a.APIcastCR.Spec.CACertificateSecretRef.Name,
+		Namespace: ns,
+	}
+
+	secret := &v1.Secret{}
+	err := a.Client.Get(ctx, namespacedName, secret)
+	if err != nil {
+		// NotFoundError is also an error, it is required to exist
+		return nil, err
+	}
+
+	if _, ok := secret.Data[CACertificatesSecretKey]; !ok {
+		errors = append(errors, field.Required(secretNameFldPath, fmt.Sprintf("Required secret key, %s not found", CACertificatesSecretKey)))
+		return nil, errors.ToAggregate()
+	}
+
+	return secret, nil
+}
+
 func (a *APIcastOptionsProvider) validateCustomPolicySecret(ctx context.Context, nn types.NamespacedName) (*v1.Secret, error) {
 	secret := &v1.Secret{}
 	err := a.Client.Get(ctx, nn, secret)
-
 	if err != nil {
 		// NotFoundError is also an error, it is required to exist
 		return nil, err
@@ -391,7 +430,6 @@ func (a *APIcastOptionsProvider) validateCustomPolicySecret(ctx context.Context,
 func (a *APIcastOptionsProvider) customEnvSecret(ctx context.Context, nn types.NamespacedName) (*v1.Secret, error) {
 	secret := &v1.Secret{}
 	err := a.Client.Get(ctx, nn, secret)
-
 	if err != nil {
 		// NotFoundError is also an error, it is required to exist
 		return nil, err
@@ -407,7 +445,6 @@ func (a *APIcastOptionsProvider) customEnvSecret(ctx context.Context, nn types.N
 func (a *APIcastOptionsProvider) validateTracingConfigSecret(ctx context.Context, nn types.NamespacedName) (*v1.Secret, error) {
 	secret := &v1.Secret{}
 	err := a.Client.Get(ctx, nn, secret)
-
 	if err != nil {
 		// NotFoundError is also an error, it is required to exist
 		return nil, err

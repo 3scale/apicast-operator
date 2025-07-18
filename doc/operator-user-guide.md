@@ -311,6 +311,37 @@ $ echo quit | openssl s_client -showcerts -connect 127.0.0.1:8443 2>/dev/null | 
 
 The downloaded certificate should match provided certificate.
 
+#### Override default CA certificate at pod level
+You can override the default CA certificate used by APIcast pod with `caCertificateSecretRef` field.
+
+Steps to override CA certificate at pod level:
+
+1.- Genrate CA certificate
+```
+openssl genrsa -out rootCA.key 2048
+openssl req -batch -new -x509 -nodes -key rootCA.key -sha256 -days 1024 -out rootCA.pem
+```
+
+2.- Create the certificate secret
+```
+kubectl create secret generic cacert --namespace=apicast-test --from-file=ca-bundle.crt=rootCA.pem
+```
+
+3.- Reference the certificate secret in APIcast CR
+
+```
+apiVersion: apps.3scale.net/v1alpha1
+kind: APIcast
+metadata:
+  name: apicast1
+spec:
+  ...
+  caCertificateSecretRef:
+    name: cacert
+```
+
+See [APIcast CRD reference](apicast-crd-reference.md)
+
 ### Reconciliation
 After an APIcast self-managed gateway solution has been installed, APIcast
 operator enables updating a given set of parameters from the custom resource
