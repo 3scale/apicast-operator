@@ -160,3 +160,12 @@ func DeploymentTemplateLabelsMutator(desired, existing *appsv1.Deployment) bool 
 
 	return update
 }
+
+func DeploymentAffinityMutator(desired, existing *appsv1.Deployment) bool {
+	update := false
+	if !reflect.DeepEqual(existing.Spec.Template.Spec.Affinity, desired.Spec.Template.Spec.Affinity) {
+		existing.Spec.Template.Spec.Affinity = desired.Spec.Template.Spec.Affinity
+		update = true
+	}
+	return update
+}
