@@ -78,6 +78,7 @@ func (r *APIcastLogicReconciler) Reconcile(ctx context.Context) (reconcile.Resul
 		reconcilers.DeploymentImageMutator,
 		reconcilers.DeploymentServiceAccountNameMutator,
 		reconcilers.DeploymentEnvVarsMutator,
+		reconcilers.DeploymentAffinityMutator,
 		reconcilers.DeploymentResourceMutator,
 		reconcilers.DeploymentPodTemplateAnnotationsMutator,
 		reconcilers.DeploymentVolumesMutator,

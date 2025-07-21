@@ -441,6 +441,7 @@ func (a *APIcast) Deployment(ctx context.Context, k8sclient client.Client) (*app
 					Annotations: a.podAnnotations(watchedSecretAnnotations),
 				},
 				Spec: v1.PodSpec{
+					Affinity:           a.options.Affinity,
 					ServiceAccountName: a.options.ServiceAccountName,
 					Volumes:            a.deploymentVolumes(),
 					Containers: []v1.Container{

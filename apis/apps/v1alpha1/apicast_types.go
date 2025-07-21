@@ -66,6 +66,9 @@ type APIcastSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
+	// +optional
+	Affinity *v1.Affinity `json:"affinity,omitempty"`
+
 	// Number of replicas of the APIcast Deployment.
 	// +optional
 	Replicas *int64 `json:"replicas,omitempty"`
