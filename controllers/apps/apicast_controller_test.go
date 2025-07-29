@@ -13,8 +13,10 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
+	policyv1 "k8s.io/api/policy/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/utils/ptr"
 
 	appsv1alpha1 "github.com/3scale/apicast-operator/apis/apps/v1alpha1"
@@ -387,6 +389,51 @@ var _ = Describe("APIcast controller", func() {
 				g.Expect(testClient().Get(context.Background(), apicastDeploymentLookupKey, newDeployment)).To(Succeed())
 				g.Expect(newDeployment.Spec.Template.Spec.Tolerations).Should(Equal(tolerations))
 			}, 5*time.Minute, retryInterval).Should(Succeed())
+		})
+	})
+
+	Context("Run APIcast with PodDisruptionBudge", func() {
+		var apicast *appsv1alpha1.APIcast
+		pdb := &appsv1alpha1.PodDisruptionBudgetSpec{Enabled: true}
+		maxUnavailable := &intstr.IntOrString{Type: 0, IntVal: 1}
+
+		BeforeEach(func(ctx SpecContext) {
+			// Create an APIcast embedded configuration secret
+			err := testCreateAPIcastEmbeddedConfigurationSecret(context.Background(), testNamespace)
+			Expect(err).ToNot(HaveOccurred())
+
+			// Create an APIcast
+			apicast = &appsv1alpha1.APIcast{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      apicastName,
+					Namespace: testNamespace,
+				},
+				Spec: appsv1alpha1.APIcastSpec{
+					EmbeddedConfigurationSecretRef: &v1.LocalObjectReference{
+						Name: testAPIcastEmbeddedConfigurationSecretName,
+					},
+				},
+			}
+		})
+
+		It("Create a new APIcast with pdb enabled", func(ctx SpecContext) {
+			apicast.Spec.PodDisruptionBudget = pdb
+			apicastDeploymentName := "apicast-" + apicastName
+
+			err := testClient().Create(ctx, apicast)
+
+			Expect(err).ToNot(HaveOccurred())
+
+			pdb := &policyv1.PodDisruptionBudget{}
+			Eventually(func(g Gomega) {
+				g.Expect(testClient().Get(ctx,
+					types.NamespacedName{
+						Namespace: testNamespace,
+						Name:      apicastDeploymentName,
+					}, pdb)).To(Succeed())
+			}).WithContext(ctx).Should(Succeed())
+
+			Expect(pdb.Spec.MaxUnavailable).To(Equal(maxUnavailable))
 		})
 	})
 })
