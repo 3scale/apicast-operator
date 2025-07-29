@@ -121,6 +121,13 @@ func (in *APIcastSpec) DeepCopyInto(out *APIcastSpec) {
 		*out = new(v1.Affinity)
 		(*in).DeepCopyInto(*out)
 	}
+	if in.Tolerations != nil {
+		in, out := &in.Tolerations, &out.Tolerations
+		*out = make([]v1.Toleration, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
 	if in.Replicas != nil {
 		in, out := &in.Replicas, &out.Replicas
 		*out = new(int64)

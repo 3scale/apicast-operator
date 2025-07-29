@@ -272,6 +272,52 @@ Two notes:
 
 See [APIcast CRD reference](apicast-crd-reference.md)
 
+#### Setting custom affinity and tolerations
+
+Kubernetes [Affinity](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#affinity-and-anti-affinity
+) and [Tolerations](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/)
+can be customized in a 3scale API Management solution through APIManager
+CR attributes in order to customize where/how the different 3scale components of
+an installation are scheduled onto Kubernetes Nodes.
+
+For example, setting a custom node affinity for backend listener
+and custom tolerations for system's memcached would be done in the
+following way:
+
+```yaml
+apiVersion: apps.3scale.net/v1alpha1
+kind: APIcast
+metadata:
+  name: apicast1
+spec:
+  resources:
+   affinity:
+     nodeAffinity:
+       requiredDuringSchedulingIgnoredDuringExecution:
+         nodeSelectorTerms:
+         - matchExpressions:
+           - key: "kubernetes.io/hostname"
+             operator: In
+             values:
+             - ip-10-96-1-105
+           - key: "beta.kubernetes.io/arch"
+             operator: In
+             values:
+             - amd64
+   tolerations:
+   - key: key1
+     value: value1
+     operator: Equal
+     effect: NoSchedule
+   - key: key2
+     value: value2
+     operator: Equal
+     effect: NoSchedule
+```
+
+See [APIcast CRD reference](apicast-crd-reference.md) for a full list of
+attributes related to affinity and tolerations.
+
 #### Enabling TLS at pod level
 
 You can use your SSL certificate to enable TLS at APIcast pod level setting either `httpsPort` or `httpsCertificateSecretRef` fields or both.

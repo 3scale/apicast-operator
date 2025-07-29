@@ -169,3 +169,14 @@ func DeploymentAffinityMutator(desired, existing *appsv1.Deployment) bool {
 	}
 	return update
 }
+
+func DeploymentTolerationsMutator(desired, existing *appsv1.Deployment) bool {
+	updated := false
+
+	if !reflect.DeepEqual(existing.Spec.Template.Spec.Tolerations, desired.Spec.Template.Spec.Tolerations) {
+		existing.Spec.Template.Spec.Tolerations = desired.Spec.Template.Spec.Tolerations
+		updated = true
+	}
+
+	return updated
+}
