@@ -10,7 +10,7 @@ import (
 
 type ExposedHost struct {
 	Host             string
-	IngressClassName string
+	IngressClassName *string
 	TLS              []networkingv1.IngressTLS
 }
 
