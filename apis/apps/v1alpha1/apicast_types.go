@@ -68,6 +68,8 @@ type APIcastSpec struct {
 
 	// +optional
 	Affinity *v1.Affinity `json:"affinity,omitempty"`
+	// +optional
+	Tolerations []v1.Toleration `json:"tolerations,omitempty"`
 
 	// Number of replicas of the APIcast Deployment.
 	// +optional
