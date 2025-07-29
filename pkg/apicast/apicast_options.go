@@ -9,8 +9,9 @@ import (
 )
 
 type ExposedHost struct {
-	Host string
-	TLS  []networkingv1.IngressTLS
+	Host             string
+	IngressClassName *string
+	TLS              []networkingv1.IngressTLS
 }
 
 type CustomPolicy struct {
@@ -42,6 +43,8 @@ type APIcastOptions struct {
 	ExposedHost                  ExposedHost             `validate:"-"`
 	AdminPortalCredentialsSecret *v1.Secret              `validate:"required_without=GatewayConfigurationSecret"`
 	GatewayConfigurationSecret   *v1.Secret              `validate:"required_without=AdminPortalCredentialsSecret"`
+	Affinity                     *v1.Affinity            `validate:"-"`
+	Tolerations                  []v1.Toleration         `validate:"-"`
 	ResourceRequirements         v1.ResourceRequirements `validate:"-"`
 	Hpa                          bool
 

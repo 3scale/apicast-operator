@@ -10,6 +10,9 @@
 **json/yaml field**| **Type** | **Required** | **Default value** | **Description** |
 | --- | --- | --- | --- | --- |
 | `replicas` | integer | No | 1 | Number of replica pods |
+| `affinity` | [v1.Affinity](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#affinity-v1-core) | No | `nil` | Affinity is a group of affinity scheduling rules |
+| `tolerations` | \[\][v1.Tolerations](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#toleration-v1-core) | No | `nil` | Tolerations allow pods to schedule onto nodes with matching taints |
+| `podDisruptionBudget` | \*PodDisruptionBudgetSpec | No | See [PodDisruptionBudgetSpec](#PodDisruptionBudgetSpec) reference | Spec of the PodDisruptionBudgetSpec part  |
 | `adminPortalCredentialsRef` | LocalObjectReference | No | N/A | Secret with the portal endpoint URL information. See [AdminPortalSecret](#AdminPortalSecret) for required format |
 | `embeddedConfigurationSecretRef` | LocalObjectReference | No | N/A | Secret containing the gateway configuration. See [EmbeddedConfSecret](#EmbeddedConfSecret) for required format |
 | `serviceAccount` | string | No | `default` service account | Service account associated to the gateway |
@@ -64,6 +67,7 @@ Used by the Operator/Kubernetes to control the state of the Apicast custom resou
 | **json/yaml field** | **Type** | **Required** | **Default value** | **Description** |
 | --- | --- | --- | --- | --- |
 | `host` | string | Yes | N/A | Domain name being routed to the gateway |
+| `ingressClassName` | string | No | N/A | The name of IngressClass to be used (see [doc](https://kubernetes.io/docs/concepts/services-networking/ingress/#the-ingress-resource)|
 | `tls` | []networkv1.IngressTLS | No | N/A | Array of ingress TLS objects (see [doc](https://kubernetes.io/docs/concepts/services-networking/ingress/#tls)) |
 
 #### AdminPortalSecret
@@ -169,3 +173,9 @@ The apicast operator allows monitoring the secret for changes adding the `apicas
 With that label in place, when the content of the secret is changed, the operator will get notified.
 Then, the operator will rollout apicast deployment to make the changes effective.
 The operator will not take *ownership* of the secret in any way.
+
+### PodDisruptionBudgetSpec
+
+| **Field** | **json/yaml field**| **Type** | **Required** | **Default value** | **Description** |
+| --- | --- | --- | --- | --- | --- |
+| Enabled | `enabled` | bool | No | `false` | Enable to automatically create [PodDisruptionBudgets](https://kubernetes.io/docs/concepts/workloads/pods/disruptions/).|

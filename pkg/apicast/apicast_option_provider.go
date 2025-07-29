@@ -82,6 +82,7 @@ func (a *APIcastOptionsProvider) GetApicastOptions(ctx context.Context) (*APIcas
 	a.APIcastOptions.ExposedHost = ExposedHost{}
 	if a.APIcastCR.Spec.ExposedHost != nil {
 		a.APIcastOptions.ExposedHost.Host = a.APIcastCR.Spec.ExposedHost.Host
+		a.APIcastOptions.ExposedHost.IngressClassName = a.APIcastCR.Spec.ExposedHost.IngressClassName
 		a.APIcastOptions.ExposedHost.TLS = a.APIcastCR.Spec.ExposedHost.TLS
 	}
 
@@ -150,6 +151,8 @@ func (a *APIcastOptionsProvider) GetApicastOptions(ctx context.Context) (*APIcas
 		resourceRequirements = *a.APIcastCR.Spec.Resources
 	}
 	a.APIcastOptions.ResourceRequirements = resourceRequirements
+	a.APIcastOptions.Affinity = a.APIcastCR.Spec.Affinity
+	a.APIcastOptions.Tolerations = a.APIcastCR.Spec.Tolerations
 
 	a.APIcastOptions.Workers = a.APIcastCR.Spec.Workers
 	a.APIcastOptions.Timezone = a.APIcastCR.Spec.Timezone

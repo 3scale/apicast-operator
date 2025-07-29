@@ -19,6 +19,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
+	policyv1 "k8s.io/api/policy/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -56,6 +57,10 @@ const (
 
 const (
 	HashedSecretName = "hashed-secret-data"
+)
+
+const (
+	PDB_MAX_UNAVAILABLE_POD_NUMBER = 1
 )
 
 type APIcast struct {
@@ -157,7 +162,7 @@ func (a *APIcast) deploymentVolumes() []v1.Volume {
 				Secret: &v1.SecretVolumeSource{
 					SecretName: a.options.GatewayConfigurationSecret.Name,
 					Items: []v1.KeyToPath{
-						v1.KeyToPath{
+						{
 							Key:  EmbeddedConfigurationSecretKey,
 							Path: EmbeddedConfigurationSecretKey,
 						},
@@ -224,7 +229,7 @@ func (a *APIcast) deploymentVolumes() []v1.Volume {
 				Secret: &v1.SecretVolumeSource{
 					SecretName: a.options.TracingConfig.Secret.Name,
 					Items: []v1.KeyToPath{
-						v1.KeyToPath{
+						{
 							Key:  TracingConfigSecretKey,
 							Path: tracingConfigVolumeName(a.options.TracingConfig.TracingLibrary, a.options.TracingConfig.Secret.Name),
 						},
@@ -441,10 +446,12 @@ func (a *APIcast) Deployment(ctx context.Context, k8sclient client.Client) (*app
 					Annotations: a.podAnnotations(watchedSecretAnnotations),
 				},
 				Spec: v1.PodSpec{
+					Affinity:           a.options.Affinity,
+					Tolerations:        a.options.Tolerations,
 					ServiceAccountName: a.options.ServiceAccountName,
 					Volumes:            a.deploymentVolumes(),
 					Containers: []v1.Container{
-						v1.Container{
+						{
 							Name:            a.options.DeploymentName,
 							Ports:           a.containerPorts(),
 							Image:           a.options.Image,
@@ -630,8 +637,8 @@ func (a *APIcast) Service() *v1.Service {
 
 func (a *APIcast) servicePorts() []v1.ServicePort {
 	servicePorts := []v1.ServicePort{
-		v1.ServicePort{Name: "proxy", Port: appsv1alpha1.DefaultHTTPPort, Protocol: v1.ProtocolTCP, TargetPort: intstr.FromString("proxy")},
-		v1.ServicePort{Name: "management", Port: DefaultManagementPort, Protocol: v1.ProtocolTCP, TargetPort: intstr.FromString("management")},
+		{Name: "proxy", Port: appsv1alpha1.DefaultHTTPPort, Protocol: v1.ProtocolTCP, TargetPort: intstr.FromString("proxy")},
+		{Name: "management", Port: DefaultManagementPort, Protocol: v1.ProtocolTCP, TargetPort: intstr.FromString("management")},
 	}
 
 	if a.options.HTTPSPort != nil {
@@ -644,9 +651,9 @@ func (a *APIcast) servicePorts() []v1.ServicePort {
 
 func (a *APIcast) containerPorts() []v1.ContainerPort {
 	ports := []v1.ContainerPort{
-		v1.ContainerPort{Name: "proxy", ContainerPort: appsv1alpha1.DefaultHTTPPort, Protocol: v1.ProtocolTCP},
-		v1.ContainerPort{Name: "management", ContainerPort: DefaultManagementPort, Protocol: v1.ProtocolTCP},
-		v1.ContainerPort{Name: "metrics", ContainerPort: DefaultMetricsPort, Protocol: v1.ProtocolTCP},
+		{Name: "proxy", ContainerPort: appsv1alpha1.DefaultHTTPPort, Protocol: v1.ProtocolTCP},
+		{Name: "management", ContainerPort: DefaultManagementPort, Protocol: v1.ProtocolTCP},
+		{Name: "metrics", ContainerPort: DefaultMetricsPort, Protocol: v1.ProtocolTCP},
 	}
 
 	if a.options.HTTPSPort != nil {
@@ -698,7 +705,8 @@ func (a *APIcast) Ingress() *networkingv1.Ingress {
 			Labels:    a.options.CommonLabels,
 		},
 		Spec: networkingv1.IngressSpec{
-			TLS: a.options.ExposedHost.TLS,
+			IngressClassName: a.options.ExposedHost.IngressClassName,
+			TLS:              a.options.ExposedHost.TLS,
 			Rules: []networkingv1.IngressRule{
 				{
 					Host: a.options.ExposedHost.Host,
@@ -834,6 +842,28 @@ func (a *APIcast) hasSecretHashChanged(ctx context.Context, k8sclient client.Cli
 
 	logger.V(1).Info(fmt.Sprintf("%s secret .data has not changed since last checked", secretToCheckKey.Name))
 	return false
+}
+
+func (a *APIcast) PodDisruptionBudget() *policyv1.PodDisruptionBudget {
+	return &policyv1.PodDisruptionBudget{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "PodDisruptionBudget",
+			APIVersion: "policy/v1",
+		},
+
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      a.options.DeploymentName,
+			Namespace: a.options.Namespace,
+			Labels:    a.options.CommonLabels,
+		},
+
+		Spec: policyv1.PodDisruptionBudgetSpec{
+			Selector: &metav1.LabelSelector{
+				MatchLabels: a.options.PodLabelSelector,
+			},
+			MaxUnavailable: &intstr.IntOrString{IntVal: PDB_MAX_UNAVAILABLE_POD_NUMBER},
+		},
+	}
 }
 
 func addOwnerRefToObject(o metav1.Object, owner metav1.OwnerReference) {
