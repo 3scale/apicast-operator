@@ -686,11 +686,6 @@ func (a *APIcast) readinessProbe() *v1.Probe {
 }
 
 func (a *APIcast) Ingress() *networkingv1.Ingress {
-	var classNameToSet *string
-	desiredClassName := a.options.ExposedHost.IngressClassName
-	if desiredClassName != "" {
-		classNameToSet = &desiredClassName
-	}
 	ingressPathType := networkingv1.PathTypeImplementationSpecific
 	ingress := &networkingv1.Ingress{
 		TypeMeta: metav1.TypeMeta{
@@ -703,7 +698,7 @@ func (a *APIcast) Ingress() *networkingv1.Ingress {
 			Labels:    a.options.CommonLabels,
 		},
 		Spec: networkingv1.IngressSpec{
-			IngressClassName: classNameToSet,
+			IngressClassName: a.options.ExposedHost.IngressClassName,
 			TLS:              a.options.ExposedHost.TLS,
 			Rules: []networkingv1.IngressRule{
 				{

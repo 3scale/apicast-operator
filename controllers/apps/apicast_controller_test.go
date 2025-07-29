@@ -15,6 +15,7 @@ import (
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 
 	appsv1alpha1 "github.com/3scale/apicast-operator/apis/apps/v1alpha1"
 	apicastpkg "github.com/3scale/apicast-operator/pkg/apicast"
@@ -171,7 +172,7 @@ var _ = Describe("APIcast controller", func() {
 				Spec: appsv1alpha1.APIcastSpec{
 					ExposedHost: &appsv1alpha1.APIcastExposedHost{
 						Host:             "apicast.example.com",
-						IngressClassName: "default-openshift",
+						IngressClassName: ptr.To("default-openshift"),
 					},
 					EmbeddedConfigurationSecretRef: &v1.LocalObjectReference{
 						Name: testAPIcastEmbeddedConfigurationSecretName,

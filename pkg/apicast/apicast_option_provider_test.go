@@ -14,6 +14,7 @@ import (
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	appsv1alpha1 "github.com/3scale/apicast-operator/apis/apps/v1alpha1"
@@ -324,11 +325,11 @@ func TestExposedHostOption(t *testing.T) {
 			"with ingressClassName",
 			&appsv1alpha1.APIcastExposedHost{
 				Host:             "example",
-				IngressClassName: "default",
+				IngressClassName: ptr.To("default"),
 			},
 			ExposedHost{
 				Host:             "example",
-				IngressClassName: "default",
+				IngressClassName: ptr.To("default"),
 			},
 		},
 		{
