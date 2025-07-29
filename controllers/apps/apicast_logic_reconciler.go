@@ -8,6 +8,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
+	policyv1 "k8s.io/api/policy/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -93,6 +94,11 @@ func (r *APIcastLogicReconciler) Reconcile(ctx context.Context) (reconcile.Resul
 		return reconcile.Result{}, err
 	}
 	err = r.ReconcileResource(ctx, &appsv1.Deployment{}, deployment, reconcilers.DeploymentMutator(deploymentMutators...))
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+
+	err = r.ReconcilePodDisruptionBudget(ctx, apicastFactory.PodDisruptionBudget(), reconcilers.PodDisruptionBudgetMutator)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
@@ -292,4 +298,11 @@ func (r *APIcastLogicReconciler) validateAPicastCR(ctx context.Context) error {
 	}
 
 	return errors.ToAggregate()
+}
+
+func (r *APIcastLogicReconciler) ReconcilePodDisruptionBudget(ctx context.Context, desired *policyv1.PodDisruptionBudget, mutatefn reconcilers.MutateFn) error {
+	if !r.APIcastCR.IsPDBEnabled() {
+		k8sutils.TagObjectToDelete(desired)
+	}
+	return r.ReconcileResource(ctx, &policyv1.PodDisruptionBudget{}, desired, mutatefn)
 }

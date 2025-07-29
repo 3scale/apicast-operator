@@ -9,6 +9,8 @@
     * [Providing the APIcast configuration through a configuration file](#Providing-the-APIcast-configuration-through-a-configuration-file)
     * [Exposing APIcast externally via a Kubernetes Ingress](#Exposing-APIcast-externally-via-a-Kubernetes-Ingress)
     * [Setting custom resource requirements](#setting-custom-resource-requirements)
+    * [Setting custom affinity and tolerations](#setting-custom-affinity-and-tolerations)
+    * [Enabling Pod Disruption Budgets](#enable-pod-disruption-budgets)
     * [Setting Horizontal Pod Autoscaling](#setting-horizontal-pod-autoscaling)
     * [Enabling TLS at pod level](#enabling-tls-at-pod-level)
     * [Adding custom policies](adding-custom-policies.md)
@@ -309,6 +311,35 @@ spec:
 
 See [APIcast CRD reference](apicast-crd-reference.md) for a full list of
 attributes related to affinity and tolerations.
+
+#### Enabling Pod Disruption Budgets
+A Pod Disruption Budget limits the number of pods related to an application
+(in this case, pods of a Deployment) that are down simultaneously
+from **voluntary disruptions**.
+
+For details about the behavior of Pod Disruption Budgets, what they perform and
+what constitutes a 'voluntary disruption' see the following
+[Kubernetes Documentation](https://kubernetes.io/docs/concepts/workloads/pods/disruptions/)
+
+Pods which are deleted or unavailable due to a rolling upgrade to an application
+do count against the disruption budget, but the Deployments are not
+limited by Pod Disruption Budgets when doing rolling upgrades or they are
+scaled up/down.
+
+In order for the Pod Disruption Budget setting to be effective the number of
+replicas has to be set to a value greater than 1.
+
+Example:
+```yaml
+apiVersion: apps.3scale.net/v1alpha1
+kind: APIcast
+metadata:
+  name: apicast1
+spec:
+  replicas: 2
+  podDisruptionBudget:
+    enabled: true
+```
 
 #### Enabling TLS at pod level
 

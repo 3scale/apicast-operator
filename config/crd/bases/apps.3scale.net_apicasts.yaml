@@ -1270,6 +1270,11 @@ spec:
                   PathRoutingEnabled can be used to enable APIcast's path-based routing
                   in addition to to the default host-based routing.
                 type: boolean
+              podDisruptionBudget:
+                properties:
+                  enabled:
+                    type: boolean
+                type: object
               replicas:
                 description: Number of replicas of the APIcast Deployment.
                 format: int64
