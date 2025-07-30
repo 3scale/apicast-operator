@@ -187,6 +187,8 @@ spec:
                 properties:
                   host:
                     type: string
+                  ingressClassName:
+                    type: string
                   tls:
                     items:
                       description: IngressTLS describes the transport layer security

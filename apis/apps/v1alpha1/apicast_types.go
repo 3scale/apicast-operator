@@ -252,6 +252,8 @@ const (
 type APIcastExposedHost struct {
 	Host string `json:"host"`
 	// +optional
+	IngressClassName *string `json:"ingressClassName,omitempty"`
+	// +optional
 	TLS []networkingv1.IngressTLS `json:"tls,omitempty"`
 }
 

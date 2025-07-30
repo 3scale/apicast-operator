@@ -9,8 +9,9 @@ import (
 )
 
 type ExposedHost struct {
-	Host string
-	TLS  []networkingv1.IngressTLS
+	Host             string
+	IngressClassName *string
+	TLS              []networkingv1.IngressTLS
 }
 
 type CustomPolicy struct {

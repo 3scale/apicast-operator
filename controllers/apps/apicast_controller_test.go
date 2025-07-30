@@ -15,6 +15,7 @@ import (
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 
 	appsv1alpha1 "github.com/3scale/apicast-operator/apis/apps/v1alpha1"
 	apicastpkg "github.com/3scale/apicast-operator/pkg/apicast"
@@ -27,6 +28,9 @@ const (
 )
 
 var _ = Describe("APIcast controller", func() {
+	const (
+		retryInterval = time.Second * 5
+	)
 	var testNamespace string
 
 	BeforeEach(CreateNamespaceCallback(&testNamespace))
@@ -41,10 +45,6 @@ var _ = Describe("APIcast controller", func() {
 	// Test basic APIcast deployment
 	Context("Run with basic APIcast deployment", func() {
 		It("Should create successfully", func() {
-			const (
-				retryInterval = time.Second * 5
-			)
-
 			start := time.Now()
 
 			// Create a custom environment secret
@@ -137,7 +137,6 @@ var _ = Describe("APIcast controller", func() {
 			}, 5*time.Minute, retryInterval).Should(BeTrue())
 
 			Eventually(func() bool {
-
 				newApicast := &appsv1alpha1.APIcast{}
 				key := types.NamespacedName{Name: apicastName, Namespace: testNamespace}
 				err := testClient().Get(context.Background(), key, newApicast)
@@ -157,10 +156,6 @@ var _ = Describe("APIcast controller", func() {
 
 	Context("Run with APIcast with ExposedHost Deployment", func() {
 		It("Should create successfully", func() {
-			const (
-				retryInterval = time.Second * 5
-			)
-
 			start := time.Now()
 
 			// Create an APIcast embedded configuration secret
@@ -176,7 +171,8 @@ var _ = Describe("APIcast controller", func() {
 				},
 				Spec: appsv1alpha1.APIcastSpec{
 					ExposedHost: &appsv1alpha1.APIcastExposedHost{
-						Host: "apicast.example.com",
+						Host:             "apicast.example.com",
+						IngressClassName: ptr.To("default-openshift"),
 					},
 					EmbeddedConfigurationSecretRef: &v1.LocalObjectReference{
 						Name: testAPIcastEmbeddedConfigurationSecretName,
@@ -203,6 +199,8 @@ var _ = Describe("APIcast controller", func() {
 				err := testClient().Get(context.Background(), apicastIngressLookupKey, createdIngress)
 				return err == nil
 			}, 5*time.Minute, retryInterval).Should(BeTrue())
+
+			Expect(*createdIngress.Spec.IngressClassName).To(Equal("default-openshift"))
 
 			elapsed := time.Since(start)
 			By(fmt.Sprintf("APIcast creation and availability took %s seconds", elapsed))

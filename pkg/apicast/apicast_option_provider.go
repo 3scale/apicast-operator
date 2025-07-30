@@ -82,6 +82,7 @@ func (a *APIcastOptionsProvider) GetApicastOptions(ctx context.Context) (*APIcas
 	a.APIcastOptions.ExposedHost = ExposedHost{}
 	if a.APIcastCR.Spec.ExposedHost != nil {
 		a.APIcastOptions.ExposedHost.Host = a.APIcastCR.Spec.ExposedHost.Host
+		a.APIcastOptions.ExposedHost.IngressClassName = a.APIcastCR.Spec.ExposedHost.IngressClassName
 		a.APIcastOptions.ExposedHost.TLS = a.APIcastCR.Spec.ExposedHost.TLS
 	}
 

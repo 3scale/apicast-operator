@@ -29,6 +29,11 @@ func IngressMutator(existingObj, desiredObj k8sutils.KubernetesObject) (bool, er
 
 	update := false
 
+	if !reflect.DeepEqual(existing.Spec.IngressClassName, desired.Spec.IngressClassName) {
+		existing.Spec.IngressClassName = desired.Spec.IngressClassName
+		update = true
+	}
+
 	if exposedHostIdx == -1 {
 		existing.Spec.Rules = desired.Spec.Rules
 		update = true

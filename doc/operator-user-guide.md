@@ -168,6 +168,23 @@ spec:
     - {}
 ```
 
+**[For Openshift users]** Starting with OCP 4.12, an alert has been added for Ingress object without IngressClassName. To silence
+the alert, you can specify the ingressClassName:
+
+```
+apiVersion: apps.3scale.net/v1alpha1
+kind: APIcast
+metadata:
+  name: apicast1
+spec:
+  ...
+  exposedHost:
+    host: example.com
+    ingressClassName: openshift-default
+    tls:
+    - {}
+```
+
 Details about the available fields in the `exposedHost` section can be found [here](apicast-crd-reference.md#APIcastExposedHost)
 
 #### Setting Horizontal Pod Autoscaling 
