@@ -13,8 +13,10 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
+	policyv1 "k8s.io/api/policy/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/utils/ptr"
 
 	appsv1alpha1 "github.com/3scale/apicast-operator/apis/apps/v1alpha1"
@@ -32,6 +34,7 @@ var _ = Describe("APIcast controller", func() {
 		retryInterval = time.Second * 5
 	)
 	var testNamespace string
+	apicastName := "example-apicast"
 
 	BeforeEach(CreateNamespaceCallback(&testNamespace))
 	AfterEach(DeleteNamespaceCallback(&testNamespace))
@@ -68,7 +71,6 @@ var _ = Describe("APIcast controller", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			// Create an APIcast
-			apicastName := "example-apicast"
 			apicast := &appsv1alpha1.APIcast{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      apicastName,
@@ -163,7 +165,6 @@ var _ = Describe("APIcast controller", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			// Create an APIcast
-			apicastName := "example-apicast"
 			apicast := &appsv1alpha1.APIcast{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      apicastName,
@@ -204,6 +205,278 @@ var _ = Describe("APIcast controller", func() {
 
 			elapsed := time.Since(start)
 			By(fmt.Sprintf("APIcast creation and availability took %s seconds", elapsed))
+		})
+	})
+
+	Context("Run APIcast with custom Affinity settings", func() {
+		var apicast *appsv1alpha1.APIcast
+
+		affinity := &v1.Affinity{
+			PodAntiAffinity: &v1.PodAntiAffinity{
+				PreferredDuringSchedulingIgnoredDuringExecution: []v1.WeightedPodAffinityTerm{
+					{
+						Weight: 100,
+						PodAffinityTerm: v1.PodAffinityTerm{
+							LabelSelector: &metav1.LabelSelector{
+								MatchLabels: map[string]string{
+									"pod": "label",
+								},
+							},
+							TopologyKey: "kubernetes.io/hostname",
+						},
+					},
+				},
+			},
+		}
+
+		BeforeEach(func(ctx SpecContext) {
+			// Create an APIcast embedded configuration secret
+			err := testCreateAPIcastEmbeddedConfigurationSecret(context.Background(), testNamespace)
+			Expect(err).ToNot(HaveOccurred())
+
+			// Create an APIcast
+			apicast = &appsv1alpha1.APIcast{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      apicastName,
+					Namespace: testNamespace,
+				},
+				Spec: appsv1alpha1.APIcastSpec{
+					EmbeddedConfigurationSecretRef: &v1.LocalObjectReference{
+						Name: testAPIcastEmbeddedConfigurationSecretName,
+					},
+				},
+			}
+		})
+
+		It("Create a new APIcast with specific affinity", func(ctx SpecContext) {
+			apicast.Spec.Affinity = affinity.DeepCopy()
+
+			err := testClient().Create(ctx, apicast)
+			Expect(err).ToNot(HaveOccurred())
+
+			// Check that the correspondig APIcast K8s Deployment has been created
+			apicastDeploymentName := "apicast-" + apicastName
+			apicastDeploymentLookupKey := types.NamespacedName{Name: apicastDeploymentName, Namespace: testNamespace}
+			createdDeployment := &appsv1.Deployment{}
+			Eventually(func() bool {
+				err := testClient().Get(ctx, apicastDeploymentLookupKey, createdDeployment)
+				return err == nil
+			}, 5*time.Minute, retryInterval).Should(BeTrue())
+			Expect(createdDeployment.Spec.Template.Spec.Affinity).To(Equal(affinity))
+		})
+
+		It("Should update the deployment with affinity", func(ctx SpecContext) {
+			err := testClient().Create(ctx, apicast)
+			Expect(err).ToNot(HaveOccurred())
+
+			// Check that the correspondig APIcast K8s Deployment has been created
+			apicastDeploymentName := "apicast-" + apicastName
+			apicastDeploymentLookupKey := types.NamespacedName{Name: apicastDeploymentName, Namespace: testNamespace}
+			createdDeployment := &appsv1.Deployment{}
+			Eventually(func() bool {
+				err := testClient().Get(ctx, apicastDeploymentLookupKey, createdDeployment)
+				return err == nil
+			}, 5*time.Minute, retryInterval).Should(BeTrue())
+
+			Expect(createdDeployment.Spec.Template.Spec.Affinity).To(BeNil())
+
+			updatedAPIcast := appsv1alpha1.APIcast{}
+			Eventually(func(g Gomega) {
+				g.Expect(testClient().Get(ctx, types.NamespacedName{
+					Name:      apicast.Name,
+					Namespace: testNamespace,
+				}, &updatedAPIcast)).To(Succeed())
+				updatedAPIcast.Spec.Affinity = affinity.DeepCopy()
+				g.Expect(testClient().Update(context.Background(), &updatedAPIcast)).Should(Succeed())
+			}, 5*time.Minute, retryInterval).Should(Succeed())
+
+			Eventually(func(g Gomega) {
+				newDeployment := &appsv1.Deployment{}
+				g.Expect(testClient().Get(context.Background(), apicastDeploymentLookupKey, newDeployment)).To(Succeed())
+				g.Expect(newDeployment.Spec.Template.Spec.Affinity).Should(Equal(affinity))
+			}, 5*time.Minute, retryInterval).Should(Succeed())
+		})
+	})
+
+	Context("Run APIcast with custom Tolerations settings", func() {
+		var apicast *appsv1alpha1.APIcast
+
+		tolerations := []v1.Toleration{
+			{
+				Key:      "key1",
+				Effect:   v1.TaintEffectNoExecute,
+				Operator: v1.TolerationOpEqual,
+				Value:    "val1",
+			},
+			{
+				Key:      "key2",
+				Effect:   v1.TaintEffectNoExecute,
+				Operator: v1.TolerationOpEqual,
+				Value:    "val2",
+			},
+		}
+
+		BeforeEach(func(ctx SpecContext) {
+			// Create an APIcast embedded configuration secret
+			err := testCreateAPIcastEmbeddedConfigurationSecret(context.Background(), testNamespace)
+			Expect(err).ToNot(HaveOccurred())
+
+			// Create an APIcast
+			apicast = &appsv1alpha1.APIcast{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      apicastName,
+					Namespace: testNamespace,
+				},
+				Spec: appsv1alpha1.APIcastSpec{
+					EmbeddedConfigurationSecretRef: &v1.LocalObjectReference{
+						Name: testAPIcastEmbeddedConfigurationSecretName,
+					},
+				},
+			}
+		})
+
+		It("Create a new APIcast with specific tolerations", func(ctx SpecContext) {
+			apicast.Spec.Tolerations = tolerations
+
+			err := testClient().Create(ctx, apicast)
+
+			Expect(err).ToNot(HaveOccurred())
+
+			// Check that the correspondig APIcast K8s Deployment has been created
+			apicastDeploymentName := "apicast-" + apicastName
+			apicastDeploymentLookupKey := types.NamespacedName{Name: apicastDeploymentName, Namespace: testNamespace}
+			createdDeployment := &appsv1.Deployment{}
+
+			Eventually(func() bool {
+				err := testClient().Get(ctx, apicastDeploymentLookupKey, createdDeployment)
+				return err == nil
+			}, 5*time.Minute, retryInterval).Should(BeTrue())
+
+			Expect(createdDeployment.Spec.Template.Spec.Tolerations).To(Equal(tolerations))
+		})
+
+		It("Should update the deployment with tolerations", func(ctx SpecContext) {
+			err := testClient().Create(ctx, apicast)
+			Expect(err).ToNot(HaveOccurred())
+
+			// Check that the correspondig APIcast K8s Deployment has been created
+			apicastDeploymentName := "apicast-" + apicastName
+			apicastDeploymentLookupKey := types.NamespacedName{Name: apicastDeploymentName, Namespace: testNamespace}
+			createdDeployment := &appsv1.Deployment{}
+
+			Eventually(func() bool {
+				err := testClient().Get(ctx, apicastDeploymentLookupKey, createdDeployment)
+				return err == nil
+			}, 5*time.Minute, retryInterval).Should(BeTrue())
+
+			Expect(createdDeployment.Spec.Template.Spec.Affinity).To(BeNil())
+
+			updatedAPIcast := appsv1alpha1.APIcast{}
+
+			Eventually(func(g Gomega) {
+				g.Expect(testClient().Get(ctx, types.NamespacedName{
+					Name:      apicast.Name,
+					Namespace: testNamespace,
+				}, &updatedAPIcast)).To(Succeed())
+
+				updatedAPIcast.Spec.Tolerations = tolerations
+
+				g.Expect(testClient().Update(context.Background(), &updatedAPIcast)).Should(Succeed())
+			}, 5*time.Minute, retryInterval).Should(Succeed())
+
+			Eventually(func(g Gomega) {
+				newDeployment := &appsv1.Deployment{}
+				g.Expect(testClient().Get(context.Background(), apicastDeploymentLookupKey, newDeployment)).To(Succeed())
+				g.Expect(newDeployment.Spec.Template.Spec.Tolerations).Should(Equal(tolerations))
+			}, 5*time.Minute, retryInterval).Should(Succeed())
+		})
+	})
+
+	Context("Run APIcast with PodDisruptionBudget", func() {
+		var apicast *appsv1alpha1.APIcast
+		pdb := &appsv1alpha1.PodDisruptionBudgetSpec{Enabled: true}
+		maxUnavailable := &intstr.IntOrString{Type: 0, IntVal: 1}
+
+		BeforeEach(func(ctx SpecContext) {
+			// Create an APIcast embedded configuration secret
+			err := testCreateAPIcastEmbeddedConfigurationSecret(context.Background(), testNamespace)
+			Expect(err).ToNot(HaveOccurred())
+
+			// Create an APIcast
+			apicast = &appsv1alpha1.APIcast{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      apicastName,
+					Namespace: testNamespace,
+				},
+				Spec: appsv1alpha1.APIcastSpec{
+					EmbeddedConfigurationSecretRef: &v1.LocalObjectReference{
+						Name: testAPIcastEmbeddedConfigurationSecretName,
+					},
+				},
+			}
+		})
+
+		It("Create a new APIcast with pdb enabled", func(ctx SpecContext) {
+			apicast.Spec.PodDisruptionBudget = pdb
+			apicastDeploymentName := "apicast-" + apicastName
+
+			err := testClient().Create(ctx, apicast)
+			Expect(err).ToNot(HaveOccurred())
+
+			// Check that the correspondig APIcast K8s Deployment has been created
+			apicastDeploymentLookupKey := types.NamespacedName{Name: apicastDeploymentName, Namespace: testNamespace}
+			createdDeployment := &appsv1.Deployment{}
+			Eventually(func() bool {
+				err := testClient().Get(context.Background(), apicastDeploymentLookupKey, createdDeployment)
+				return err == nil
+			}, 5*time.Minute, retryInterval).Should(BeTrue())
+
+			pdb := &policyv1.PodDisruptionBudget{}
+			Eventually(func(g Gomega) {
+				g.Expect(testClient().Get(ctx,
+					types.NamespacedName{
+						Namespace: testNamespace,
+						Name:      apicastDeploymentName,
+					}, pdb)).To(Succeed())
+			}).WithContext(ctx).Should(Succeed())
+
+			Expect(pdb.Spec.MaxUnavailable).To(Equal(maxUnavailable))
+		})
+
+		It("Should remove PodDisruptionBudget when pdb disabled", func(ctx SpecContext) {
+			apicast.Spec.PodDisruptionBudget = pdb
+			apicastDeploymentName := "apicast-" + apicastName
+
+			err := testClient().Create(ctx, apicast)
+			Expect(err).ToNot(HaveOccurred())
+
+			// Check that the correspondig APIcast K8s Deployment has been created
+			apicastDeploymentLookupKey := types.NamespacedName{Name: apicastDeploymentName, Namespace: testNamespace}
+			createdDeployment := &appsv1.Deployment{}
+			Eventually(func() bool {
+				err := testClient().Get(context.Background(), apicastDeploymentLookupKey, createdDeployment)
+				return err == nil
+			}, 5*time.Minute, retryInterval).Should(BeTrue())
+
+			updatedAPIcast := appsv1alpha1.APIcast{}
+			Eventually(func(g Gomega) {
+				g.Expect(testClient().Get(ctx, types.NamespacedName{
+					Name:      apicast.Name,
+					Namespace: testNamespace,
+				}, &updatedAPIcast)).To(Succeed())
+
+				updatedAPIcast.Spec.PodDisruptionBudget.Enabled = false
+				g.Expect(testClient().Update(context.Background(), &updatedAPIcast)).Should(Succeed())
+			}, 5*time.Minute, retryInterval).Should(Succeed())
+
+			pdb := &policyv1.PodDisruptionBudget{}
+			Eventually(func(g Gomega) {
+				g.Expect(testClient().Get(ctx,
+					types.NamespacedName{
+						Namespace: testNamespace,
+						Name:      apicastDeploymentName,
+					}, pdb)).To(BeNil())
+			}).WithContext(ctx).Should(Succeed())
 		})
 	})
 })

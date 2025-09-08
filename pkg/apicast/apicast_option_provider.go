@@ -151,6 +151,8 @@ func (a *APIcastOptionsProvider) GetApicastOptions(ctx context.Context) (*APIcas
 		resourceRequirements = *a.APIcastCR.Spec.Resources
 	}
 	a.APIcastOptions.ResourceRequirements = resourceRequirements
+	a.APIcastOptions.Affinity = a.APIcastCR.Spec.Affinity
+	a.APIcastOptions.Tolerations = a.APIcastCR.Spec.Tolerations
 
 	a.APIcastOptions.Workers = a.APIcastCR.Spec.Workers
 	a.APIcastOptions.Timezone = a.APIcastCR.Spec.Timezone

@@ -265,6 +265,18 @@ spec:
           - update
           - watch
         - apiGroups:
+          - policy
+          resources:
+          - poddisruptionbudgets
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
           - route.openshift.io
           resources:
           - routes/custom-host

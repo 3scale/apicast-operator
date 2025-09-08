@@ -9,6 +9,8 @@
     * [Providing the APIcast configuration through a configuration file](#Providing-the-APIcast-configuration-through-a-configuration-file)
     * [Exposing APIcast externally via a Kubernetes Ingress](#Exposing-APIcast-externally-via-a-Kubernetes-Ingress)
     * [Setting custom resource requirements](#setting-custom-resource-requirements)
+    * [Setting custom affinity and tolerations](#setting-custom-affinity-and-tolerations)
+    * [Enabling Pod Disruption Budgets](#enable-pod-disruption-budgets)
     * [Setting Horizontal Pod Autoscaling](#setting-horizontal-pod-autoscaling)
     * [Enabling TLS at pod level](#enabling-tls-at-pod-level)
     * [Adding custom policies](adding-custom-policies.md)
@@ -271,6 +273,73 @@ Two notes:
 * When resource requests and/or resource limits are not specified, the operator [defaults](#deployment-configuration-options) will *NOT* be used, instead no requests and/or limit will be set.
 
 See [APIcast CRD reference](apicast-crd-reference.md)
+
+#### Setting custom affinity and tolerations
+
+Kubernetes [Affinity](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#affinity-and-anti-affinity
+) and [Tolerations](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/)
+can be customized through APICast CR attributes in order to customize where/how the APIcast installation is scheduled onto Kubernetes Nodes.
+
+For example, setting a custom node affinity and tolerations would be done in the
+following way:
+
+```yaml
+apiVersion: apps.3scale.net/v1alpha1
+kind: APIcast
+metadata:
+  name: apicast1
+spec:
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: beta.kubernetes.io/arch
+                operator: In
+                values:
+                  - amd64
+  tolerations:
+    - key: key1
+      value: value1
+      operator: Equal
+      effect: NoSchedule
+    - key: key2
+      value: value2
+      operator: Equal
+      effect: NoSchedule
+```
+
+See [APIcast CRD reference](apicast-crd-reference.md) for a full list of
+attributes related to affinity and tolerations.
+
+#### Enabling Pod Disruption Budgets
+A Pod Disruption Budget limits the number of pods related to an application
+(in this case, pods of a Deployment) that are down simultaneously
+from **voluntary disruptions**.
+
+For details about the behavior of Pod Disruption Budgets, what they perform and
+what constitutes a 'voluntary disruption' see the following
+[Kubernetes Documentation](https://kubernetes.io/docs/concepts/workloads/pods/disruptions/)
+
+Pods which are deleted or unavailable due to a rolling upgrade to an application
+do count against the disruption budget, but the Deployments are not
+limited by Pod Disruption Budgets when doing rolling upgrades or they are
+scaled up/down.
+
+In order for the Pod Disruption Budget setting to be effective the number of
+replicas has to be set to a value greater than 1.
+
+Example:
+```yaml
+apiVersion: apps.3scale.net/v1alpha1
+kind: APIcast
+metadata:
+  name: apicast1
+spec:
+  replicas: 2
+  podDisruptionBudget:
+    enabled: true
+```
 
 #### Enabling TLS at pod level
 

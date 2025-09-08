@@ -61,10 +61,21 @@ func (c *CustomPolicySpec) VersionName() string {
 	return fmt.Sprintf("%s%s", c.Name, c.Version)
 }
 
+type PodDisruptionBudgetSpec struct {
+	Enabled bool `json:"enabled,omitempty"`
+}
+
 // APIcastSpec defines the desired state of APIcast.
 type APIcastSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
+
+	// +optional
+	Affinity *v1.Affinity `json:"affinity,omitempty"`
+	// +optional
+	Tolerations []v1.Toleration `json:"tolerations,omitempty"`
+	// +optional
+	PodDisruptionBudget *PodDisruptionBudgetSpec `json:"podDisruptionBudget,omitempty"`
 
 	// Number of replicas of the APIcast Deployment.
 	// +optional
@@ -564,4 +575,8 @@ func (a *APIcast) GetApicastSecretRefs() []*v1.LocalObjectReference {
 	}
 
 	return secretRefs
+}
+
+func (a *APIcast) IsPDBEnabled() bool {
+	return a.Spec.PodDisruptionBudget != nil && a.Spec.PodDisruptionBudget.Enabled
 }
