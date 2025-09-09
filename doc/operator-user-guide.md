@@ -11,6 +11,7 @@
     * [Setting custom resource requirements](#setting-custom-resource-requirements)
     * [Setting custom affinity and tolerations](#setting-custom-affinity-and-tolerations)
     * [Enabling Pod Disruption Budgets](#enable-pod-disruption-budgets)
+    * [Setting custom TopologySpreadConstraints](#setting-custom-topologyspreadconstraints)
     * [Setting Horizontal Pod Autoscaling](#setting-horizontal-pod-autoscaling)
     * [Enabling TLS at pod level](#enabling-tls-at-pod-level)
     * [Adding custom policies](adding-custom-policies.md)
@@ -339,6 +340,27 @@ spec:
   replicas: 2
   podDisruptionBudget:
     enabled: true
+```
+
+#### Setting custom TopologySpreadConstraints
+
+TopologySpreadConstraints specifies how to spread matching pods among the given topology.  See [here](https://docs.openshift.com/container-platform/4.13/nodes/scheduling/nodes-scheduler-pod-topology-spread-constraints.html) for more information.
+It be can be customized through APICast CR `topologySpreadConstraints` attribute for each Deployment.
+Example:
+```yaml
+apiVersion: apps.3scale.net/v1alpha1
+kind: APICast
+metadata:
+  name: apicast1
+spec:
+  ...
+  topologySpreadConstraints:
+  - maxSkew: 1
+    topologyKey: topology.kubernetes.io/zone
+    whenUnsatisfiable: ScheduleAnyway
+    labelSelector:
+      matchLabels:
+        app: apicast
 ```
 
 #### Enabling TLS at pod level

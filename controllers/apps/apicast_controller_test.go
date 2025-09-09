@@ -479,6 +479,63 @@ var _ = Describe("APIcast controller", func() {
 			}).WithContext(ctx).Should(Succeed())
 		})
 	})
+
+	Context("Run APIcast with custom TopologySpreadConstraints settings", func() {
+		var apicast *appsv1alpha1.APIcast
+
+		topologySpreadConstraint := []v1.TopologySpreadConstraint{
+			{
+				MaxSkew:           2,
+				TopologyKey:       "topology.kubernetes.io/zone",
+				WhenUnsatisfiable: "DoNotSchedule",
+				LabelSelector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{"app": "apicast"},
+				},
+			},
+		}
+
+		BeforeEach(func(ctx SpecContext) {
+			// Create an APIcast embedded configuration secret
+			err := testCreateAPIcastEmbeddedConfigurationSecret(context.Background(), testNamespace)
+			Expect(err).ToNot(HaveOccurred())
+
+			// Create an APIcast
+			apicast = &appsv1alpha1.APIcast{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      apicastName,
+					Namespace: testNamespace,
+					Labels: map[string]string{
+						"app": "apicast",
+					},
+				},
+				Spec: appsv1alpha1.APIcastSpec{
+					EmbeddedConfigurationSecretRef: &v1.LocalObjectReference{
+						Name: testAPIcastEmbeddedConfigurationSecretName,
+					},
+				},
+			}
+		})
+
+		It("Create a new APIcast with specific TopologySpreadConstraints", func(ctx SpecContext) {
+			apicast.Spec.TopologySpreadConstraints = topologySpreadConstraint
+
+			err := testClient().Create(ctx, apicast)
+
+			Expect(err).ToNot(HaveOccurred())
+
+			// Check that the correspondig APIcast K8s Deployment has been created
+			apicastDeploymentName := "apicast-" + apicastName
+			apicastDeploymentLookupKey := types.NamespacedName{Name: apicastDeploymentName, Namespace: testNamespace}
+			createdDeployment := &appsv1.Deployment{}
+
+			Eventually(func() bool {
+				err := testClient().Get(ctx, apicastDeploymentLookupKey, createdDeployment)
+				return err == nil
+			}, 5*time.Minute, retryInterval).Should(BeTrue())
+
+			Expect(createdDeployment.Spec.Template.Spec.TopologySpreadConstraints).To(Equal(topologySpreadConstraint))
+		})
+	})
 })
 
 func testAPIcastEmbeddedConfigurationContent() string {

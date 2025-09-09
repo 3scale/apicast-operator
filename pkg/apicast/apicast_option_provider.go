@@ -153,6 +153,7 @@ func (a *APIcastOptionsProvider) GetApicastOptions(ctx context.Context) (*APIcas
 	a.APIcastOptions.ResourceRequirements = resourceRequirements
 	a.APIcastOptions.Affinity = a.APIcastCR.Spec.Affinity
 	a.APIcastOptions.Tolerations = a.APIcastCR.Spec.Tolerations
+	a.APIcastOptions.TopologySpreadConstraints = a.APIcastCR.Spec.TopologySpreadConstraints
 
 	a.APIcastOptions.Workers = a.APIcastCR.Spec.Workers
 	a.APIcastOptions.Timezone = a.APIcastCR.Spec.Timezone
