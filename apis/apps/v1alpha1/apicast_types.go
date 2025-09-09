@@ -76,6 +76,8 @@ type APIcastSpec struct {
 	Tolerations []v1.Toleration `json:"tolerations,omitempty"`
 	// +optional
 	PodDisruptionBudget *PodDisruptionBudgetSpec `json:"podDisruptionBudget,omitempty"`
+	// +optional
+	TopologySpreadConstraints []v1.TopologySpreadConstraint `json:"topologySpreadConstraints,omitempty"`
 
 	// Number of replicas of the APIcast Deployment.
 	// +optional
