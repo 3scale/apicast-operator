@@ -106,16 +106,13 @@ func DeploymentResourceMutator(desired, existing *appsv1.Deployment) bool {
 	return update
 }
 
+// DeploymentPodTemplateAnnotationsMutator ensures Pod Template Annotations is reconciled
 func DeploymentPodTemplateAnnotationsMutator(desired, existing *appsv1.Deployment) bool {
 	update := false
 
-	// They are annotations of the PodTemplate, part of the Spec, not part of the meta info of the Pod or Environment object itself
-	// It is not expected any controller to update them, so we use "set" approach, instead of merge.
-	// This way any removed annotation from desired (due to change in CR) will be removed in existing too.
-	if !reflect.DeepEqual(existing.Spec.Template.Annotations, desired.Spec.Template.Annotations) {
-		update = true
-		existing.Spec.Template.Annotations = desired.Spec.Template.Annotations
-	}
+	// Use merge instead of set
+	// See THREESCALE-11239
+	k8sutils.MergeMapStringString(&update, &existing.Spec.Template.Annotations, desired.Spec.Template.Annotations)
 
 	return update
 }

@@ -264,3 +264,67 @@ func TestDeploymentPriorityClassMutator(t *testing.T) {
 		})
 	}
 }
+
+func TestDeploymentPodTemplateAnnotationsMutator(t *testing.T) {
+	dFactory := func(annotations map[string]string) *appsv1.Deployment {
+		return &appsv1.Deployment{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "Deployment",
+				APIVersion: "apps.openshift.io/v1",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "myDeployment",
+				Namespace: "myNS",
+			},
+			Spec: appsv1.DeploymentSpec{
+				Template: v1.PodTemplateSpec{
+					ObjectMeta: metav1.ObjectMeta{
+						Annotations: annotations,
+					},
+				},
+			},
+		}
+	}
+
+	mapCopy := func(originalMap map[string]string) map[string]string {
+		// Create the target map
+		targetMap := make(map[string]string)
+
+		// Copy from the original map to the target map
+		for key, value := range originalMap {
+			targetMap[key] = value
+		}
+
+		return targetMap
+	}
+
+	annotationsA := map[string]string{"a": "1", "a2": "2"}
+	annotationsB := map[string]string{"a": "other", "b": "1"}
+
+	cases := []struct {
+		testName               string
+		existingAnnotations    map[string]string
+		desiredAnnotations     map[string]string
+		expectedResult         bool
+		expectedNewAnnotations map[string]string
+	}{
+		{"NothingToReconcile", mapCopy(annotationsA), mapCopy(annotationsA), false, mapCopy(annotationsA)},
+		{"AnnotationsReconciled", mapCopy(annotationsB), mapCopy(annotationsA), true, map[string]string{
+			"a": "1", "a2": "2", "b": "1",
+		}},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.testName, func(subT *testing.T) {
+			existing := dFactory(tc.existingAnnotations)
+			desired := dFactory(tc.desiredAnnotations)
+			update := DeploymentPodTemplateAnnotationsMutator(desired, existing)
+			if update != tc.expectedResult {
+				subT.Fatalf("result failed, expected: %t, got: %t", tc.expectedResult, update)
+			}
+			if !reflect.DeepEqual(existing.Spec.Template.Annotations, tc.expectedNewAnnotations) {
+				subT.Fatal(cmp.Diff(existing.Spec.Template.Annotations, tc.expectedNewAnnotations))
+			}
+		})
+	}
+}
