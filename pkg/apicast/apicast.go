@@ -466,6 +466,7 @@ func (a *APIcast) Deployment(ctx context.Context, k8sclient client.Client) (*app
 						},
 					},
 					TopologySpreadConstraints: a.options.TopologySpreadConstraints,
+					PriorityClassName:         a.options.PriorityClassName,
 				},
 			},
 		},

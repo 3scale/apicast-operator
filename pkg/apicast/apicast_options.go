@@ -46,6 +46,7 @@ type APIcastOptions struct {
 	Affinity                     *v1.Affinity                  `validate:"-"`
 	Tolerations                  []v1.Toleration               `validate:"-"`
 	TopologySpreadConstraints    []v1.TopologySpreadConstraint `validate:"-"`
+	PriorityClassName            string                        `validate:"-"`
 	ResourceRequirements         v1.ResourceRequirements       `validate:"-"`
 	Hpa                          bool
 

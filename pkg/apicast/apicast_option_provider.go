@@ -154,6 +154,9 @@ func (a *APIcastOptionsProvider) GetApicastOptions(ctx context.Context) (*APIcas
 	a.APIcastOptions.Affinity = a.APIcastCR.Spec.Affinity
 	a.APIcastOptions.Tolerations = a.APIcastCR.Spec.Tolerations
 	a.APIcastOptions.TopologySpreadConstraints = a.APIcastCR.Spec.TopologySpreadConstraints
+	if a.APIcastCR.Spec.PriorityClassName != nil {
+		a.APIcastOptions.PriorityClassName = *a.APIcastCR.Spec.PriorityClassName
+	}
 
 	a.APIcastOptions.Workers = a.APIcastCR.Spec.Workers
 	a.APIcastOptions.Timezone = a.APIcastCR.Spec.Timezone
