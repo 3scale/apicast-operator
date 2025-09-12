@@ -1220,6 +1220,8 @@ spec:
                   enabled:
                     type: boolean
                 type: object
+              priorityClassName:
+                type: string
               replicas:
                 description: Number of replicas of the APIcast Deployment.
                 format: int64

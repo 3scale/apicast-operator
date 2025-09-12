@@ -78,6 +78,8 @@ type APIcastSpec struct {
 	PodDisruptionBudget *PodDisruptionBudgetSpec `json:"podDisruptionBudget,omitempty"`
 	// +optional
 	TopologySpreadConstraints []v1.TopologySpreadConstraint `json:"topologySpreadConstraints,omitempty"`
+	// +optional
+	PriorityClassName *string `json:"priorityClassName,omitempty"`
 
 	// Number of replicas of the APIcast Deployment.
 	// +optional

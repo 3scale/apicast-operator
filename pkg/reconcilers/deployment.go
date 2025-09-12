@@ -192,3 +192,15 @@ func DeploymentTopologySpreadConstraintsMutator(desired, existing *appsv1.Deploy
 
 	return updated
 }
+
+// DeploymentPriorityClassMutator ensures priorityclass is reconciled
+func DeploymentPriorityClassNameMutator(desired, existing *appsv1.Deployment) bool {
+	updated := false
+
+	if existing.Spec.Template.Spec.PriorityClassName != desired.Spec.Template.Spec.PriorityClassName {
+		existing.Spec.Template.Spec.PriorityClassName = desired.Spec.Template.Spec.PriorityClassName
+		updated = true
+	}
+
+	return updated
+}

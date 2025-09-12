@@ -83,6 +83,7 @@ func (r *APIcastLogicReconciler) Reconcile(ctx context.Context) (reconcile.Resul
 		reconcilers.DeploymentTolerationsMutator,
 		reconcilers.DeploymentResourceMutator,
 		reconcilers.DeploymentTopologySpreadConstraintsMutator,
+		reconcilers.DeploymentPriorityClassNameMutator,
 		reconcilers.DeploymentPodTemplateAnnotationsMutator,
 		reconcilers.DeploymentVolumesMutator,
 		reconcilers.DeploymentVolumeMountsMutator,

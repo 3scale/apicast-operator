@@ -225,3 +225,42 @@ func TestDeploymentConfigTopologySpreadConstraintsMutator(t *testing.T) {
 		})
 	}
 }
+
+func TestDeploymentPriorityClassMutator(t *testing.T) {
+	deploymentFactory := func(priorityClassName string) *appsv1.Deployment {
+		return &appsv1.Deployment{
+			Spec: appsv1.DeploymentSpec{
+				Template: v1.PodTemplateSpec{
+					ObjectMeta: metav1.ObjectMeta{},
+					Spec: v1.PodSpec{
+						PriorityClassName: priorityClassName,
+					},
+				},
+			},
+		}
+	}
+
+	cases := []struct {
+		testName       string
+		existing       *appsv1.Deployment
+		desired        *appsv1.Deployment
+		expectedResult bool
+	}{
+		{"NothingToReconcile", deploymentFactory(""), deploymentFactory(""), false},
+		{"EqualPriorityClassName", deploymentFactory("high-priority"), deploymentFactory("high-priority"), false},
+		{"DifferentPriorityClassName", deploymentFactory("high-priority"), deploymentFactory("low-priority"), true},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.testName, func(subT *testing.T) {
+			update := DeploymentPriorityClassNameMutator(tc.desired, tc.existing)
+			if update != tc.expectedResult {
+				subT.Fatalf("result failed, expected: %t, got: %t", tc.expectedResult, update)
+			}
+
+			if !reflect.DeepEqual(tc.existing.Spec.Template.Spec.Tolerations, tc.desired.Spec.Template.Spec.Tolerations) {
+				subT.Fatalf("mismatch values: expected: %v, got %v", tc.desired.Spec.Template.Spec.Tolerations, tc.existing.Spec.Template.Spec.Tolerations)
+			}
+		})
+	}
+}

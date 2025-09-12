@@ -536,6 +536,91 @@ var _ = Describe("APIcast controller", func() {
 			Expect(createdDeployment.Spec.Template.Spec.TopologySpreadConstraints).To(Equal(topologySpreadConstraint))
 		})
 	})
+
+	Context("Run APIcast with custom PriorityClassName", func() {
+		var apicast *appsv1alpha1.APIcast
+		hightPriorityClass := "high-priority"
+		lowPriorityClass := "low-priority"
+
+		BeforeEach(func(ctx SpecContext) {
+			// Create an APIcast embedded configuration secret
+			err := testCreateAPIcastEmbeddedConfigurationSecret(context.Background(), testNamespace)
+			Expect(err).ToNot(HaveOccurred())
+
+			// Create an APIcast
+			apicast = &appsv1alpha1.APIcast{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      apicastName,
+					Namespace: testNamespace,
+					Labels: map[string]string{
+						"app": "apicast",
+					},
+				},
+				Spec: appsv1alpha1.APIcastSpec{
+					EmbeddedConfigurationSecretRef: &v1.LocalObjectReference{
+						Name: testAPIcastEmbeddedConfigurationSecretName,
+					},
+				},
+			}
+		})
+
+		It("Create a new APIcast with specific PriorityClassName", func(ctx SpecContext) {
+			apicast.Spec.PriorityClassName = &hightPriorityClass
+
+			err := testClient().Create(ctx, apicast)
+
+			Expect(err).ToNot(HaveOccurred())
+
+			// Check that the correspondig APIcast K8s Deployment has been created
+			apicastDeploymentName := "apicast-" + apicastName
+			apicastDeploymentLookupKey := types.NamespacedName{Name: apicastDeploymentName, Namespace: testNamespace}
+			createdDeployment := &appsv1.Deployment{}
+
+			Eventually(func() bool {
+				err := testClient().Get(ctx, apicastDeploymentLookupKey, createdDeployment)
+				return err == nil
+			}, 5*time.Minute, retryInterval).Should(BeTrue())
+
+			Expect(createdDeployment.Spec.Template.Spec.PriorityClassName).To(Equal(hightPriorityClass))
+		})
+
+		It("Should update the deployment with custom PriorityClassName", func(ctx SpecContext) {
+			apicast.Spec.PriorityClassName = &hightPriorityClass
+			err := testClient().Create(ctx, apicast)
+			Expect(err).ToNot(HaveOccurred())
+
+			// Check that the correspondig APIcast K8s Deployment has been created
+			apicastDeploymentName := "apicast-" + apicastName
+			apicastDeploymentLookupKey := types.NamespacedName{Name: apicastDeploymentName, Namespace: testNamespace}
+			createdDeployment := &appsv1.Deployment{}
+
+			Eventually(func() bool {
+				err := testClient().Get(ctx, apicastDeploymentLookupKey, createdDeployment)
+				return err == nil
+			}, 5*time.Minute, retryInterval).Should(BeTrue())
+
+			Expect(createdDeployment.Spec.Template.Spec.Affinity).To(BeNil())
+
+			updatedAPIcast := appsv1alpha1.APIcast{}
+
+			Eventually(func(g Gomega) {
+				g.Expect(testClient().Get(ctx, types.NamespacedName{
+					Name:      apicast.Name,
+					Namespace: testNamespace,
+				}, &updatedAPIcast)).To(Succeed())
+
+				updatedAPIcast.Spec.PriorityClassName = &lowPriorityClass
+
+				g.Expect(testClient().Update(context.Background(), &updatedAPIcast)).Should(Succeed())
+			}, 5*time.Minute, retryInterval).Should(Succeed())
+
+			Eventually(func(g Gomega) {
+				newDeployment := &appsv1.Deployment{}
+				g.Expect(testClient().Get(context.Background(), apicastDeploymentLookupKey, newDeployment)).To(Succeed())
+				g.Expect(newDeployment.Spec.Template.Spec.PriorityClassName).Should(Equal(lowPriorityClass))
+			}, 5*time.Minute, retryInterval).Should(Succeed())
+		})
+	})
 })
 
 func testAPIcastEmbeddedConfigurationContent() string {

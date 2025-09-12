@@ -12,6 +12,7 @@
     * [Setting custom affinity and tolerations](#setting-custom-affinity-and-tolerations)
     * [Enabling Pod Disruption Budgets](#enable-pod-disruption-budgets)
     * [Setting custom TopologySpreadConstraints](#setting-custom-topologyspreadconstraints)
+    * [Setting custom PriorityClassName](#setting-custom-priorityclassname)
     * [Setting Horizontal Pod Autoscaling](#setting-horizontal-pod-autoscaling)
     * [Enabling TLS at pod level](#enabling-tls-at-pod-level)
     * [Adding custom policies](adding-custom-policies.md)
@@ -361,6 +362,22 @@ spec:
     labelSelector:
       matchLabels:
         app: apicast
+```
+
+#### Setting custom PriorityClassName
+
+PriorityClassName specifies the Pod priority.  See [here](https://kubernetes.io/docs/concepts/scheduling-eviction/pod-priority-preemption/) for more information.
+It be can be customized through APICast CR `priorityClassName` attribute.
+
+Example:
+```yaml
+apiVersion: apps.3scale.net/v1alpha1
+kind: APICast
+metadata:
+  name: apicast1
+spec:
+  ...
+  priorityClassName: openshift-user-critical
 ```
 
 #### Enabling TLS at pod level
