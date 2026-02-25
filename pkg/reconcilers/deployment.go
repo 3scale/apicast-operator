@@ -79,7 +79,7 @@ func DeploymentServiceAccountNameMutator(desired, existing *appsv1.Deployment) b
 }
 
 func DeploymentEnvVarsMutator(desired, existing *appsv1.Deployment) bool {
-	return ReconcileEnvVar(&existing.Spec.Template.Spec.Containers[0].Env, desired.Spec.Template.Spec.Containers[0].Env)
+	return ReconcileEnvVars(&existing.Spec.Template.Spec.Containers[0].Env, desired.Spec.Template.Spec.Containers[0].Env)
 }
 
 func DeploymentResourceMutator(desired, existing *appsv1.Deployment) bool {

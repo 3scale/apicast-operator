@@ -3,27 +3,59 @@ package reconcilers
 import (
 	"reflect"
 
-	"github.com/3scale/apicast-operator/pkg/k8sutils"
 	v1 "k8s.io/api/core/v1"
 )
 
-// ReconcileEnvVar reconciles environment var lists
-func ReconcileEnvVar(existing *[]v1.EnvVar, desired []v1.EnvVar) bool {
-	if *existing == nil {
-		*existing = []v1.EnvVar{}
+// ReconcileEnvVar reconciles a complete list of environment variables.
+// Added when in desired and not in existing
+// Updated when in desired and in existing but not equal
+// Removed when not in desired and exists in existing
+func ReconcileEnvVars(existing *[]v1.EnvVar, desired []v1.EnvVar) bool {
+	if existing == nil {
+		*existing = make([]v1.EnvVar, 0, len(desired))
 	}
 
-	if len(*existing) != len(desired) {
-		*existing = desired
-		return true
+	// Build maps for fast lookups
+	existingMap := make(map[string]int, len(*existing))
+	for i, ev := range *existing {
+		existingMap[ev.Name] = i
 	}
 
-	for _, desiredEnvVar := range desired {
-		if idx := k8sutils.FindEnvVar(*existing, desiredEnvVar.Name); idx < 0 || !reflect.DeepEqual((*existing)[idx], desiredEnvVar) {
-			*existing = desired
-			return true
+	desiredMap := make(map[string]v1.EnvVar, len(desired))
+	for _, ev := range desired {
+		desiredMap[ev.Name] = ev
+	}
+
+	update := false
+	result := make([]v1.EnvVar, 0, len(desired))
+
+	for _, desiredVar := range desired {
+		if existingIdx, found := existingMap[desiredVar.Name]; found {
+			// Exists - check if update needed
+			if !reflect.DeepEqual((*existing)[existingIdx], desiredVar) {
+				result = append(result, desiredVar)
+				update = true
+			} else {
+				result = append(result, (*existing)[existingIdx])
+			}
+		} else {
+			// New var - add it
+			result = append(result, desiredVar)
+			update = true
 		}
 	}
 
-	return false
+	// Check for custom vars (in existing but not in desired)
+	for _, existingVar := range *existing {
+		if _, found := desiredMap[existingVar.Name]; !found {
+			result = append(result, existingVar)
+			update = true
+		}
+	}
+
+	if update {
+		*existing = result
+	}
+
+	return update
 }
