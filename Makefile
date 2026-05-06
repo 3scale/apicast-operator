@@ -42,8 +42,9 @@ CURRENT_DATE=$(shell date +%s)
 # find or download controller-gen
 # download controller-gen if necessary
 CONTROLLER_GEN=$(PROJECT_PATH)/bin/controller-gen
+CONTROLLER_GEN_VERSION = v0.20.0
 $(CONTROLLER_GEN):
-	$(call go-bin-install,$(CONTROLLER_GEN),sigs.k8s.io/controller-tools/cmd/controller-gen@v0.14.0)
+	$(call go-bin-install,$(CONTROLLER_GEN),sigs.k8s.io/controller-tools/cmd/controller-gen@$(CONTROLLER_GEN_VERSION))
 
 .PHONY: controller-gen
 controller-gen: $(CONTROLLER_GEN)
