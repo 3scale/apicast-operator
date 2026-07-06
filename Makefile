@@ -220,10 +220,11 @@ bundle-custom-build: | bundle-custom-updates bundle-build bundle-restore
 bundle-run: $(OPERATOR_SDK)
 	$(OPERATOR_SDK) run bundle --namespace openshift-marketplace $(BUNDLE_IMG)
 
+GOLANGCI-LINT_VERSION ?= v2.7.2
 GOLANGCI-LINT=$(PROJECT_PATH)/bin/golangci-lint
 $(GOLANGCI-LINT):
 	mkdir -p $(PROJECT_PATH)/bin
-	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(PROJECT_PATH)/bin v1.56.0
+	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(PROJECT_PATH)/bin $(GOLANGCI-LINT_VERSION)
 
 .PHONY: golangci-lint
 golangci-lint: $(GOLANGCI-LINT)
