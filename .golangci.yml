@@ -1,0 +1,16 @@
+version: "2"
+
+run:
+  # Timeout for total work, e.g. 30s, 5m, 5m30s.
+  # If the value is lower or equal to 0, the timeout is disabled.
+  # Default: 0 (disabled)
+  timeout: 2m
+
+linters:
+
+  exclusions:
+    rules:
+      # exclude staticcheck SA1019 for Result.Requeue.
+      - linters:
+          - staticcheck
+        text: "SA1019: .*\\.Requeue is deprecated: Use `RequeueAfter` instead."
