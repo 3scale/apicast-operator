@@ -163,6 +163,25 @@ spec:
           - create
           - patch
         - apiGroups:
+          - ""
+          resources:
+          - configmaps
+          - endpoints
+          - events
+          - persistentvolumeclaims
+          - pods
+          - secrets
+          - services
+          - services/finalizers
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
           - apps
           resources:
           - daemonsets
@@ -187,17 +206,6 @@ spec:
           - apps.3scale.net
           resources:
           - apicasts
-          verbs:
-          - create
-          - delete
-          - get
-          - list
-          - patch
-          - update
-          - watch
-        - apiGroups:
-          - apps.3scale.net
-          resources:
           - apicasts/finalizers
           verbs:
           - create
@@ -224,25 +232,6 @@ spec:
           - delete
           - get
           - list
-          - update
-          - watch
-        - apiGroups:
-          - ""
-          resources:
-          - configmaps
-          - endpoints
-          - events
-          - persistentvolumeclaims
-          - pods
-          - secrets
-          - services
-          - services/finalizers
-          verbs:
-          - create
-          - delete
-          - get
-          - list
-          - patch
           - update
           - watch
         - apiGroups:

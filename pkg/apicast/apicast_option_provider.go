@@ -267,7 +267,7 @@ func (a *APIcastOptionsProvider) getGatewayEmbeddedConfigSecret(ctx context.Cont
 	gatewayConfigSecretNamespace := a.APIcastCR.Namespace
 
 	if gatewayConfigSecretReference.Name == "" {
-		return nil, fmt.Errorf("Field 'Name' not specified for EmbeddedConfigurationSecretRef Secret Reference")
+		return nil, fmt.Errorf("field 'Name' not specified for EmbeddedConfigurationSecretRef Secret Reference")
 	}
 
 	gatewayConfigSecretNamespacedName := types.NamespacedName{
@@ -283,7 +283,7 @@ func (a *APIcastOptionsProvider) getGatewayEmbeddedConfigSecret(ctx context.Cont
 
 	secretStringData := k8sutils.SecretStringDataFromData(&gatewayConfigSecret)
 	if _, ok := secretStringData[EmbeddedConfigurationSecretKey]; !ok {
-		return nil, fmt.Errorf("Required key '%s' not found in secret '%s'", EmbeddedConfigurationSecretKey, gatewayConfigSecret.Name)
+		return nil, fmt.Errorf("required key '%s' not found in secret '%s'", EmbeddedConfigurationSecretKey, gatewayConfigSecret.Name)
 	}
 
 	return &gatewayConfigSecret, err
@@ -298,7 +298,7 @@ func (a *APIcastOptionsProvider) getAdminPortalCredentialsSecret(ctx context.Con
 	adminPortalNamespace := a.APIcastCR.Namespace
 
 	if adminPortalSecretReference.Name == "" {
-		return nil, fmt.Errorf("Field 'Name' not specified for AdminPortalCredentialsRef Secret Reference")
+		return nil, fmt.Errorf("field 'Name' not specified for AdminPortalCredentialsRef Secret Reference")
 	}
 
 	adminPortalCredentialsNamespacedName := types.NamespacedName{
@@ -315,7 +315,7 @@ func (a *APIcastOptionsProvider) getAdminPortalCredentialsSecret(ctx context.Con
 	secretStringData := k8sutils.SecretStringDataFromData(&adminPortalCredentialsSecret)
 	adminPortalURL, ok := secretStringData[AdminPortalURLAttributeName]
 	if !ok {
-		return nil, fmt.Errorf("Required key '%s' not found in secret '%s'", AdminPortalURLAttributeName, adminPortalCredentialsSecret.Name)
+		return nil, fmt.Errorf("required key '%s' not found in secret '%s'", AdminPortalURLAttributeName, adminPortalCredentialsSecret.Name)
 	}
 
 	parsedURL, err := url.Parse(adminPortalURL)
@@ -325,7 +325,7 @@ func (a *APIcastOptionsProvider) getAdminPortalCredentialsSecret(ctx context.Con
 
 	accessToken := parsedURL.User.Username()
 	if accessToken == "" {
-		return nil, fmt.Errorf("Access Token required in %s URL", AdminPortalURLAttributeName)
+		return nil, fmt.Errorf("access Token required in %s URL", AdminPortalURLAttributeName)
 	}
 
 	return &adminPortalCredentialsSecret, err
@@ -424,11 +424,11 @@ func (a *APIcastOptionsProvider) validateCustomPolicySecret(ctx context.Context,
 	}
 
 	if _, ok := secret.Data["init.lua"]; !ok {
-		return nil, fmt.Errorf("Required secret key, %s not found", "init.lua")
+		return nil, fmt.Errorf("required secret key, %s not found", "init.lua")
 	}
 
 	if _, ok := secret.Data["apicast-policy.json"]; !ok {
-		return nil, fmt.Errorf("Required secret key, %s not found", "apicast-policy.json")
+		return nil, fmt.Errorf("required secret key, %s not found", "apicast-policy.json")
 	}
 
 	return secret, nil
@@ -458,7 +458,7 @@ func (a *APIcastOptionsProvider) validateTracingConfigSecret(ctx context.Context
 	}
 
 	if _, ok := secret.Data[TracingConfigSecretKey]; !ok {
-		return nil, fmt.Errorf("Required secret key, %s not found", TracingConfigSecretKey)
+		return nil, fmt.Errorf("required secret key, %s not found", TracingConfigSecretKey)
 	}
 
 	return secret, nil

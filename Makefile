@@ -42,8 +42,9 @@ CURRENT_DATE=$(shell date +%s)
 # find or download controller-gen
 # download controller-gen if necessary
 CONTROLLER_GEN=$(PROJECT_PATH)/bin/controller-gen
+CONTROLLER_GEN_VERSION = v0.20.0
 $(CONTROLLER_GEN):
-	$(call go-bin-install,$(CONTROLLER_GEN),sigs.k8s.io/controller-tools/cmd/controller-gen@v0.14.0)
+	$(call go-bin-install,$(CONTROLLER_GEN),sigs.k8s.io/controller-tools/cmd/controller-gen@$(CONTROLLER_GEN_VERSION))
 
 .PHONY: controller-gen
 controller-gen: $(CONTROLLER_GEN)
@@ -219,10 +220,11 @@ bundle-custom-build: | bundle-custom-updates bundle-build bundle-restore
 bundle-run: $(OPERATOR_SDK)
 	$(OPERATOR_SDK) run bundle --namespace openshift-marketplace $(BUNDLE_IMG)
 
+GOLANGCI-LINT_VERSION ?= v2.7.2
 GOLANGCI-LINT=$(PROJECT_PATH)/bin/golangci-lint
 $(GOLANGCI-LINT):
 	mkdir -p $(PROJECT_PATH)/bin
-	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(PROJECT_PATH)/bin v1.56.0
+	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(PROJECT_PATH)/bin $(GOLANGCI-LINT_VERSION)
 
 .PHONY: golangci-lint
 golangci-lint: $(GOLANGCI-LINT)
