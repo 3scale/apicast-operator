@@ -9,7 +9,6 @@ import (
 
 func GetTestSecret(namespace, secretName string, data map[string]string) *v1.Secret {
 	secret := &v1.Secret{
-		TypeMeta: metav1.TypeMeta{APIVersion: "v1", Kind: "Secret"},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      secretName,
 			Namespace: namespace,
