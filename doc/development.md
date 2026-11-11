@@ -18,6 +18,9 @@
 * [Licenses management](#licenses-management)
   * [Manually adding a new license](#manually-adding-a-new-license)
 * [Adding new watched secrets](#adding-new-watched-secrets)
+* [CI image management](#ci-image-management)
+  * [Build and push a new CI image](#build-and-push-a-new-ci-image)
+  * [Troubleshooting](#troubleshooting)
 
 ## Prerequisites
 
@@ -230,3 +233,64 @@ After adding a new secret to the APIcast CRD make sure to also update the follow
    - Add the new secret to the switch in the `hasSecretHashChanged()` function
 6. [pkg/apicast/apicast_option_provider.go](../pkg/apicast/apicast_option_provider.go)
    - Add a new const called `XYZSecretResverAnnotation` that can be referenced throughout the code
+
+## CI image management
+
+The CircleCI jobs defined in [.circleci/config.yml](../.circleci/config.yml) run inside the
+`quay.io/3scale/operators-ci-images` container image. The image tag matches the Go minor version
+(for instance `v1.26` contains Go 1.26).
+
+The image is not built by this repository. It is built manually from the Dockerfiles of
+[CircleCI-Public/cimg-go](https://github.com/CircleCI-Public/cimg-go) and pushed to Quay.
+
+**Note**: a new image is required every time the Go minor version is bumped. The tag set in
+`.circleci/config.yml` is not checked until a job starts, so the new tag must be pushed to Quay
+before the CircleCI jobs run, otherwise they fail to pull the image. Never overwrite or delete an existing tag.
+
+### Build and push a new CI image
+
+* Requirements: `podman` able to run `linux/amd64` containers, and a Quay user with write access to the
+`3scale/operators-ci-images` repository.
+
+* Clone `cimg-go` and check the versions in the Dockerfile of the Go version to build (`GO_VER`, `GOCI_LINT_VERSION`...)
+
+```sh
+git clone --depth 1 https://github.com/CircleCI-Public/cimg-go
+cd cimg-go
+cat 1.26/Dockerfile
+```
+
+* Build the image
+
+```sh
+podman build --format docker --platform linux/amd64 -f 1.26/Dockerfile -t quay.io/3scale/operators-ci-images:v1.26 .
+```
+
+**Note**: `--format docker` is mandatory. Podman builds OCI images by default and OCI does not support the
+`SHELL` instruction used by the base image, so the Dockerfile `RUN` steps would be executed with `sh` instead of `bash`.
+That makes the build pick the wrong architecture and tool versions without failing. If the build
+prints `SHELL is not supported for OCI image format`, do not push the image.
+
+* Check the image before pushing it. It must be `x86_64` and the versions must match the Dockerfile.
+
+```sh
+podman run --rm --platform linux/amd64 quay.io/3scale/operators-ci-images:v1.26 \
+  bash -c 'uname -m; go version; golangci-lint --version; gotestsum --version; task --version; govulncheck -version'
+```
+
+* Push the image
+
+```sh
+podman login quay.io
+podman push --format docker quay.io/3scale/operators-ci-images:v1.26
+```
+
+* Update the image tag in `.circleci/config.yml` (all the jobs using `operators-ci-images`)
+
+### Troubleshooting
+
+* CircleCI job fails to pull `operators-ci-images:<tag>`: the tag has not been pushed to Quay yet.
+* Build error `gcc_arm64.S: no such instruction` or `golangci-lint ... found version: 1.64.8`: the image was built
+without `--format docker`. Rebuild adding `--no-cache`.
+* `Could not connect to ppa.launchpadcontent.net`: warning only, the build continues.
+* `podman push` returns 401 or 403: log in with `podman login quay.io` using a user with write access.
