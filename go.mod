@@ -1,8 +1,8 @@
 module github.com/3scale/apicast-operator
 
-go 1.25.0
+go 1.26.0
 
-toolchain go1.25.9
+toolchain go1.26.10
 
 require (
 	github.com/RHsyseng/operator-utils v1.4.13
